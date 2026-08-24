@@ -45,7 +45,8 @@ export const ProductGrid: FC<ProductGridProps> = ({
         .map(
           async (handle: string) => await getProduct(shopifyConfig, { handle })
         )
-      setProducts(await Promise.all(promises))
+      const fetched = await Promise.all(promises)
+      setProducts(fetched.filter(Boolean))
       setLoading(false)
     }
     if (productsList && !initialProducts) {
@@ -59,7 +60,7 @@ export const ProductGrid: FC<ProductGridProps> = ({
       const result = await getCollection(shopifyConfig, {
         handle: collection,
       })
-      setProducts(result.products)
+      setProducts(result?.products || [])
       setLoading(false)
     }
     if (typeof collection === 'string' && !initialProducts) {

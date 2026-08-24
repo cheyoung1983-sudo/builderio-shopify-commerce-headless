@@ -3,6 +3,7 @@ const bundleAnalyzer = require('@next/bundle-analyzer')({
 })
 
 module.exports = bundleAnalyzer({
+  output: 'standalone',
   images: {
     domains: [
       'res.cloudinary.com',
@@ -10,20 +11,6 @@ module.exports = bundleAnalyzer({
       'cdn.builder.io',
       'via.placeholder.com',
     ],
-  },
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value:
-              'frame-ancestors https://*.builder.io https://builder.io http://localhost:1234',
-          },
-        ],
-      },
-    ]
   },
   env: {
     // expose env to the browser

@@ -12,21 +12,28 @@ export async function resolveBuilderContent(
   locale = 'en-US',
   targetingAttributes?: Record<string, any>
 ) {
-  let page = await builder
-    .get(modelName, {
-      apiKey: builderConfig.apiKey,
-      enrich: true,
-      options: {
-        locale,
-        // only cachebust if you're statically generating the page
-        cachebust: true,
-      },
-      userAttributes: {
-        ...targetingAttributes,
-        locale,
-      },
-    })
-    .toPromise()
+  let page: any = null
+  if (builderConfig.apiKey) {
+    try {
+      page = await builder
+        .get(modelName, {
+          apiKey: builderConfig.apiKey,
+          enrich: true,
+          options: {
+            locale,
+            // only cachebust if you're statically generating the page
+            cachebust: true,
+          },
+          userAttributes: {
+            ...targetingAttributes,
+            locale,
+          },
+        })
+        .toPromise()
+    } catch (e) {
+      console.warn(`Builder get error for ${modelName}:`, e)
+    }
+  }
 
   if (page && process.env.NODE_ENV === 'production') {
     return await getAsyncProps(page, {
@@ -73,11 +80,11 @@ export async function resolveBuilderContent(
 
       async ProductCollectionGrid({ collection }) {
         if (collection && typeof collection === 'string') {
-          const { products } = await getCollection(shopifyConfig, {
+          const collectionData = await getCollection(shopifyConfig, {
             handle: collection,
           })
           return {
-            products,
+            products: collectionData?.products || [],
           }
         }
       },

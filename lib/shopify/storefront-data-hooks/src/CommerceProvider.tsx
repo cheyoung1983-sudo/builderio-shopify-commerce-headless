@@ -12,26 +12,34 @@ export function CommerceProvider({
   domain,
   children,
 }: CommerceProviderProps) {
-  if (domain == null || storefrontAccessToken == null) {
-    throw new Error(
-      'Unable to build shopify-buy client object. Please make sure that your access token and domain are correct.'
-    )
-  }
-
+  const isConfigured = Boolean(domain && storefrontAccessToken)
   const initialCart = LocalStorage.getInitialCart()
   const [cart, setCart] = useState<ShopifyBuy.Cart | null>(initialCart)
 
-  const isCustomDomain = domain.includes('.')
+  const isCustomDomain = domain ? domain.includes('.') : false
 
-  const client = ShopifyBuy.buildClient({
-    storefrontAccessToken,
-    domain: isCustomDomain ? domain : `${domain}.myshopify.com`,
-  })
+  let client: any = null
+  if (isConfigured) {
+    try {
+      client = ShopifyBuy.buildClient({
+        storefrontAccessToken,
+        domain: isCustomDomain ? domain : `${domain}.myshopify.com`,
+      })
+    } catch (e) {
+      console.warn('Failed to build Shopify client:', e)
+    }
+  }
 
   useEffect(() => {
+    if (!client) return
+
     async function getNewCart() {
-      const newCart = await client.checkout.create()
-      setCart(newCart)
+      try {
+        const newCart = await client.checkout.create()
+        setCart(newCart)
+      } catch (error) {
+        console.warn('Failed to create shopify cart:', error)
+      }
     }
 
     async function refreshExistingCart(cartId: string) {
@@ -50,7 +58,7 @@ export function CommerceProvider({
           setCart(refreshedCart)
         }
       } catch (error) {
-        console.error(error)
+        console.warn('Failed to refresh shopify cart:', error)
       }
     }
 
@@ -59,7 +67,7 @@ export function CommerceProvider({
     } else {
       refreshExistingCart(String(cart.id))
     }
-  }, [])
+  }, [client])
 
   useEffect(() => {
     LocalStorage.set(LocalStorageKeys.CART, JSON.stringify(cart))

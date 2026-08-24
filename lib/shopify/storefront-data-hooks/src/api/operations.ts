@@ -1,72 +1,126 @@
 import { buildClient } from 'shopify-buy'
 
-const fastClone = (obj: any) => JSON.parse(JSON.stringify(obj))
+const fastClone = (obj: any) => obj ? JSON.parse(JSON.stringify(obj)) : null
 
-export function getAllProducts(config: ShopifyBuy.Config, limit?: number) {
-  const client = buildClient(config)
-  return client.product.fetchAll(limit)
+function getSafeClient(config: ShopifyBuy.Config) {
+  if (!config?.domain || !config?.storefrontAccessToken) {
+    return null
+  }
+  try {
+    return buildClient(config)
+  } catch (e) {
+    console.warn('Failed to build ShopifyBuy client:', e)
+    return null
+  }
+}
+
+export async function getAllProducts(config: ShopifyBuy.Config, limit?: number) {
+  const client = getSafeClient(config)
+  if (!client) return []
+  try {
+    return (await client.product.fetchAll(limit)) || []
+  } catch (e) {
+    console.warn('Shopify getAllProducts error:', e)
+    return []
+  }
 }
 
 export async function getAllProductPaths(
   config: ShopifyBuy.Config,
   limit?: number
 ): Promise<string[]> {
-  const client = buildClient(config)
-  // interface need update
-  const products: any[] = await client.product.fetchAll(limit)
-  return products.map((val) => val.handle)
+  const client = getSafeClient(config)
+  if (!client) return []
+  try {
+    // interface need update
+    const products: any[] = (await client.product.fetchAll(limit)) || []
+    return products.map((val) => val.handle)
+  } catch (e) {
+    console.warn('Shopify getAllProductPaths error:', e)
+    return []
+  }
 }
 
 export async function getProduct(
   config: ShopifyBuy.Config,
   options: { id?: string; handle?: string }
 ) {
-  const client = buildClient(config)
-  if (options.handle) {
-    return fastClone(await client.product.fetchByHandle(options.handle))
+  const client = getSafeClient(config)
+  if (!client) return null
+  try {
+    if (options.handle) {
+      return fastClone(await client.product.fetchByHandle(options.handle))
+    }
+    if (!options.id) {
+      return null
+    }
+    return fastClone(await client.product.fetch(options.id))
+  } catch (e) {
+    console.warn('Shopify getProduct error:', e)
+    return null
   }
-  if (!options.id) {
-    throw new Error('A product ID or handle is required')
-  }
-  return fastClone(await client.product.fetch(options.id))
 }
 
-export function getAllCollections(config: ShopifyBuy.Config, limit?: number) {
-  const client = buildClient(config)
-  return client.collection.fetchAll(limit)
+export async function getAllCollections(config: ShopifyBuy.Config, limit?: number) {
+  const client = getSafeClient(config)
+  if (!client) return []
+  try {
+    return (await client.collection.fetchAll(limit)) || []
+  } catch (e) {
+    console.warn('Shopify getAllCollections error:', e)
+    return []
+  }
 }
 
 export async function getAllCollectionPaths(
   config: ShopifyBuy.Config,
   limit?: number
 ): Promise<string[]> {
-  const client = buildClient(config)
-  // interface need update
-  const collections: any[] = await client.collection.fetchAll(limit)
-  return collections.map((val) => val.handle)
+  const client = getSafeClient(config)
+  if (!client) return []
+  try {
+    // interface need update
+    const collections: any[] = (await client.collection.fetchAll(limit)) || []
+    return collections.map((val) => val.handle)
+  } catch (e) {
+    console.warn('Shopify getAllCollectionPaths error:', e)
+    return []
+  }
 }
 
 export async function getCollection(
   config: ShopifyBuy.Config,
   options: { id?: string; handle?: string }
 ) {
-  const client = buildClient(config)
-  if (options.handle) {
-    return fastClone(await client.collection.fetchByHandle(options.handle))
+  const client = getSafeClient(config)
+  if (!client) return null
+  try {
+    if (options.handle) {
+      return fastClone(await client.collection.fetchByHandle(options.handle))
+    }
+    if (!options.id) {
+      return null
+    }
+    return fastClone(await client.collection.fetch(options.id))
+  } catch (e) {
+    console.warn('Shopify getCollection error:', e)
+    return null
   }
-  if (!options.id) {
-    throw new Error('A collection ID or handle is required')
-  }
-  return fastClone(await client.collection.fetch(options.id))
 }
 
 export async function searchProducts(
   config: ShopifyBuy.Config,
   searchString: string
 ) {
-  const client = buildClient(config)
-  return client.product.fetchQuery({
-    query: searchString ? `title:*${searchString}*` : '',
-    sortBy: 'title',
-  })
+  const client = getSafeClient(config)
+  if (!client) return []
+  try {
+    return (await client.product.fetchQuery({
+      query: searchString ? `title:*${searchString}*` : '',
+      sortBy: 'title',
+    })) || []
+  } catch (e) {
+    console.warn('Shopify searchProducts error:', e)
+    return []
+  }
 }

@@ -32,7 +32,9 @@ const CollectionPreview: FC<Props> = ({
       const result = await getCollection(shopifyConfig, {
         handle: collection,
       })
-      setCollection(result)
+      if (result) {
+        setCollection(result)
+      }
       setLoading(false)
     }
     if (typeof collection === 'string') {

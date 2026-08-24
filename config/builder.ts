@@ -1,9 +1,9 @@
 if (!process.env.BUILDER_PUBLIC_KEY) {
-  throw new Error('Missing env varialbe BUILDER_PUBLIC_KEY')
+  console.warn('BUILDER_PUBLIC_KEY environment variable is missing or empty')
 }
 
 export default {
-  apiKey: process.env.BUILDER_PUBLIC_KEY,
+  apiKey: process.env.BUILDER_PUBLIC_KEY || '',
   productsModel: 'shopify-product',
   collectionsModel: 'shopify-collection',
 }

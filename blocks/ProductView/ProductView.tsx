@@ -27,8 +27,8 @@ interface Props {
 const ProductBox: React.FC<Props> = ({
   product,
   renderSeo,
-  description = product.description,
-  title = product.title,
+  description = product?.description,
+  title = product?.title,
 }) => {
   const [loading, setLoading] = useState(false)
   const addItem = useAddItemToCart()
@@ -52,8 +52,8 @@ const ProductBox: React.FC<Props> = ({
   const { openSidebar } = useUI()
 
   const [variant, setVariant] = useState(variants[0] || {})
-  const [color, setColor] = useState(variant.color)
-  const [size, setSize] = useState(variant.size)
+  const [color, setColor] = useState(variant?.color)
+  const [size, setSize] = useState(variant?.size)
 
   useEffect(() => {
     const newVariant = variants.find((variant) => {
@@ -62,12 +62,13 @@ const ProductBox: React.FC<Props> = ({
       )
     })
 
-    if (variant.id !== newVariant?.id) {
-      setVariant(newVariant)
+    if (variant?.id !== newVariant?.id) {
+      setVariant(newVariant || {})
     }
-  }, [size, color, variants, variant.id])
+  }, [size, color, variants, variant?.id])
 
   const addToCart = async () => {
+    if (!variant?.id) return
     setLoading(true)
     try {
       await addItem(variant.id, 1)
@@ -77,13 +78,13 @@ const ProductBox: React.FC<Props> = ({
       setLoading(false)
     }
   }
-  const allImages = images
-    .map(({ src }) => ({ src: src.src }))
+  const allImages = (images || [])
+    .map(({ src }) => ({ src: src?.src }))
     .concat(
-      product.images &&
+      (product?.images &&
         product.images.filter(
-          ({ src }) => !images.find((image) => image.src.src === src)
-        )
+          ({ src }) => !images.find((image) => image?.src?.src === src)
+        )) || []
     )
 
   return (

@@ -1,0 +1,6 @@
+{
+  "name": "Builder.io Shopify Headless Commerce",
+  "description": "Headless Shopify commerce storefront powered by Builder.io CMS and Next.js.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
