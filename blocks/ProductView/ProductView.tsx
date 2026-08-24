@@ -31,6 +31,7 @@ const ProductBox: React.FC<Props> = ({
   title = product?.title,
 }) => {
   const [loading, setLoading] = useState(false)
+  const [addToCartError, setAddToCartError] = useState<string | null>(null)
   const addItem = useAddItemToCart()
   const colors: string[] | undefined = product?.options
     ?.find((option) => option?.name?.toLowerCase() === 'color')
@@ -68,13 +69,21 @@ const ProductBox: React.FC<Props> = ({
   }, [size, color, variants, variant?.id])
 
   const addToCart = async () => {
-    if (!variant?.id) return
+    if (!variant?.id) {
+      setAddToCartError('This product is currently unavailable.')
+      return
+    }
+
     setLoading(true)
+    setAddToCartError(null)
     try {
       await addItem(variant.id, 1)
       openSidebar()
-      setLoading(false)
     } catch (err) {
+      setAddToCartError(
+        'We could not add this item to your cart. Please try again.'
+      )
+    } finally {
       setLoading(false)
     }
   }
@@ -178,6 +187,11 @@ const ProductBox: React.FC<Props> = ({
           >
             Add to Cart {loading && '...'}
           </Button>
+          {addToCartError && (
+            <p role="alert" sx={{ color: 'primary', margin: 2 }}>
+              {addToCartError}
+            </p>
+          )}
         </div>
       </Grid>
     </React.Fragment>

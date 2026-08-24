@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import ShopifyBuy from 'shopify-buy'
 import { Context } from './Context'
 import { LocalStorage, LocalStorageKeys } from './utils'
@@ -18,17 +18,21 @@ export function CommerceProvider({
 
   const isCustomDomain = domain ? domain.includes('.') : false
 
-  let client: any = null
-  if (isConfigured) {
+  const client = useMemo(() => {
+    if (!isConfigured) {
+      return null
+    }
+
     try {
-      client = ShopifyBuy.buildClient({
+      return ShopifyBuy.buildClient({
         storefrontAccessToken,
         domain: isCustomDomain ? domain : `${domain}.myshopify.com`,
       })
-    } catch (e) {
-      console.warn('Failed to build Shopify client:', e)
+    } catch (error) {
+      console.warn('Failed to build Shopify client:', error)
+      return null
     }
-  }
+  }, [domain, isConfigured, isCustomDomain, storefrontAccessToken])
 
   useEffect(() => {
     if (!client) return

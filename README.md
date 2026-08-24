@@ -178,6 +178,10 @@ BUILDER_PUBLIC_KEY=012345abcdef0123456789abcdef0123
 - SHOPIFY_STORE_DOMAIN=
 ```
 
+The Storefront access token must have unauthenticated checkout access enabled.
+The cart's **Secure Checkout** button takes customers to Shopify's hosted
+checkout, where Shopify calculates tax and shipping and processes payment.
+
 ### 7. Up and Running!
 
 The hard part is over, all you have to do is start up the project now.

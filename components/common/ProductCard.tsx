@@ -2,7 +2,6 @@
 /** @jsx jsx */
 import { Heading, jsx } from 'theme-ui'
 import { Card, Text } from '@theme-ui/components'
-import ImageCarousel from '@components/common/ImageCarousel'
 import { getPrice } from '@lib/shopify/storefront-data-hooks/src/utils/product'
 import Link from '@components/common/Link'
 
@@ -29,10 +28,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const handle = (product as any).handle
   const productVariant: any = product.variants[0]
-  const price = getPrice(
-    productVariant.priceV2.amount,
-    productVariant.priceV2.currencyCode
-  )
+  const price =
+    productVariant?.priceV2 != null
+      ? getPrice(
+          productVariant.priceV2.amount,
+          productVariant.priceV2.currencyCode
+        )
+      : 'Unavailable'
+  const image = product.images?.[0]
 
   return (
     <Card
@@ -49,26 +52,39 @@ const ProductCard: React.FC<ProductCardProps> = ({
           color: 'inherit',
         }}
       >
-        <div sx={{ flexGrow: 1 }}>
-          <ImageCarousel
-            currentSlide={product.images ? product.images.length - 1 : 0}
-            width={imgWidth}
-            height={imgHeight}
-            priority={imgPriority}
-            loading={imgLoading}
-            layout={imgLayout}
-            sizes={imgSizes}
-            alt={product.title}
-            images={
-              product.images.length
-                ? product.images
-                : [
-                    {
-                      src: `https://via.placeholder.com/${imgWidth}x${imgHeight}`,
-                    },
-                  ]
-            }
-          />
+        <div
+          sx={{
+            flexGrow: 1,
+            aspectRatio: `${imgWidth} / ${imgHeight}`,
+            bg: 'muted',
+            overflow: 'hidden',
+          }}
+        >
+          {image ? (
+            <img
+              src={image.src}
+              alt={image.altText || product.title}
+              loading={imgLoading}
+              sizes={imgSizes}
+              sx={{
+                display: 'block',
+                height: '100%',
+                objectFit: 'cover',
+                width: '100%',
+              }}
+            />
+          ) : (
+            <div
+              sx={{
+                alignItems: 'center',
+                display: 'flex',
+                height: '100%',
+                justifyContent: 'center',
+              }}
+            >
+              <Text>Image unavailable</Text>
+            </div>
+          )}
         </div>
         <div sx={{ textAlign: 'center' }}>
           <Heading as="h2" sx={{ mt: 4, mb: 0, fontSize: 14 }}>
