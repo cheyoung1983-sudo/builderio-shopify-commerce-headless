@@ -2,6 +2,7 @@
 /** @jsx jsx */
 import { Heading, jsx } from 'theme-ui'
 import { Card, Text } from '@theme-ui/components'
+import Image from 'next/legacy/image'
 import { getPrice } from '@lib/shopify/storefront-data-hooks/src/utils/product'
 import Link from '@components/common/Link'
 
@@ -61,17 +62,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
           }}
         >
           {image ? (
-            <img
+            <Image
               src={image.src}
               alt={product.title}
-              loading={imgLoading}
+              width={imgWidth}
+              height={imgHeight}
+              layout={imgLayout}
+              objectFit="cover"
+              priority={imgPriority}
+              loading={imgPriority ? undefined : imgLoading}
               sizes={imgSizes}
-              sx={{
-                display: 'block',
-                height: '100%',
-                objectFit: 'cover',
-                width: '100%',
-              }}
             />
           ) : (
             <div

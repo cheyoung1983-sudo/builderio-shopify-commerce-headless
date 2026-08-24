@@ -6,9 +6,11 @@
   },
   "scripts": {
     "dev": "next dev -p 3000 -H 0.0.0.0",
-    "build": "next build",
+    "build": "npm run precheck && next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "precheck": "npm run typecheck && npm run lint",
     "analyze": "BUNDLE_ANALYZE=both npm run build",
     "find:unused": "next-unused",
     "prettier": "prettier"

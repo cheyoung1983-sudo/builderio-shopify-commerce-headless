@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import ShopifyBuy from 'shopify-buy'
 import { Context } from './Context'
 import { LocalStorage, LocalStorageKeys } from './utils'
@@ -15,6 +15,7 @@ export function CommerceProvider({
   const isConfigured = Boolean(domain && storefrontAccessToken)
   const initialCart = LocalStorage.getInitialCart()
   const [cart, setCart] = useState<ShopifyBuy.Cart | null>(initialCart)
+  const initialCartRef = useRef(initialCart)
 
   const isCustomDomain = domain ? domain.includes('.') : false
 
@@ -67,10 +68,11 @@ export function CommerceProvider({
       }
     }
 
-    if (cart == null) {
+    const savedCart = initialCartRef.current
+    if (savedCart == null) {
       getNewCart()
     } else {
-      refreshExistingCart(String(cart.id))
+      refreshExistingCart(String(savedCart.id))
     }
   }, [client])
 
