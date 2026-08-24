@@ -36,10 +36,11 @@ export function CommerceProvider({
 
   useEffect(() => {
     if (!client) return
+    const shopifyClient = client
 
     async function getNewCart() {
       try {
-        const newCart = await client.checkout.create()
+        const newCart = await shopifyClient.checkout.create()
         setCart(newCart)
       } catch (error) {
         console.warn('Failed to create shopify cart:', error)
@@ -48,7 +49,7 @@ export function CommerceProvider({
 
     async function refreshExistingCart(cartId: string) {
       try {
-        const refreshedCart = await client.checkout.fetch(cartId)
+        const refreshedCart = await shopifyClient.checkout.fetch(cartId)
 
         if (refreshedCart == null) {
           return getNewCart()

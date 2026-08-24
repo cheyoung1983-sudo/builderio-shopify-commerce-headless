@@ -17,16 +17,12 @@ const CartSidebarView: FC = () => {
   const isEmpty = items.length === 0
   const currencyCode =
     (items[0] as any)?.variant?.priceV2?.currencyCode || 'USD'
-  const subtotalAmount = cart?.subtotalPrice?.amount
-  const totalAmount = cart?.totalPrice?.amount
+  const subtotalAmount = cart?.subtotalPrice
   const subTotal =
     typeof subtotalAmount === 'string'
       ? getPrice(subtotalAmount, currencyCode)
       : 'Calculating at checkout'
-  const total =
-    typeof totalAmount === 'string'
-      ? getPrice(totalAmount, currencyCode)
-      : subTotal
+  const total = subTotal
   const [cartUpsell, setCartUpsell] = useState()
 
   useEffect(() => {

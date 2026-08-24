@@ -63,7 +63,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           {image ? (
             <img
               src={image.src}
-              alt={image.altText || product.title}
+              alt={product.title}
               loading={imgLoading}
               sizes={imgSizes}
               sx={{
