@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import ShopifyBuy from 'shopify-buy'
 import { Context } from './Context'
 import { LocalStorage, LocalStorageKeys } from './utils'
@@ -15,27 +15,33 @@ export function CommerceProvider({
   const isConfigured = Boolean(domain && storefrontAccessToken)
   const initialCart = LocalStorage.getInitialCart()
   const [cart, setCart] = useState<ShopifyBuy.Cart | null>(initialCart)
+  const initialCartRef = useRef(initialCart)
 
   const isCustomDomain = domain ? domain.includes('.') : false
 
-  let client: any = null
-  if (isConfigured) {
+  const client = useMemo(() => {
+    if (!isConfigured) {
+      return null
+    }
+
     try {
-      client = ShopifyBuy.buildClient({
+      return ShopifyBuy.buildClient({
         storefrontAccessToken,
         domain: isCustomDomain ? domain : `${domain}.myshopify.com`,
       })
-    } catch (e) {
-      console.warn('Failed to build Shopify client:', e)
+    } catch (error) {
+      console.warn('Failed to build Shopify client:', error)
+      return null
     }
-  }
+  }, [domain, isConfigured, isCustomDomain, storefrontAccessToken])
 
   useEffect(() => {
     if (!client) return
+    const shopifyClient = client
 
     async function getNewCart() {
       try {
-        const newCart = await client.checkout.create()
+        const newCart = await shopifyClient.checkout.create()
         setCart(newCart)
       } catch (error) {
         console.warn('Failed to create shopify cart:', error)
@@ -44,7 +50,7 @@ export function CommerceProvider({
 
     async function refreshExistingCart(cartId: string) {
       try {
-        const refreshedCart = await client.checkout.fetch(cartId)
+        const refreshedCart = await shopifyClient.checkout.fetch(cartId)
 
         if (refreshedCart == null) {
           return getNewCart()
@@ -62,10 +68,11 @@ export function CommerceProvider({
       }
     }
 
-    if (cart == null) {
+    const savedCart = initialCartRef.current
+    if (savedCart == null) {
       getNewCart()
     } else {
-      refreshExistingCart(String(cart.id))
+      refreshExistingCart(String(savedCart.id))
     }
   }, [client])
 

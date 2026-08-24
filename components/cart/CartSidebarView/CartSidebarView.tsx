@@ -5,6 +5,7 @@ import { Box, jsx, Text, Card, Grid, Divider, NavLink } from 'theme-ui'
 import { FC, useEffect, useState } from 'react'
 import { Bag } from '@components/icons'
 import { useCart, useCheckoutUrl } from '@lib/shopify/storefront-data-hooks'
+import { getPrice } from '@lib/shopify/storefront-data-hooks/src/utils/product'
 import CartItem from '../CartItem'
 import { BuilderComponent, builder } from '@builder.io/react'
 import env from '@config/env'
@@ -12,11 +13,16 @@ import env from '@config/env'
 const CartSidebarView: FC = () => {
   const checkoutUrl = useCheckoutUrl()
   const cart = useCart()
-  const subTotal = (cart?.subtotalPrice as any)?.amount || cart?.subtotalPrice || '-';
-  const total = ' - '
-
   const items = cart?.lineItems ?? []
   const isEmpty = items.length === 0
+  const currencyCode =
+    (items[0] as any)?.variant?.priceV2?.currencyCode || 'USD'
+  const subtotalAmount = cart?.subtotalPrice
+  const subTotal =
+    typeof subtotalAmount === 'string'
+      ? getPrice(subtotalAmount, currencyCode)
+      : 'Calculating at checkout'
+  const total = subTotal
   const [cartUpsell, setCartUpsell] = useState()
 
   useEffect(() => {
@@ -72,10 +78,8 @@ const CartSidebarView: FC = () => {
             <Grid gap={1} columns={2} sx={{ my: 3 }}>
               <Text>Subtotal:</Text>
               <Text sx={{ marginLeft: 'auto' }}>{subTotal}</Text>
-              <Text>Shipping:</Text>
-              <Text sx={{ marginLeft: 'auto' }}> - </Text>
-              <Text>Tax: </Text>
-              <Text sx={{ marginLeft: 'auto' }}> - </Text>
+              <Text>Shipping and tax:</Text>
+              <Text sx={{ marginLeft: 'auto' }}>Calculated at checkout</Text>
             </Grid>
 
             <Divider />
@@ -89,12 +93,18 @@ const CartSidebarView: FC = () => {
           <BuilderComponent content={cartUpsell} model="cart-upsell-sidebar" />
           {checkoutUrl && (
             <NavLink
+              as="a"
               variant="nav"
               sx={{ width: '100%', m: 2, p: 12, textAlign: 'center' }}
-              href={checkoutUrl!}
+              href={checkoutUrl}
             >
-              Proceed to Checkout
+              Secure Checkout
             </NavLink>
+          )}
+          {!checkoutUrl && (
+            <Text sx={{ m: 2, textAlign: 'center' }}>
+              Checkout is loading. Please try again in a moment.
+            </Text>
           )}
         </>
       )}
