@@ -15,7 +15,8 @@ const CartSidebarView: FC = () => {
   const cart = useCart()
   const items = cart?.lineItems ?? []
   const isEmpty = items.length === 0
-  const currencyCode = items[0]?.variant?.priceV2?.currencyCode || 'USD'
+  const currencyCode =
+    (items[0] as any)?.variant?.priceV2?.currencyCode || 'USD'
   const subtotalAmount = cart?.subtotalPrice?.amount
   const totalAmount = cart?.totalPrice?.amount
   const subTotal =
