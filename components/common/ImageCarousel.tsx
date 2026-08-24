@@ -17,18 +17,26 @@ const ImageCarousel: React.FC<props> = ({
   onThumbnailClick,
   showZoom,
   currentSlide,
+  alt,
   ...imageProps
 }) => {
   return (
     <AspectRatio ratio={Number(imageProps.height) / Number(imageProps.width)}>
       <UntilInteraction
-        skeleton={<Image src={images[0].src} {...imageProps} />}
+        skeleton={
+          <Image
+            src={images[0].src}
+            alt={alt || (images[0] as any).altText || 'Product image'}
+            {...imageProps}
+          />
+        }
       >
         <LazyCarousel
           images={images}
           showZoom={showZoom}
           currentSlide={currentSlide}
           onThumbnailClick={onThumbnailClick}
+          alt={alt}
           {...imageProps}
         />
       </UntilInteraction>

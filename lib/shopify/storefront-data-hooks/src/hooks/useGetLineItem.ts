@@ -9,7 +9,6 @@ export function useGetLineItem() {
     }
 
     const item = cartItems.find((cartItem) => {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
       // @ts-ignore
       return cartItem.variant.id === variantId
     })

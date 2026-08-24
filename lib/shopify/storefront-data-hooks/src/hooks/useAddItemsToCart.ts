@@ -39,7 +39,6 @@ export function useAddItemsToCart() {
 
     const newCart = await client.checkout.addLineItems(
       cart.id,
-      // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
       // @ts-ignore
       items as ShopifyBuy.LineItem[]
     )

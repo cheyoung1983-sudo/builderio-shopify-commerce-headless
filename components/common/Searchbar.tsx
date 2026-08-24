@@ -1,6 +1,6 @@
 /** @jsxRuntime classic */
 /** @jsx jsx */
-import React, { FC, useState, useEffect, useCallback, useRef } from 'react'
+import React, { FC, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/router'
 import shopifyConfig from '@config/shopify'
 import { ProductGrid } from 'blocks/ProductGrid/ProductGrid'
@@ -20,10 +20,11 @@ const Searchbar: FC<Props> = () => {
   const { q } = router.query
   const [isOpen, setIsOpen] = useState(false)
   const buttonRef = useRef<HTMLDivElement>(null)
+  const pathname = router.asPath.split('?')[0]
 
   useEffect(() => {
     setIsOpen(false)
-  }, [router.asPath.split('?')[0]])
+  }, [pathname])
 
   return (
     <React.Fragment>
@@ -91,24 +92,32 @@ const SearchModalContent = (props: {
   )
   const [products, setProducts] = useState([] as any[])
   const [loading, setLoading] = useState(false)
-  const getProducts = async (searchTerm: string) => {
-    setLoading(true)
-    const results = await searchProducts(shopifyConfig, String(searchTerm))
-    setSearch(searchTerm)
-    setProducts(results)
-    setLoading(false)
-    if (searchTerm) {
-      props.onSearch(searchTerm)
-    }
-  }
+  const onSearch = props.onSearch
+
+  const getProducts = useCallback(
+    async (searchTerm: string) => {
+      setLoading(true)
+      const results = await searchProducts(shopifyConfig, String(searchTerm))
+      setSearch(searchTerm)
+      setProducts(results)
+      setLoading(false)
+      if (searchTerm) {
+        onSearch(searchTerm)
+      }
+    },
+    [onSearch]
+  )
 
   useEffect(() => {
     if (search) {
       getProducts(search)
     }
-  }, [])
+  }, [getProducts, search])
 
-  const throttleSearch = useCallback(throttle(getProducts), [])
+  const throttleSearch = useMemo(
+    () => throttle((term: string) => getProducts(term), 500),
+    [getProducts]
+  )
 
   return (
     <Box
@@ -132,7 +141,7 @@ const SearchModalContent = (props: {
       ) : products.length ? (
         <>
           <Label>
-            Search Results for "<strong>{search}</strong>"
+            Search Results for &quot;<strong>{search}</strong>&quot;
           </Label>
           <ProductGrid
             cardProps={{
@@ -149,7 +158,7 @@ const SearchModalContent = (props: {
         <span>
           {search ? (
             <>
-              There are no products that match "<strong>{search}</strong>"
+              There are no products that match &quot;<strong>{search}</strong>&quot;
             </>
           ) : (
             <> </>

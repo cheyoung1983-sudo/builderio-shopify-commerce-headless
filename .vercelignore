@@ -1,0 +1,9 @@
+ai
+commerce
+swr
+turborepo
+.git
+.next
+node_modules
+*.zip
+docs

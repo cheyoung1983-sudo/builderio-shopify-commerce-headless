@@ -24,7 +24,6 @@ export function useUpdateItemQuantity() {
       throw new Error(`Item with variantId ${variantId} not in cart`)
     }
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
     // @ts-ignore
     const newCart = await client.checkout.updateLineItems(cart.id, [
       { id: lineItem.id, quantity },

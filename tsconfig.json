@@ -23,6 +23,19 @@
     },
     "incremental": true
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.js"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "blocks/**/*",
+    "components/**/*",
+    "config/**/*",
+    "lib/**/*",
+    "pages/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "ai",
+    "commerce",
+    "swr",
+    "turborepo"
+  ]
 }

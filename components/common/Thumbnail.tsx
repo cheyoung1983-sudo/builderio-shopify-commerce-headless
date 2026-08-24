@@ -35,7 +35,13 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       onMouseOver={onHover}
       onClick={onClick}
     >
-      <Image src={src} width={width} height={height} loading="eager" />
+      <Image
+        src={src}
+        alt={name || 'Product thumbnail'}
+        width={width}
+        height={height}
+        loading="eager"
+      />
     </button>
   )
 }

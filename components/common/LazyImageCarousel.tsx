@@ -73,6 +73,7 @@ const ImageCarousel: FC<ImageCarouselProps> = ({
   onThumbnailClick,
   showZoom,
   currentSlide,
+  alt,
   ...imageProps
 }) => (
   <CarouselProvider
@@ -88,7 +89,11 @@ const ImageCarousel: FC<ImageCarouselProps> = ({
           {showZoom ? (
             <ImageWithZoom src={image.src} />
           ) : (
-            <Image src={image.src} {...imageProps} />
+            <Image
+              src={image.src}
+              alt={alt || (image as any).altText || `Product image ${index + 1}`}
+              {...imageProps}
+            />
           )}
         </Slide>
       ))}

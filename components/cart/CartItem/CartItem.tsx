@@ -61,9 +61,7 @@ const CartItem = ({
 
   useEffect(() => {
     // Reset the quantity state if the item quantity changes
-    if (item.quantity !== Number(quantity)) {
-      setQuantity(item.quantity)
-    }
+    setQuantity(item.quantity)
   }, [item.quantity])
 
   return (

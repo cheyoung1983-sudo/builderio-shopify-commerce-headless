@@ -35,3 +35,9 @@ yarn-error.log*
 
 # dev
 framework
+
+# cloned repos
+ai/
+commerce/
+swr/
+turborepo/
