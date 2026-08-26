@@ -20,15 +20,19 @@ Learn how to get started with this Builder + Next.js + Shopify example with this
 
 ## Table of contents
 
+<!-- markdown-toc start -->
+
 - [Getting Started](#getting-started)
   - [1: Create an account for Builder.io](#1-create-an-account-for-builderio)
   - [2: Your Builder.io private key](#2-your-builderio-private-key)
   - [3: Clone this repository and initialize a Builder.io space](#3-clone-this-repository-and-initialize-a-builderio-space)
-  - [4. Shopify private app](#4-shopify-private-app)
+  - [4. Shopify Custom App](#4-shopify-custom-app)
   - [5. Connecting Builder to Shopify](#5-connecting-builder-to-shopify)
   - [6. Configure the project to talk to Shopify](#6-configure-the-project-to-talk-to-shopify)
+  - [6.5 Shopify Web Bot Authentication](#65-shopify-web-bot-authentication-optional)
   - [7. Up and Running!](#7-up-and-running)
-- [Deploy](#deploy)
+  - [8. Start building](#8-start-building)
+- [Deployment Options](#deployment-options)
 
 <!-- markdown-toc end -->
 
@@ -86,7 +90,7 @@ meaningful to you -- don't worry, you can change it later!
 git clone https://github.com/BuilderIO/nextjs-shopify.git
 cd nextjs-shopify
 
-unzip builder
+unzip builder.zip
 
 npm install --global "@builder.io/cli"
 
@@ -97,7 +101,7 @@ Note:
 if you're only interested in using this starter for a landing page with Shopify use this command instead:
 
 ```
-unzip builder-landing-page-only
+unzip builder-landing-page-only.zip
 builder create --key "<private-key>" --name "<space-name>" --input builder-landing-page-only --debug
 ```
 
@@ -144,7 +148,7 @@ SHOPIFY_STORE_DOMAIN=
 
 Create a [custom app](https://help.shopify.com/en/manual/apps/custom-apps) for your Shopify store. If you don't have a Shopify store already, you can create a [development store](https://help.shopify.com/en/partners/dashboard/managing-stores/development-stores).
 
-When creating the private app you'll have to set a number of permissions so that builder can retrieve your Shopify inventory. For this press on `Storefront API` in the configuration tab and choose all the following permissions:
+When creating the custom app you'll have to set a number of permissions so that builder can retrieve your Shopify inventory. For this press on `Storefront API` in the configuration tab and choose all the following permissions:
 
 ![List of required permissions](https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F24ebad91e8774a7e814487432391f4c6)
 
@@ -159,7 +163,7 @@ And copy the generated access token.
 Access your newly created space by selecting it from the [list of spaces](https://builder.io/spaces?root=true)
 in your organization.
 
-You should be greeted by a modal asking for various your storefront Access toke (from preview step) and your store domain, this will allow Builder.io to communicate with your store API:
+You should be greeted by a modal asking for various your storefront Access token (from previous step) and your store domain, this will allow Builder.io to communicate with your store API:
 
 ![Example of where the Shopify API keys map to Builder settings](https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F30b68ab3caf544ca92a06f073bb27b55)
 
@@ -167,20 +171,31 @@ Fill in the required keys and press "Connect your Shopify Custom App"!
 
 ### 6. Configure the project to talk to Shopify
 
-Open up [.env.development](./.env.development) and [.env.production](./.env.production) again,
+Open up [.env.development](./.env.development) and [.env.production](./.env.production) again (if they don't exist, create them or use a single `.env.local` for development),
 but this time set the other two Shopify keys.
 
 ```diff
 BUILDER_PUBLIC_KEY=012345abcdef0123456789abcdef0123
 + SHOPIFY_STOREFRONT_API_TOKEN=c11b4053408085753bd76a45806f80dd
 - SHOPIFY_STOREFRONT_API_TOKEN=
-+ SHOPIFY_STORE_DOMAIN=dylanbuilder.myshopify.com
++ SHOPIFY_STORE_DOMAIN=vercel-store-34d604b7-q6ui4f53.myshopify.com
 - SHOPIFY_STORE_DOMAIN=
 ```
 
 The Storefront access token must have unauthenticated checkout access enabled.
 The cart's **Secure Checkout** button takes customers to Shopify's hosted
 checkout, where Shopify calculates tax and shipping and processes payment.
+
+### 6.5 Shopify Web Bot Authentication (Optional)
+
+If you are seeing issues with Shopify blocking crawlers or for specific automated access, you may need to configure Web Bot Authentication using the following signature details:
+
+- **Name**: `HTTP-Crawler-Access`
+- **Domain**: `vercel-store-34d604b7-q6ui4f53.myshopify.com`
+- **Signature**: `sig1=:nzr4T3kVWdfItmLgH+Bg4q6TxBexWiOuols+dlauiL8Wsif6PTWhk7OEbmbdUO4NM/OaqxxUBxsCfN+4PVqCDg==:`
+- **Signature-Input**: `sig1=("@authority" "signature-agent");keyid="SjjyXvQ2cGhsRXs9DXEaV6ClyCun0Pj5yxjV67dLGOk";nonce="/Vk1gMOORKFSIcE2p/GY8dyQ8Ver7a1sw3nWEOmkJOhDvV+XGnr9uX/X1Ct1kOoL3vqZW72uVHC9ZiEI1n2eVw==";tag="web-bot-auth";created=1787680134;expires=1795456134`
+- **Signature-Agent**: `"https://shopify.com"`
+- **Expires**: Nov 23, 2026
 
 ### 7. Up and Running!
 
