@@ -16,6 +16,18 @@
           <option name="linkRegexp" value="https://github.com/cheyoung1983-sudo/builderio-shopify-commerce-headless/issues/$1" />
         </IssueNavigationLink>
         <IssueNavigationLink>
+          <option name="issueRegexp" value="\(#(\d+)\)" />
+          <option name="linkRegexp" value="https://github.com/BuilderIO/nextjs-shopify/issues/$1" />
+        </IssueNavigationLink>
+        <IssueNavigationLink>
+          <option name="issueRegexp" value="#(\d+)" />
+          <option name="linkRegexp" value="https://github.com/BuilderIO/nextjs-shopify/issues/$1" />
+        </IssueNavigationLink>
+        <IssueNavigationLink>
+          <option name="issueRegexp" value="GH-(\d+)" />
+          <option name="linkRegexp" value="https://github.com/BuilderIO/nextjs-shopify/issues/$1" />
+        </IssueNavigationLink>
+        <IssueNavigationLink>
           <option name="issueRegexp" value="([^/\n\s]+/[^#\n\s]+)#(\d+)" />
           <option name="linkRegexp" value="https://github.com/$1/issues/$2" />
         </IssueNavigationLink>
@@ -24,5 +36,6 @@
   </component>
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/nextjs-shopify" vcs="Git" />
   </component>
 </project>
