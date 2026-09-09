@@ -1,5 +1,7 @@
 const nextConfig = {
-  output: 'standalone',
+  // Note: no `output: 'standalone'` here — that's for self-hosting
+  // (e.g. Docker) and conflicts with Vercel's own build/output tracing,
+  // which handles serverless packaging automatically.
   // Next.js 16 uses Turbopack by default; only opt into webpack (via
   // @next/bundle-analyzer below) when explicitly analyzing the bundle.
   turbopack: {},

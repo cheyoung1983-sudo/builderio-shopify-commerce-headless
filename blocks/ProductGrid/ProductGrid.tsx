@@ -65,7 +65,7 @@ export const ProductGrid: FC<ProductGridProps> = ({
     if (typeof collection === 'string' && !initialProducts) {
       fetchCollection()
     }
-  }, [collection])
+  }, [collection, initialProducts])
 
   if (loading) {
     return <ProductGridSkeleton count={limit || 4} />

@@ -7,7 +7,7 @@ if (!process.env.SHOPIFY_STOREFRONT_API_TOKEN) {
   )
 }
 
-export default {
+const shopifyConfig = {
   domain: process.env.SHOPIFY_STORE_DOMAIN || process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || '',
   storefrontAccessToken: process.env.SHOPIFY_STOREFRONT_API_TOKEN || process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN || '',
   apiVersion: process.env.SHOPIFY_STOREFRONT_API_VERSION || '2024-07',
@@ -15,3 +15,5 @@ export default {
   clientSecret: process.env.SHOPIFY_CLIENT_SECRET || '',
   adminAccessToken: process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || '',
 }
+
+export default shopifyConfig
