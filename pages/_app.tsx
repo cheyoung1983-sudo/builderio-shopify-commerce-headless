@@ -3,9 +3,12 @@ import type { AppProps } from 'next/app'
 import Layout from '@components/common/Layout'
 import { builder, Builder } from '@builder.io/react'
 import builderConfig from '@config/builder'
-builder.init(builderConfig.apiKey)
+if (builderConfig.apiKey) {
+  builder.init(builderConfig.apiKey)
+}
 
 import '@builder.io/widgets'
+import '../styles/globals.css'
 import '../blocks/ProductGrid/ProductGrid.builder'
 import '../blocks/CollectionView/CollectionView.builder'
 import '../blocks/ProductView/ProductView.builder'

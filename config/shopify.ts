@@ -10,4 +10,8 @@ if (!process.env.SHOPIFY_STOREFRONT_API_TOKEN) {
 export default {
   domain: process.env.SHOPIFY_STORE_DOMAIN || '',
   storefrontAccessToken: process.env.SHOPIFY_STOREFRONT_API_TOKEN || '',
+  apiVersion: process.env.SHOPIFY_STOREFRONT_API_VERSION || '2024-07',
+  clientId: process.env.SHOPIFY_CLIENT_ID || '',
+  clientSecret: process.env.SHOPIFY_CLIENT_SECRET || '',
+  adminAccessToken: process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || '',
 }

@@ -10,8 +10,11 @@ import Navbar from '@components/common/Navbar'
 import { useAcceptCookies } from '@lib/hooks/useAcceptCookies'
 import Sidebar from '@components/common/Sidebar'
 import { CartSidebarView } from '@components/cart'
+import { CartNotification } from '@components/cart/CartNotification'
+import { CartProvider } from '../../context/CartContext'
 import { CommerceProvider } from '@lib/shopify/storefront-data-hooks'
 import shopifyConfig from '@config/shopify'
+import builderConfig from '@config/builder'
 import { builder, BuilderContent, Builder } from '@builder.io/react'
 import themesMap from '@config/theme'
 import seoConfig from '@config/seo.json'
@@ -25,19 +28,40 @@ const Layout: React.FC<{ pageProps: any; children: React.ReactNode }> = ({
   children,
   pageProps,
 }) => {
-  const builderTheme = pageProps.theme
+  const builderTheme = pageProps?.theme
+
+  if (!builderConfig.apiKey && !builderTheme) {
+    return (
+      <CommerceProvider {...shopifyConfig}>
+        <ManagedUIContext siteSettings={{}}>
+          <Head seoInfo={seoConfig} />
+          <InnerLayout themeName="base">
+            {children}
+          </InnerLayout>
+        </ManagedUIContext>
+      </CommerceProvider>
+    )
+  }
+
   return (
     <CommerceProvider {...shopifyConfig}>
       <BuilderContent content={builderTheme} modelName="theme">
         {(data, loading) => {
           if (loading && !builderTheme) {
-            return 'loading ...'
+            return (
+              <ManagedUIContext siteSettings={{}}>
+                <Head seoInfo={seoConfig} />
+                <InnerLayout themeName="base">
+                  {children}
+                </InnerLayout>
+              </ManagedUIContext>
+            )
           }
-          const siteSettings = data?.siteSettings
+          const siteSettings = data?.siteSettings || {}
           const colorOverrides = data?.colorOverrides
           const siteSeoInfo = data?.siteInformation
           return (
-            <ManagedUIContext key={data?.id} siteSettings={siteSettings}>
+            <ManagedUIContext key={data?.id || 'default'} siteSettings={siteSettings}>
               <Head seoInfo={siteSeoInfo || seoConfig} />
               <InnerLayout
                 themeName={data?.theme || 'base'}
@@ -64,49 +88,57 @@ const InnerLayout: React.FC<{
     muted?: string
   }
 }> = ({ themeName, children, colorOverrides }) => {
+  const selectedTheme =
+    (themeName && themesMap[themeName]) ||
+    themesMap.base ||
+    themesMap.default ||
+    {}
   const theme = {
-    ...themesMap[themeName],
+    ...selectedTheme,
     colors: {
-      ...themesMap[themeName].colors,
+      ...(selectedTheme.colors || {}),
       ...colorOverrides,
     },
   }
-  const { displaySidebar, closeSidebar } = useUI()
+  const { displaySidebar, closeSidebar, openSidebar } = useUI()
   const { acceptedCookies, onAcceptCookies } = useAcceptCookies()
   return (
     <ThemeProvider theme={theme}>
-      <Navbar />
-      <div
-        sx={{
-          margin: `0 auto`,
-          px: 20,
-          maxWidth: 1920,
-          minWidth: '60vw',
-          minHeight: 800,
-        }}
-      >
-        <main>{children}</main>
-      </div>
+      <CartProvider onOpen={openSidebar} onClose={closeSidebar}>
+        <Navbar />
+        <div
+          sx={{
+            margin: `0 auto`,
+            px: 20,
+            maxWidth: 1920,
+            minWidth: '60vw',
+            minHeight: 800,
+          }}
+        >
+          <main>{children}</main>
+        </div>
 
-      <Sidebar
-        open={
-          displaySidebar ||
-          (builder.editingModel || Builder.previewingModel) ===
-            'cart-upsell-sidebar'
-        }
-        onClose={closeSidebar}
-      >
-        <CartSidebarView />
-      </Sidebar>
-      <NoSSR>
-        <FeatureBar
-          title="This site uses cookies to improve your experience. By clicking, you agree to our Privacy Policy."
-          hide={Builder.isEditing ? true : acceptedCookies}
-          action={
-            <Button onClick={() => onAcceptCookies()}>Accept cookies</Button>
+        <Sidebar
+          open={
+            displaySidebar ||
+            (builder.editingModel || Builder.previewingModel) ===
+              'cart-upsell-sidebar'
           }
-        />
-      </NoSSR>
+          onClose={closeSidebar}
+        >
+          <CartSidebarView />
+        </Sidebar>
+        <CartNotification />
+        <NoSSR>
+          <FeatureBar
+            title="This site uses cookies to improve your experience. By clicking, you agree to our Privacy Policy."
+            hide={Builder.isEditing ? true : acceptedCookies}
+            action={
+              <Button onClick={() => onAcceptCookies()}>Accept cookies</Button>
+            }
+          />
+        </NoSSR>
+      </CartProvider>
     </ThemeProvider>
   )
 }

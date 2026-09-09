@@ -15,8 +15,11 @@ import builderConfig from '@config/builder'
 import DefaultErrorPage from 'next/error'
 import Head from 'next/head'
 import { resolveBuilderContent } from '@lib/resolve-builder-content'
+import { ProductGrid } from '../components/products/ProductGrid'
 
-builder.init(builderConfig.apiKey)
+if (builderConfig.apiKey) {
+  builder.init(builderConfig.apiKey)
+}
 import '../blocks/ProductGrid/ProductGrid.builder'
 import '../blocks/CollectionView/CollectionView.builder'
 import { useThemeUI } from '@theme-ui/core'
@@ -24,6 +27,7 @@ import { getLayoutProps } from '@lib/get-layout-props'
 import { useAddItemToCart } from '@lib/shopify/storefront-data-hooks'
 import { useUI } from '@components/common/context'
 import Link from '@components/common/Link'
+import { Box, Heading, Text, Button } from 'theme-ui'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
@@ -49,7 +53,7 @@ export async function getStaticProps({
 
 export async function getStaticPaths({ locales }: GetStaticPathsContext) {
   return {
-    paths: [],
+    paths: [{ params: { path: [] } }],
     fallback: true,
   }
 }
@@ -66,15 +70,35 @@ export default function Path({
   if (router.isFallback) {
     return <h1>Loading...</h1>
   }
-  // This includes setting the noindex header because static files always return a status 200 but the rendered not found page page should obviously not be indexed
+
+  // If no page content from Builder and not previewing
   if (!page && !isPreviewing) {
+    const isRoot = !router.asPath || router.asPath === '/' || router.asPath === ''
+    if (isRoot) {
+      return (
+        <div className="min-h-screen bg-neutral-50/50 py-6">
+          <Head>
+            <title>DisplayCellPros | Quality Screen Replacements</title>
+            <meta
+              name="description"
+              content="Shop high quality OEM and LCD replacement screens for Samsung Galaxy and modern smartphones."
+            />
+          </Head>
+          <ProductGrid
+            title="All Screen Replacements & Parts"
+            subtitle="Explore our live inventory of smartphone display assemblies and parts fetched directly via the Shopify Storefront API."
+            showControls={true}
+          />
+        </div>
+      )
+    }
     return (
       <>
         <Head>
           <meta name="robots" content="noindex" />
           <meta name="title"></meta>
         </Head>
-        {Builder.isBrowser && <DefaultErrorPage statusCode={404} />}
+        <DefaultErrorPage statusCode={404} />
       </>
     )
   }

@@ -4,20 +4,23 @@ import type {
   InferGetStaticPropsType,
 } from 'next'
 import { useRouter } from 'next/router'
+import Head from 'next/head'
 import { BuilderComponent, builder, useIsPreviewing } from '@builder.io/react'
 import { resolveBuilderContent } from '@lib/resolve-builder-content'
 import '../../blocks/ProductView/ProductView.builder'
 import builderConfig from '@config/builder'
-import shopifyConfig from '@config/shopify'
-import {
-  getAllProductPaths,
-  getProduct,
-} from '@lib/shopify/storefront-data-hooks/src/api/operations'
-import DefaultErrorPage from 'next/error'
-import Head from 'next/head'
-import { useThemeUI } from 'theme-ui'
 import { getLayoutProps } from '@lib/get-layout-props'
-builder.init(builderConfig.apiKey!)
+import {
+  fetchStorefrontProductByHandle,
+  fetchAllAvailableProducts,
+  ShopifyProductDetailNode,
+} from '../../services/shopify'
+import { ProductDetail } from '../../components/products/ProductDetail'
+import { ProductDetailSkeleton } from '../../components/products/ProductDetailSkeleton'
+
+if (builderConfig.apiKey) {
+  builder.init(builderConfig.apiKey)
+}
 
 const builderModel = 'product-page'
 
@@ -25,62 +28,105 @@ export async function getStaticProps({
   params,
   locale,
 }: GetStaticPropsContext<{ handle: string }>) {
-  const product = await getProduct(shopifyConfig, {
-    handle: params?.handle,
+  const handle = params?.handle || ''
+
+  // Fetch product directly from Shopify Storefront API using the handle
+  const res = await fetchStorefrontProductByHandle(handle)
+  const storefrontProduct = res.ok && res.data?.product ? res.data.product : null
+
+  // Optionally resolve Builder CMS content if configured
+  const page = await resolveBuilderContent(builderModel, locale, {
+    productHandle: handle,
   })
 
-  const page = await resolveBuilderContent(builderModel, locale, {
-    productHandle: params?.handle,
-  })
+  // If neither product nor builder page exists, return 404
+  if (!storefrontProduct && !page) {
+    return {
+      notFound: true,
+      revalidate: 30,
+    }
+  }
 
   return {
-    notFound: !product,
     revalidate: 30,
     props: {
       page: page,
-      product: product,
+      storefrontProduct: storefrontProduct,
       ...(await getLayoutProps()),
     },
   }
 }
 
 export async function getStaticPaths({ locales }: GetStaticPathsContext) {
-  const paths = await getAllProductPaths(shopifyConfig)
-  return {
-    paths: paths.map((path) => `/product/${path}`),
-    fallback: 'blocking',
+  try {
+    const res = await fetchAllAvailableProducts({ maxProducts: 50, onlyAvailable: false })
+    const paths = res.products.map((p) => `/product/${p.handle}`)
+    return {
+      paths: paths.length > 0 ? paths : [],
+      fallback: true,
+    }
+  } catch (err) {
+    console.error('Failed to get static paths for products:', err)
+    return {
+      paths: [],
+      fallback: true,
+    }
   }
 }
 
 export default function Handle({
-  product,
   page,
+  storefrontProduct,
 }: InferGetStaticPropsType<typeof getStaticProps>) {
   const router = useRouter()
   const isLive = !useIsPreviewing()
-  const { theme } = useThemeUI()
-  // This includes setting the noindex header because static files always return a status 200 but the rendered not found page page should obviously not be indexed
-  if (!product && isLive) {
+
+  if (router.isFallback) {
     return (
-      <>
-        <Head>
-          <meta name="robots" content="noindex" />
-          <meta name="title"></meta>
-        </Head>
-        <DefaultErrorPage statusCode={404} />
-      </>
+      <div className="min-h-screen bg-neutral-50/50 py-8 px-4 sm:px-6 lg:px-8">
+        <ProductDetailSkeleton asModal={false} className="shadow-md" />
+      </div>
     )
   }
 
-  return router.isFallback && isLive ? (
-    <h1>Loading...</h1>
-  ) : (
-    <BuilderComponent
-      key={product!.id}
-      model={builderModel}
-      options={{ enrich: true }}
-      data={{ product, theme }}
-      content={page}
-    />
+  // If Builder.io content exists for this page, render via BuilderComponent
+  if (page) {
+    return (
+      <BuilderComponent
+        key={storefrontProduct?.id || 'product'}
+        model={builderModel}
+        options={{ enrich: true }}
+        data={{ product: storefrontProduct }}
+        content={page}
+      />
+    )
+  }
+
+  const title = storefrontProduct?.title
+    ? `${storefrontProduct.title} | DisplayCellPros`
+    : 'Product Details | DisplayCellPros'
+  const description =
+    storefrontProduct?.description ||
+    'Shop replacement screens and repair parts with professional installation included.'
+
+  return (
+    <div className="min-h-screen bg-neutral-50/50 py-8 px-4 sm:px-6 lg:px-8">
+      <Head>
+        <title>{title}</title>
+        <meta name="description" content={description} />
+        {storefrontProduct?.featuredImage?.url && (
+          <meta property="og:image" content={storefrontProduct.featuredImage.url} />
+        )}
+      </Head>
+
+      <ProductDetail
+        handle={(router.query.handle as string) || storefrontProduct?.handle}
+        initialProduct={storefrontProduct}
+        asModal={false}
+        onBackToGrid={() => router.push('/')}
+        className="shadow-md"
+      />
+    </div>
   )
 }
+

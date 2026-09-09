@@ -9,6 +9,7 @@ import {
   useUpdateItemQuantity,
   useRemoveItemFromCart,
 } from '@lib/shopify/storefront-data-hooks'
+import { useCart as useModernCart } from '../../../context/CartContext'
 import Link from '@components/common/Link'
 const CartItem = ({
   item,
@@ -19,10 +20,16 @@ const CartItem = ({
 }) => {
   const updateItem = useUpdateItemQuantity()
   const removeItem = useRemoveItemFromCart()
+  const modernCart = useModernCart()
   const [quantity, setQuantity] = useState(item.quantity)
   const [removing, setRemoving] = useState(false)
   const updateQuantity = async (quantity: number) => {
-    await updateItem(item.variant.id, quantity)
+    try {
+      await updateItem(item.variant?.id || item.id, quantity)
+    } catch (e) {
+      // ignore
+    }
+    modernCart.updateQuantity(item.variant?.id || item.id, quantity)
   }
   const handleQuantity = (e: ChangeEvent<HTMLInputElement>) => {
     const val = Number(e.target.value)
@@ -50,19 +57,24 @@ const CartItem = ({
     setRemoving(true)
 
     try {
-      // If this action succeeds then there's no need to do `setRemoving(true)`
-      // because the component will be removed from the view
-      await removeItem(item.variant.id)
+      await removeItem(item.variant?.id || item.id)
     } catch (error) {
       console.error(error)
-      setRemoving(false)
     }
+    modernCart.removeItem(item.variant?.id || item.id)
+    setRemoving(false)
   }
 
   useEffect(() => {
     // Reset the quantity state if the item quantity changes
     setQuantity(item.quantity)
   }, [item.quantity])
+
+  const imgSrc = item.variant?.image?.src || item.variant?.image?.url || ''
+  const altText = item.variant?.image?.altText || item.title || 'Product Image'
+  const priceAmount = item.variant?.priceV2?.amount || item.variant?.price || '0'
+  const currency = item.variant?.priceV2?.currencyCode || currencyCode || 'USD'
+  const productHandle = item.variant?.product?.handle || ''
 
   return (
     <Grid gap={2} sx={{ width: '100%', m: 12 }} columns={[2]}>
@@ -73,18 +85,26 @@ const CartItem = ({
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
+          width: 130,
+          height: 130,
+          overflow: 'hidden',
+          backgroundColor: '#f8f8f8',
         }}
       >
-        <Image
-          height={130}
-          width={130}
-          alt={item.variant.image.altText || 'Product Image'}
-          src={item.variant.image.src}
-        />
+        {imgSrc ? (
+          <Image
+            height={130}
+            width={130}
+            alt={altText}
+            src={imgSrc}
+          />
+        ) : (
+          <div sx={{ fontSize: 1, color: 'gray' }}>No image</div>
+        )}
       </div>
       <div>
         <Link
-          href={`/product/${item.variant.product.handle}/`}
+          href={productHandle ? `/product/${productHandle}/` : '#'}
           sx={{ fontSize: 3, m: 0, fontWeight: 700 }}
         >
           <>
@@ -97,10 +117,7 @@ const CartItem = ({
                 marginLeft: 'auto',
               }}
             >
-              {getPrice(
-                item.variant.priceV2.amount,
-                item.variant.priceV2.currencyCode || 'USD'
-              )}
+              {getPrice(priceAmount, currency)}
             </Text>
           </>
         </Link>

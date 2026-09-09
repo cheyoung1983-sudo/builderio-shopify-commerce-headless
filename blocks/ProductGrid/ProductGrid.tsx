@@ -4,6 +4,7 @@ import { jsx } from 'theme-ui'
 import { FC, useEffect, useState } from 'react'
 import { Box, Grid } from '@theme-ui/components'
 import ProductCard, { ProductCardProps } from '@components/common/ProductCard'
+import { ProductGridSkeleton } from '@components/products/ProductGridSkeleton'
 
 import {
   getCollection,
@@ -69,7 +70,7 @@ export const ProductGrid: FC<ProductGridProps> = ({
   }, [collection])
 
   if (loading) {
-    return <Box>Loading...</Box>
+    return <ProductGridSkeleton count={limit || 4} />
   }
 
   return (

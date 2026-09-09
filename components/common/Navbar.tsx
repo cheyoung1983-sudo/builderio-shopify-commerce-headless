@@ -2,7 +2,9 @@
 /** @jsx jsx */
 import React, { FC, useState, useEffect } from 'react'
 import { BuilderComponent, builder } from '@builder.io/react'
+import builderConfig from '@config/builder'
 import { useCart } from '@lib/shopify/storefront-data-hooks'
+import { useCart as useModernCart } from '../../context/CartContext'
 import { jsx, Box, useThemeUI, Heading, Button } from 'theme-ui'
 import { useUI } from '@components/common/context'
 import Image from 'next/legacy/image'
@@ -11,34 +13,55 @@ import Link from '@components/common/Link'
 import { Bag } from '@components/icons'
 
 const Navbar: FC = () => {
-  const [announcement, setAnnouncement] = useState()
+  const [announcement, setAnnouncement] = useState<any>()
   const { theme } = useThemeUI()
   const { navigationLinks, logo, openSidebar } = useUI()
   const cart = useCart()
+  const modernCart = useModernCart()
+  const cartCount =
+    modernCart?.totalQuantity > 0
+      ? modernCart.totalQuantity
+      : (cart?.lineItems || []).reduce(
+          (total: number, item: any) => total + (item.quantity || 1),
+          0
+        )
+
+  const itemHandles = (cart?.lineItems || [])
+    .map((item: any) => item?.variant?.product?.handle)
+    .filter(Boolean)
+    .join(',')
 
   useEffect(() => {
     async function fetchContent() {
-      const items = cart?.lineItems || []
-      const anouncementContent = await builder
-        .get('announcement-bar', {
-          cacheSeconds: 120,
-          userAttributes: {
-            itemInCart: items.map((item: any) => item.variant.product.handle),
-          } as any,
-        })
-        .toPromise()
-      setAnnouncement(anouncementContent)
+      if (!builderConfig.apiKey) return
+      try {
+        const anouncementContent = await builder
+          .get('announcement-bar', {
+            cacheSeconds: 120,
+            userAttributes: {
+              itemInCart: itemHandles ? itemHandles.split(',') : [],
+            } as any,
+          })
+          .toPromise()
+        if (anouncementContent) {
+          setAnnouncement(anouncementContent)
+        }
+      } catch (e) {
+        console.warn('Failed to fetch announcement-bar:', e)
+      }
     }
     fetchContent()
-  }, [cart?.lineItems])
+  }, [itemHandles])
 
   return (
     <React.Fragment>
-      <BuilderComponent
-        content={announcement}
-        data={{ theme }}
-        model="announcement-bar"
-      />
+      {announcement && builderConfig.apiKey && (
+        <BuilderComponent
+          content={announcement}
+          data={{ theme }}
+          model="announcement-bar"
+        />
+      )}
       <Box
         as="header"
         sx={{
@@ -119,8 +142,45 @@ const Navbar: FC = () => {
           }}
         >
           <Searchbar />
-          <Button onClick={openSidebar} aria-label="Cart">
+          <Button
+            id="navbar-bag-button"
+            onClick={openSidebar}
+            aria-label={`Shopping Bag (${cartCount} items)`}
+            sx={{
+              position: 'relative',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+          >
             <Bag />
+            {cartCount > 0 && (
+              <span
+                id="navbar-bag-badge"
+                sx={{
+                  position: 'absolute',
+                  top: '-6px',
+                  right: '-6px',
+                  bg: '#10b981',
+                  color: '#ffffff',
+                  borderRadius: '9999px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  minWidth: '20px',
+                  height: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  px: '4px',
+                  lineHeight: 1,
+                  border: '2px solid white',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                }}
+              >
+                {cartCount}
+              </span>
+            )}
           </Button>
         </Box>
       </Box>

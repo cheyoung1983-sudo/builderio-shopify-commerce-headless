@@ -17,7 +17,9 @@ import Head from 'next/head'
 import { useThemeUI } from '@theme-ui/core'
 import { getLayoutProps } from '@lib/get-layout-props'
 
-builder.init(builderConfig.apiKey!)
+if (builderConfig.apiKey) {
+  builder.init(builderConfig.apiKey)
+}
 const builderModel = 'collection-page'
 
 export async function getStaticProps({
@@ -75,7 +77,7 @@ export default function Handle({
     <h1>Loading...</h1>
   ) : (
     <BuilderComponent
-      key={collection.id}
+      key={collection?.id || 'collection'}
       options={{ enrich: true }}
       model={builderModel}
       data={{ collection, theme }}

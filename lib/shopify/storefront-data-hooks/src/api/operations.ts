@@ -7,7 +7,15 @@ function getSafeClient(config: ShopifyBuy.Config) {
     return null
   }
   try {
-    return buildClient(config)
+    const customFetch = (url: string, opts: any = {}) => {
+      const headers = { ...opts.headers }
+      if (config.storefrontAccessToken.startsWith('shpat_')) {
+        headers['Shopify-Storefront-Private-Token'] = config.storefrontAccessToken
+        delete headers['X-Shopify-Storefront-Access-Token']
+      }
+      return fetch(url, { ...opts, headers })
+    }
+    return (buildClient as any)(config, customFetch)
   } catch (e) {
     console.warn('Failed to build ShopifyBuy client:', e)
     return null

@@ -19,6 +19,7 @@
       "@assets/*": ["assets/*"],
       "@config/*": ["config/*"],
       "@components/*": ["components/*"],
+      "@services/*": ["services/*"],
       "@utils/*": ["utils/*"]
     },
     "incremental": true
