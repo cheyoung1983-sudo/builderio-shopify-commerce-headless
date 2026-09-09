@@ -4,6 +4,7 @@ import Layout from '@components/common/Layout'
 import { builder, Builder } from '@builder.io/react'
 import builderConfig from '@config/builder'
 import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 if (builderConfig.apiKey) {
   builder.init(builderConfig.apiKey)
 }
@@ -49,6 +50,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         <Component {...pageProps} />
       </Layout>
       <Analytics />
+      <SpeedInsights />
     </>
   )
 }
