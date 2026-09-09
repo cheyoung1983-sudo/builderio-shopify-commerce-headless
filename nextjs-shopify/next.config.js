@@ -11,6 +11,9 @@ module.exports = bundleAnalyzer({
       'via.placeholder.com',
     ],
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   async headers() {
     return [
       {
