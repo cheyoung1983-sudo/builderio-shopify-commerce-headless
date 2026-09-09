@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useContext } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, useContext, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -31,6 +31,7 @@ import { useUI } from '../common/context'
 import { useAddItemToCart } from '../../lib/shopify/storefront-data-hooks/src/hooks/useAddItemToCart'
 import { CartContext } from '../../context/CartContext'
 import { ProductDetailSkeleton } from './ProductDetailSkeleton'
+import { Breadcrumbs } from '../common/Breadcrumbs'
 
 export interface ProductDetailProps {
   /** The Shopify product handle to fetch and display */
@@ -78,6 +79,21 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const [activeTab, setActiveTab] = useState<'overview' | 'specs' | 'warranty'>('overview')
   // Share notification
   const [copiedLink, setCopiedLink] = useState<boolean>(false)
+
+  // Modal scroll progress tracking
+  const modalBodyRef = useRef<HTMLDivElement>(null)
+  const [modalScrollProgress, setModalScrollProgress] = useState<number>(0)
+
+  const handleModalScroll = useCallback(() => {
+    if (!modalBodyRef.current) return
+    const { scrollTop, scrollHeight, clientHeight } = modalBodyRef.current
+    const diff = scrollHeight - clientHeight
+    if (diff > 0) {
+      setModalScrollProgress(Math.min(Math.max((scrollTop / diff) * 100, 0), 100))
+    } else {
+      setModalScrollProgress(0)
+    }
+  }, [])
 
   // Context & Hooks
   const { openSidebar } = useUI()
@@ -245,19 +261,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       setAddSuccess(true)
       setTimeout(() => {
         setAddSuccess(false)
-        if (typeof openSidebar === 'function') {
-          openSidebar()
-        }
-      }, 700)
+      }, 1800)
     } catch (err) {
-      console.warn('Cart notice: item requested, opening sidebar fallback', err)
-      setAddSuccess(true)
-      setTimeout(() => {
-        setAddSuccess(false)
-        if (typeof openSidebar === 'function') {
-          openSidebar()
-        }
-      }, 700)
+      console.warn('Cart notice: error adding item to cart', err)
+      setAddSuccess(false)
     } finally {
       setIsAddingToCart(false)
     }
@@ -663,7 +670,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                     addSuccess
                       ? 'bg-emerald-600 text-white'
                       : isAvailable
-                      ? 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white hover:shadow-lg'
+                      ? 'bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white hover:shadow-lg focus:ring-2 focus:ring-primary-400 focus:ring-offset-2'
                       : 'bg-neutral-200 text-neutral-400 cursor-not-allowed shadow-none'
                   }`}
                 >
@@ -839,8 +846,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           id="product-detail-modal-container"
           className={`relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-neutral-200/90 my-auto transition-all ${className}`}
         >
-          {/* Modal Header Bar with Close Button */}
-          <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md px-6 py-3.5 border-b border-neutral-100 flex items-center justify-between">
+          {/* Modal Header Bar with Close Button and Progress Bar */}
+          <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md px-6 py-3.5 border-b border-neutral-100 flex items-center justify-between relative">
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
                 Product Quick View
@@ -856,15 +863,29 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 id="product-detail-close-btn"
                 aria-label="Close product details"
                 onClick={onClose}
-                className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-600 hover:text-neutral-900 flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-600 hover:text-neutral-900 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
+
+            {/* Subtle Horizontal Scroll Progress Bar inside Modal */}
+            <div className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-neutral-100/80 overflow-hidden pointer-events-none">
+              <div
+                className="h-full bg-gradient-to-r from-primary-600 via-primary-500 to-secondary-500 transition-[width] duration-75 ease-out"
+                style={{ width: `${modalScrollProgress}%` }}
+              />
+            </div>
           </div>
 
           {/* Modal Body */}
-          <div className="max-h-[85vh] overflow-y-auto">{renderContent()}</div>
+          <div
+            ref={modalBodyRef}
+            onScroll={handleModalScroll}
+            className="max-h-[85vh] overflow-y-auto"
+          >
+            {renderContent()}
+          </div>
         </div>
       </div>
     )
@@ -876,18 +897,30 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       id="product-detail-inline-container"
       className={`max-w-6xl mx-auto bg-white rounded-2xl border border-neutral-200/80 shadow-sm overflow-hidden ${className}`}
     >
-      {onBackToGrid && (
-        <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between">
+      {/* Breadcrumb Navigation & Back Link Bar */}
+      <div className="px-6 py-3.5 border-b border-neutral-100 flex items-center justify-between gap-4 flex-wrap bg-neutral-50/50">
+        <Breadcrumbs
+          id="product-detail-inline-breadcrumbs"
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Products', href: '/' },
+            ...(product?.productType
+              ? [{ label: product.productType, href: `/?category=${encodeURIComponent(product.productType)}` }]
+              : []),
+            { label: product?.title || 'Product Details', isCurrent: true },
+          ]}
+        />
+        {onBackToGrid && (
           <button
             id="product-detail-back-btn"
             onClick={onBackToGrid}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-600 hover:text-neutral-900 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-600 hover:text-neutral-900 transition-colors shrink-0"
           >
             <ChevronLeft className="w-4 h-4" />
             Back to All Products
           </button>
-        </div>
-      )}
+        )}
+      </div>
       {renderContent()}
     </div>
   )

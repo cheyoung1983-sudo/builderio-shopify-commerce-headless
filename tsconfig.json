@@ -47,7 +47,8 @@
     "components/**/*",
     "config/**/*",
     "lib/**/*",
-    "pages/**/*"
+    "pages/**/*",
+    "utils/**/*"
   ],
   "exclude": [
     "node_modules",

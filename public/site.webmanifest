@@ -1,11 +1,11 @@
 {
-  "name": "Next.js Commerce",
-  "short_name": "Next.js Commerce",
-  "description": "Next.js Commerce -> https://www.nextjs.org/commerce",
+  "name": "Display Cell Pros",
+  "short_name": "DisplayCellPros",
+  "description": "Premium smartphone displays, OEM replacement parts, and tech hardware.",
   "display": "standalone",
   "start_url": "/",
-  "theme_color": "#fff",
-  "background_color": "#000000",
+  "theme_color": "#faf9f5",
+  "background_color": "#faf9f5",
   "orientation": "portrait",
   "icons": [
     {

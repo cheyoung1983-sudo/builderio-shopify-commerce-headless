@@ -163,7 +163,22 @@ const CartSidebarView: FC = () => {
           {checkoutUrl && (
             <NavLink
               variant="nav"
-              sx={{ width: '100%', m: 2, p: 12, textAlign: 'center' }}
+              sx={{
+                width: '100%',
+                m: 2,
+                p: 3,
+                textAlign: 'center',
+                bg: '#e05332',
+                color: '#ffffff',
+                fontWeight: 700,
+                borderRadius: 8,
+                textDecoration: 'none',
+                transition: 'background-color 0.15s ease',
+                '&:hover': {
+                  bg: '#c84223',
+                  color: '#ffffff',
+                },
+              }}
               href={checkoutUrl!}
             >
               Proceed to Checkout

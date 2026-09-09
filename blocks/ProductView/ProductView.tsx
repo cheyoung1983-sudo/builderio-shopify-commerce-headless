@@ -12,6 +12,7 @@ import {
 } from '@lib/shopify/storefront-data-hooks/src/utils/product'
 import ImageCarousel from '@components/common/ImageCarousel'
 import ProductLoader from './ProductLoader'
+import { Breadcrumbs } from '@components/common/Breadcrumbs'
 
 interface Props {
   className?: string
@@ -115,6 +116,24 @@ const ProductBox: React.FC<Props> = ({
           }}
         />
       )}
+      <div className="mb-4">
+        <Breadcrumbs
+          id="product-builder-breadcrumbs"
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Products', href: '/' },
+            ...((product as any)?.productType
+              ? [
+                  {
+                    label: (product as any).productType,
+                    href: `/?category=${encodeURIComponent((product as any).productType)}`,
+                  },
+                ]
+              : []),
+            { label: title || 'Product Details', isCurrent: true },
+          ]}
+        />
+      </div>
       <Grid gap={4} columns={[1, 2]}>
         <div>
           <div

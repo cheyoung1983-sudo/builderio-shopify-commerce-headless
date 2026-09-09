@@ -15,6 +15,8 @@ import { builder, BuilderContent, Builder } from '@builder.io/react'
 import themesMap from '@config/theme'
 import seoConfig from '@config/seo.json'
 import NoSSR from './NoSSR'
+import { ScrollProgressBar } from './ScrollProgressBar'
+import { ScrollToTop } from './ScrollToTop'
 
 const FeatureBar = dynamic(() => import('@components/common/FeatureBar'), {
   ssr: false,
@@ -108,6 +110,8 @@ const InnerLayout: React.FC<{
   return (
     <ThemeProvider theme={theme}>
       <CartProvider onOpen={openSidebar} onClose={closeSidebar}>
+        <ScrollProgressBar />
+        <ScrollToTop />
         <Navbar />
         <div
           sx={{

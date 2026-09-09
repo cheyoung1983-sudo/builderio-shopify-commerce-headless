@@ -1138,6 +1138,13 @@ export async function fetchAllAvailableProducts(
       typeof maxProducts === 'number' ? maxProducts - allProducts.length : effectiveBatchSize
     const currentFirst = Math.min(effectiveBatchSize, Math.max(remaining, 1))
 
+    // In Shopify Storefront API, RELEVANCE requires a search keyword query;
+    // without one, default catalog sort is used
+    const effectiveSortKey =
+      sortKey === 'RELEVANCE' && (!customQuery || !customQuery.trim())
+        ? undefined
+        : sortKey
+
     const response: StorefrontFetchResult<ShopifyProductsPageData> =
       await storefrontFetch<ShopifyProductsPageData>({
         query: ALL_AVAILABLE_PRODUCTS_QUERY,
@@ -1145,7 +1152,7 @@ export async function fetchAllAvailableProducts(
           first: currentFirst,
           after: cursor,
           query: combinedQuery || undefined,
-          sortKey,
+          sortKey: effectiveSortKey,
           reverse,
         },
         timeoutMs,
@@ -1215,6 +1222,8 @@ export async function searchStorefrontProducts(
     ...options,
     query: sanitized,
     onlyAvailable: options.onlyAvailable ?? true,
+    sortKey: options.sortKey ?? 'RELEVANCE',
+    reverse: options.reverse ?? false,
   })
 }
 

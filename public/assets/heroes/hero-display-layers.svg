@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080" fill="none">
+  <defs>
+    <!-- Warm Stone Background -->
+    <radialGradient id="h1Bg" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="60%" stop-color="#faf9f5" />
+      <stop offset="100%" stop-color="#f2efe7" />
+    </radialGradient>
+
+    <!-- Persimmon Vermillion Gradients -->
+    <linearGradient id="h1Persimmon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff7f62" />
+      <stop offset="60%" stop-color="#e05332" />
+      <stop offset="100%" stop-color="#c84223" />
+    </linearGradient>
+
+    <linearGradient id="h1PersimmonGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffae9b" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#e05332" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Celadon Jade Gradients -->
+    <linearGradient id="h1Celadon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5eead4" />
+      <stop offset="50%" stop-color="#2dd4bf" />
+      <stop offset="100%" stop-color="#0d9488" />
+    </linearGradient>
+
+    <!-- Glass Specular Gloss -->
+    <linearGradient id="h1Glass" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.65" />
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.05" />
+    </linearGradient>
+
+    <!-- Architectural Grid Pattern -->
+    <pattern id="archGrid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#e8e5dc" stroke-width="0.75" stroke-dasharray="2 4" />
+    </pattern>
+
+    <!-- Soft Depth Shadows -->
+    <filter id="layerShadow1" x="-15%" y="-15%" width="130%" height="135%">
+      <feDropShadow dx="0" dy="24" stdDeviation="30" flood-color="#141518" flood-opacity="0.07" />
+    </filter>
+
+    <filter id="layerShadow2" x="-15%" y="-15%" width="130%" height="135%">
+      <feDropShadow dx="0" dy="40" stdDeviation="45" flood-color="#e05332" flood-opacity="0.12" />
+    </filter>
+  </defs>
+
+  <!-- Background Base Canvas -->
+  <rect width="1920" height="1080" fill="url(#h1Bg)" />
+  <rect width="1920" height="1080" fill="url(#archGrid)" opacity="0.65" />
+
+  <!-- Ambient Light Halo -->
+  <circle cx="1200" cy="540" r="420" fill="url(#h1PersimmonGlow)" />
+  <circle cx="700" cy="580" r="320" fill="#ccfbf1" opacity="0.35" />
+
+  <!-- Technical Axis and Registration Markers -->
+  <g stroke="#d2cfc7" stroke-width="1" opacity="0.8">
+    <line x1="200" y1="540" x2="1720" y2="540" stroke-dasharray="4 8" />
+    <line x1="960" y1="120" x2="960" y2="960" stroke-dasharray="4 8" />
+    <!-- Reticles -->
+    <circle cx="340" cy="240" r="16" fill="none" stroke="#0d9488" stroke-width="1.5" />
+    <line x1="340" y1="216" x2="340" y2="264" stroke="#0d9488" stroke-width="1.5" />
+    <line x1="316" y1="240" x2="364" y2="240" stroke="#0d9488" stroke-width="1.5" />
+
+    <circle cx="1580" cy="820" r="16" fill="none" stroke="#e05332" stroke-width="1.5" />
+    <line x1="1580" y1="796" x2="1580" y2="844" stroke="#e05332" stroke-width="1.5" />
+    <line x1="1556" y1="820" x2="1604" y2="820" stroke="#e05332" stroke-width="1.5" />
+  </g>
+
+  <!-- ==================== FLOATING DISPLAY ARCHITECTURE ==================== -->
+  <g transform="translate(680, 220)">
+    <!-- Layer 3: Rear Structural Chassis (Bottom layer) -->
+    <g transform="rotate(-14 280 320) translate(0, 100)" filter="url(#layerShadow1)">
+      <rect x="0" y="0" width="540" height="420" rx="28" fill="#ffffff" stroke="#e7e5df" stroke-width="1.5" />
+      <!-- Circuit Trace Geometry -->
+      <path d="M 60 80 H 220 L 280 140 H 480" stroke="#0d9488" stroke-width="2" fill="none" opacity="0.4" />
+      <path d="M 60 120 H 180 L 240 180 H 480" stroke="#0d9488" stroke-width="1.5" fill="none" opacity="0.25" />
+      <circle cx="280" cy="140" r="4" fill="#0d9488" />
+      <circle cx="480" cy="140" r="5" fill="#e05332" />
+    </g>
+
+    <!-- Layer 2: Active OLED Matrix & Subpixel Digitizer (Middle layer) -->
+    <g transform="rotate(-14 280 320) translate(60, 40)" filter="url(#layerShadow2)">
+      <!-- Main OLED Panel -->
+      <rect x="0" y="0" width="540" height="420" rx="28" fill="#141518" stroke="#3c3f46" stroke-width="1.5" />
+      
+      <!-- Screen Display Graphics -->
+      <rect x="24" y="24" width="492" height="372" rx="16" fill="#0d0e11" />
+      
+      <!-- Radiant Spectrum Gradient Wave -->
+      <path d="M 24 220 C 140 160, 260 300, 380 200 C 440 150, 480 180, 516 160 L 516 396 L 24 396 Z" fill="url(#h1Persimmon)" opacity="0.9" />
+      
+      <!-- Celadon Precision Contour -->
+      <path d="M 24 220 C 140 160, 260 300, 380 200 C 440 150, 480 180, 516 160" fill="none" stroke="url(#h1Celadon)" stroke-width="4" stroke-linecap="round" />
+
+      <!-- Display Sensor Aperture -->
+      <circle cx="270" cy="50" r="6" fill="#24262b" stroke="#3c3f46" stroke-width="1" />
+      <circle cx="270" cy="50" r="2.5" fill="#2dd4bf" />
+    </g>
+
+    <!-- Layer 1: Front Oleophobic Optical Glass (Top layer) -->
+    <g transform="rotate(-14 280 320) translate(120, -20)" filter="url(#layerShadow1)">
+      <!-- Glass Outline with Specular Edge -->
+      <rect x="0" y="0" width="540" height="420" rx="28" fill="url(#h1Glass)" stroke="#ffffff" stroke-width="2" />
+      
+      <!-- Corner Bevel & Specular Highlight Slice -->
+      <path d="M 0 60 L 60 0 H 260 L 0 260 Z" fill="#ffffff" opacity="0.35" />
+      <path d="M 120 420 L 540 0 H 500 L 80 420 Z" fill="#ffffff" opacity="0.12" />
+
+      <!-- Minimalist Calibrated Corner Ticks -->
+      <path d="M 20 40 V 20 H 40" stroke="#e05332" stroke-width="2" fill="none" />
+      <path d="M 520 40 V 20 H 500" stroke="#0d9488" stroke-width="2" fill="none" />
+      <path d="M 20 380 V 400 H 40" stroke="#0d9488" stroke-width="2" fill="none" />
+      <path d="M 520 380 V 400 H 500" stroke="#e05332" stroke-width="2" fill="none" />
+    </g>
+  </g>
+
+  <!-- ==================== MINIMALIST TYPOGRAPHY / CALLOUT ==================== -->
+  <g transform="translate(240, 460)">
+    <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" letter-spacing="4" fill="#0d9488">
+      FIG. 01 — DISPLAY ARCHITECTURE
+    </text>
+    <text x="0" y="44" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="800" letter-spacing="-0.5" fill="#141518">
+      Precision Glass Layers
+    </text>
+    <text x="0" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="17" font-weight="400" fill="#585c66" letter-spacing="0.2">
+      Multi-layered capacitive digitizer &amp; optical OLED assembly.
+    </text>
+    
+    <!-- Accent Pill -->
+    <g transform="translate(0, 110)">
+      <rect x="0" y="0" width="138" height="32" rx="16" fill="#fff5f2" stroke="#ffd3c7" stroke-width="1" />
+      <circle cx="16" cy="16" r="4" fill="#e05332" />
+      <text x="28" y="21" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" letter-spacing="1.5" fill="#e05332">
+        0.02MM OEM TOLERANCE
+      </text>
+    </g>
+  </g>
+</svg>

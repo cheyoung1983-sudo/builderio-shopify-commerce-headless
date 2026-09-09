@@ -17,6 +17,7 @@ import {
 } from '../../services/shopify'
 import { ProductDetail } from '../../components/products/ProductDetail'
 import { ProductDetailSkeleton } from '../../components/products/ProductDetailSkeleton'
+import { Breadcrumbs } from '../../components/common/Breadcrumbs'
 
 if (builderConfig.apiKey) {
   builder.init(builderConfig.apiKey)
@@ -126,6 +127,31 @@ export default function Handle({
           <meta property="og:image" content={storefrontProduct.featuredImage.url} />
         )}
       </Head>
+
+      {/* Breadcrumb Navigation */}
+      <div className="max-w-6xl mx-auto mb-3.5">
+        <Breadcrumbs
+          id="product-page-top-breadcrumbs"
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Products', href: '/' },
+            ...(storefrontProduct?.productType
+              ? [
+                  {
+                    label: storefrontProduct.productType,
+                    href: `/?category=${encodeURIComponent(
+                      storefrontProduct.productType
+                    )}`,
+                  },
+                ]
+              : []),
+            {
+              label: storefrontProduct?.title || 'Product Details',
+              isCurrent: true,
+            },
+          ]}
+        />
+      </div>
 
       <ProductDetail
         handle={(router.query.handle as string) || storefrontProduct?.handle}

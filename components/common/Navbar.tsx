@@ -14,6 +14,15 @@ const Navbar: FC = () => {
   const [announcement, setAnnouncement] = useState<any>()
   const { theme } = useThemeUI()
   const { navigationLinks, logo, openSidebar } = useUI()
+  const activeLogo =
+    logo && (logo.image || logo.text)
+      ? logo
+      : {
+          image: '/assets/logo.svg',
+          text: 'Display Cell Pros',
+          width: 190,
+          height: 40,
+        }
   const cart = useCart()
   const modernCart = useModernCart()
   const cartCount =
@@ -77,15 +86,64 @@ const Navbar: FC = () => {
           sx={{
             display: ['none', 'none', 'flex'],
             flexBasis: 0,
-            minWidth: 240,
-            justifyContent: 'space-evenly',
+            minWidth: 260,
+            justifyContent: 'flex-start',
+            alignItems: 'center',
+            gap: '12px',
           }}
         >
-          {navigationLinks?.map((link, index) => (
-            <Link key={index} sx={{ padding: 10 }} href={link.link || '//'}>
-              {link.title}
-            </Link>
-          ))}
+          {navigationLinks && navigationLinks.length > 0 ? (
+            <>
+              {navigationLinks.map((link, index) => (
+                <Link key={index} sx={{ padding: '6px 10px', fontSize: '13px', fontWeight: 500 }} href={link.link || '//'}>
+                  {link.title}
+                </Link>
+              ))}
+              <Link
+                sx={{
+                  padding: '5px 12px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  borderRadius: '9999px',
+                  bg: '#fff5f2',
+                  color: '#e05332',
+                  border: '1px solid #fed7cc',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  textDecoration: 'none',
+                }}
+                href="/trends"
+              >
+                Styles & Trends
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link sx={{ padding: '6px 10px', fontSize: '13px', fontWeight: 500, color: 'inherit' }} href="/#catalog">
+                Catalog
+              </Link>
+              <Link sx={{ padding: '6px 10px', fontSize: '13px', fontWeight: 500, color: 'inherit' }} href="/products">
+                All Products
+              </Link>
+              <Link
+                sx={{
+                  padding: '5px 12px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  borderRadius: '9999px',
+                  bg: '#fff5f2',
+                  color: '#e05332',
+                  border: '1px solid #fed7cc',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  textDecoration: 'none',
+                }}
+                href="/trends"
+              >
+                Styles & Trends
+              </Link>
+            </>
+          )}
         </Box>
         <Box
           sx={{
@@ -100,24 +158,27 @@ const Navbar: FC = () => {
               fontWeight: 'bold',
             }}
           >
-            {logo && logo.image && (
+            {activeLogo && activeLogo.image && (
               <Link
                 href="/"
                 sx={{
-                  letterSpacing: -1,
+                  display: 'flex',
+                  alignItems: 'center',
                   textDecoration: `none`,
                   paddingLeft: '5px',
                 }}
               >
                 <Image
-                  alt="Logo"
-                  width={logo.width}
-                  height={logo.height}
-                  src={logo.image}
-                ></Image>
+                  alt={activeLogo.text || 'Display Cell Pros'}
+                  width={activeLogo.width || 190}
+                  height={activeLogo.height || 40}
+                  src={activeLogo.image}
+                  priority
+                  unoptimized
+                />
               </Link>
             )}
-            {logo && logo.text && !logo.image && (
+            {activeLogo && activeLogo.text && !activeLogo.image && (
               <Link
                 href="/"
                 sx={{
@@ -126,7 +187,7 @@ const Navbar: FC = () => {
                   paddingLeft: '5px',
                 }}
               >
-                {logo.text}
+                {activeLogo.text}
               </Link>
             )}
           </Heading>
@@ -160,7 +221,7 @@ const Navbar: FC = () => {
                   position: 'absolute',
                   top: '-6px',
                   right: '-6px',
-                  bg: '#10b981',
+                  bg: '#e05332',
                   color: '#ffffff',
                   borderRadius: '9999px',
                   fontSize: '11px',
@@ -173,7 +234,7 @@ const Navbar: FC = () => {
                   px: '4px',
                   lineHeight: 1,
                   border: '2px solid white',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                  boxShadow: '0 2px 5px rgba(224,83,50,0.4)',
                 }}
               >
                 {cartCount}

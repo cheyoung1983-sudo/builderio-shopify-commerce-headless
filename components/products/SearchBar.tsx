@@ -43,6 +43,10 @@ export interface SearchBarProps {
   className?: string
   /** Component ID */
   id?: string
+  /** Shopify Storefront API sortKey (e.g. 'PRICE', 'RELEVANCE', 'TITLE') */
+  sortKey?: string
+  /** Reverse sorting order */
+  reverse?: boolean
 }
 
 const DEFAULT_SUGGESTIONS = ['Galaxy S22', 'OLED', 'LCD', 'Ultra', 'Samsung']
@@ -64,6 +68,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   resultCount,
   className = '',
   id = 'storefront-search-bar',
+  sortKey,
+  reverse,
 }) => {
   const isControlled = controlledValue !== undefined
   const [internalValue, setInternalValue] = useState<string>(defaultValue)
@@ -95,6 +101,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
         const res = await searchStorefrontProducts(trimmed, {
           onlyAvailable: true,
+          sortKey,
+          reverse,
         })
 
         // Guard against race conditions if query changed while fetching
@@ -116,7 +124,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         }
       }
     },
-    [autoQueryShopify, onSearch, onQueryStart, onProductsFetched, onError]
+    [autoQueryShopify, onSearch, onQueryStart, onProductsFetched, onError, sortKey, reverse]
   )
 
   // Handle input change with debouncing

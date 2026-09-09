@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" fill="none">
+  <defs>
+    <linearGradient id="markBgPersimmon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#24262c" />
+      <stop offset="100%" stop-color="#141518" />
+    </linearGradient>
+
+    <linearGradient id="markPersimmonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff7f62" />
+      <stop offset="60%" stop-color="#e05332" />
+      <stop offset="100%" stop-color="#c84223" />
+    </linearGradient>
+
+    <linearGradient id="markCeladonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2dd4bf" />
+      <stop offset="100%" stop-color="#0d9488" />
+    </linearGradient>
+
+    <linearGradient id="markGlassSheen" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <!-- Base Squircle -->
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#markBgPersimmon)" />
+  <rect x="4" y="4" width="120" height="120" rx="30" stroke="#3c3f46" stroke-width="2" />
+
+  <!-- Smartphone Glass Display Frame -->
+  <rect x="29" y="19" width="70" height="90" rx="12" fill="#141518" stroke="#3c3f46" stroke-width="1.8" />
+
+  <!-- Camera / Speaker Notch -->
+  <rect x="54" y="24" width="20" height="3" rx="1.5" fill="#585c66" />
+  <circle cx="78" cy="25.5" r="1.5" fill="#2dd4bf" />
+
+  <!-- Inner Active Display Area -->
+  <rect x="34" y="31" width="60" height="68" rx="6" fill="#0d0e11" />
+
+  <!-- Stylized Monogram Glyph -->
+  <rect x="44" y="40" width="7.5" height="46" rx="3.75" fill="url(#markPersimmonGrad)" />
+
+  <path d="M 51 40 
+           H 70 
+           C 80 40, 86 46, 86 55 
+           C 86 64, 80 70, 70 70 
+           H 51" 
+        fill="none" 
+        stroke="url(#markPersimmonGrad)" 
+        stroke-width="7.5" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" />
+
+  <!-- Precision Reticle in Celadon -->
+  <circle cx="70" cy="55" r="2.8" fill="url(#markCeladonGrad)" />
+
+  <!-- Accent Dot in Persimmon -->
+  <circle cx="68" cy="80" r="4.5" fill="url(#markPersimmonGrad)" />
+
+  <!-- Glass Sheen -->
+  <path d="M 29 19 H 99 C 99 19, 99 44, 88 56 C 68 70, 44 60, 29 46 Z" fill="url(#markGlassSheen)" />
+
+  <!-- Home Indicator in Celadon -->
+  <rect x="52" y="102" width="24" height="2.5" rx="1.25" fill="#2dd4bf" opacity="0.9" />
+</svg>

@@ -97,11 +97,14 @@ export interface AddToCartInput {
 
 export interface CartNotification {
   id: string
-  type: 'add' | 'update' | 'remove' | 'error' | 'clear'
+  type: 'add' | 'update' | 'remove' | 'error' | 'clear' | 'info'
   title: string
   message: string
   item?: CartItem
   timestamp: number
+  duration?: number
+  actionLabel?: string
+  actionOnClick?: () => void
 }
 
 export interface CartContextValue {
@@ -129,6 +132,20 @@ export interface CartContextValue {
   error: string | null
   /** Latest user feedback notification (e.g. "Added to shopping bag") */
   notification: CartNotification | null
+  /** All active notifications in the toast stack */
+  notifications: CartNotification[]
+  /** Trigger a custom toast notification */
+  triggerNotification: (
+    notif: Omit<CartNotification, 'id' | 'timestamp'> & { duration?: number }
+  ) => string
+  /** Dismisses a notification toast by ID or the top toast if omitted */
+  dismissNotification: (id?: string) => void
+  /** Clears all floating toast notifications */
+  clearAllNotifications: () => void
+  /** Pauses auto-dismiss countdown for a toast (e.g. on mouse hover) */
+  pauseNotificationTimer?: (id: string) => void
+  /** Resumes auto-dismiss countdown for a toast (e.g. on mouse leave) */
+  resumeNotificationTimer?: (id: string) => void
   /** Adds an item to the shopping bag */
   addItem: (input: AddToCartInput) => Promise<void>
   /** Convenience method to add a raw Shopify product object */
@@ -149,8 +166,6 @@ export interface CartContextValue {
   closeCart: () => void
   /** Toggles the shopping bag open/closed */
   toggleCart: () => void
-  /** Dismisses the current floating notification */
-  dismissNotification: () => void
   /** Forces a refresh and reconciliation with Shopify Storefront API */
   refreshCart: () => Promise<void>
   /** Redirects the browser to the live Shopify checkout */
@@ -413,38 +428,142 @@ export const CartProvider: React.FC<CartProviderProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [isSyncing, setIsSyncing] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
-  const [notification, setNotification] = useState<CartNotification | null>(null)
+  const [notifications, setNotifications] = useState<CartNotification[]>([])
   const [isInitialized, setIsInitialized] = useState<boolean>(false)
 
   const isLoadedRef = useRef<boolean>(false)
-  const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const notificationTimeoutsRef = useRef<Map<string, { timer: NodeJS.Timeout; remaining: number; startedAt: number; duration: number }>>(new Map())
   const syncQueueRef = useRef<Promise<any>>(Promise.resolve())
+
+  // Gentle synthesized audio chime using Web Audio API on add
+  const playAddToCartChime = useCallback(() => {
+    try {
+      if (typeof window === 'undefined') return
+      const AudioContextClass =
+        window.AudioContext || (window as any).webkitAudioContext
+      if (!AudioContextClass) return
+      const ctx = new AudioContextClass()
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {})
+      }
+      const now = ctx.currentTime
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(587.33, now) // D5
+      osc.frequency.exponentialRampToValueAtTime(880.0, now + 0.09) // A5
+
+      gain.gain.setValueAtTime(0.04, now)
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28)
+
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+
+      osc.start(now)
+      osc.stop(now + 0.3)
+    } catch {
+      // Fail silently if audio is restricted
+    }
+  }, [])
+
+  // Dismiss a notification toast by ID or all if omitted
+  const dismissNotification = useCallback((id?: string) => {
+    setNotifications((prev) => {
+      if (!id) {
+        notificationTimeoutsRef.current.forEach(({ timer }) => clearTimeout(timer))
+        notificationTimeoutsRef.current.clear()
+        return []
+      }
+      const record = notificationTimeoutsRef.current.get(id)
+      if (record) {
+        clearTimeout(record.timer)
+        notificationTimeoutsRef.current.delete(id)
+      }
+      return prev.filter((n) => n.id !== id)
+    })
+  }, [])
+
+  const clearAllNotifications = useCallback(() => {
+    notificationTimeoutsRef.current.forEach(({ timer }) => clearTimeout(timer))
+    notificationTimeoutsRef.current.clear()
+    setNotifications([])
+  }, [])
+
+  // Pause timer on toast hover
+  const pauseNotificationTimer = useCallback((id: string) => {
+    const record = notificationTimeoutsRef.current.get(id)
+    if (!record) return
+    clearTimeout(record.timer)
+    const elapsed = Date.now() - record.startedAt
+    const remaining = Math.max(record.duration - elapsed, 1000)
+    notificationTimeoutsRef.current.set(id, {
+      ...record,
+      remaining,
+    })
+  }, [])
+
+  // Resume timer on toast mouse leave
+  const resumeNotificationTimer = useCallback(
+    (id: string) => {
+      const record = notificationTimeoutsRef.current.get(id)
+      if (!record) return
+      const remaining = record.remaining || 2500
+      const timer = setTimeout(() => {
+        dismissNotification(id)
+      }, remaining)
+      notificationTimeoutsRef.current.set(id, {
+        timer,
+        remaining,
+        startedAt: Date.now(),
+        duration: remaining,
+      })
+    },
+    [dismissNotification]
+  )
 
   // Show auto-dismissing toast notification
   const triggerNotification = useCallback(
-    (notif: Omit<CartNotification, 'id' | 'timestamp'>) => {
-      if (notificationTimeoutRef.current) {
-        clearTimeout(notificationTimeoutRef.current)
+    (notif: Omit<CartNotification, 'id' | 'timestamp'> & { duration?: number }): string => {
+      const toastId = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
+      const duration = notif.duration ?? 4500
+
+      if (notif.type === 'add') {
+        playAddToCartChime()
       }
+
       const fullNotif: CartNotification = {
         ...notif,
-        id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: toastId,
         timestamp: Date.now(),
+        duration,
       }
-      setNotification(fullNotif)
-      notificationTimeoutRef.current = setTimeout(() => {
-        setNotification(null)
-      }, 4500)
+
+      setNotifications((prev) => {
+        // Retain max 3 toasts to maintain visual elegance without screen overflow
+        const trimmed = prev.length >= 3 ? prev.slice(prev.length - 2) : prev
+        return [...trimmed, fullNotif]
+      })
+
+      if (duration > 0) {
+        const timer = setTimeout(() => {
+          dismissNotification(toastId)
+        }, duration)
+        notificationTimeoutsRef.current.set(toastId, {
+          timer,
+          remaining: duration,
+          startedAt: Date.now(),
+          duration,
+        })
+      }
+
+      return toastId
     },
-    []
+    [dismissNotification, playAddToCartChime]
   )
 
-  const dismissNotification = useCallback(() => {
-    if (notificationTimeoutRef.current) {
-      clearTimeout(notificationTimeoutRef.current)
-    }
-    setNotification(null)
-  }, [])
+  // Top-most notification for backwards compatibility
+  const notification = notifications.length > 0 ? notifications[notifications.length - 1] : null
 
   // 1. Initial Load from LocalStorage on mount (runs on client only)
   useEffect(() => {
@@ -661,7 +780,28 @@ export const CartProvider: React.FC<CartProviderProps> = ({
           }
         }
 
-        let addedItemReference: CartItem | null = null
+        // Create a snapshot for immediate notification
+        const itemSnapshot: CartItem = {
+          id: variantId,
+          variantId,
+          title: input.title || 'Product',
+          handle: input.handle || '',
+          variantTitle: input.variantTitle || 'Default Title',
+          quantity: qtyToAdd,
+          price: {
+            amount: priceAmount,
+            currencyCode: priceCurrency,
+          },
+          compareAtPrice: comparePriceAmount
+            ? { amount: comparePriceAmount, currencyCode: priceCurrency }
+            : null,
+          image: itemImage,
+          options: input.options || [],
+          vendor: input.vendor || '',
+          sku: input.sku || '',
+          customAttributes: input.customAttributes || [],
+        }
+
         let updatedItemsList: CartItem[] = []
 
         // 1. Optimistically update local state immediately
@@ -682,7 +822,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({
                 currencyCode: priceCurrency || existing.price.currencyCode,
               },
             }
-            addedItemReference = updated
             const next = [...prev]
             next[existingIndex] = updated
             updatedItemsList = next
@@ -690,40 +829,20 @@ export const CartProvider: React.FC<CartProviderProps> = ({
             return next
           } else {
             // Add new line item
-            const newItem: CartItem = {
-              id: variantId,
-              variantId,
-              title: input.title || 'Product',
-              handle: input.handle || '',
-              variantTitle: input.variantTitle || 'Default Title',
-              quantity: qtyToAdd,
-              price: {
-                amount: priceAmount,
-                currencyCode: priceCurrency,
-              },
-              compareAtPrice: comparePriceAmount
-                ? { amount: comparePriceAmount, currencyCode: priceCurrency }
-                : null,
-              image: itemImage,
-              options: input.options || [],
-              vendor: input.vendor || '',
-              sku: input.sku || '',
-              customAttributes: input.customAttributes || [],
-            }
-            addedItemReference = newItem
-            const next = [...prev, newItem]
+            const next = [...prev, itemSnapshot]
             updatedItemsList = next
             persistAllCartData(next, cartId, checkoutUrl)
             return next
           }
         })
 
-        // 2. Trigger notification
+        // 2. Trigger notification immediately with the item snapshot
         triggerNotification({
           type: 'add',
           title: 'Added to Shopping Bag',
           message: `${input.title || 'Item'} (${qtyToAdd}x) has been added to your shopping bag.`,
-          item: addedItemReference || undefined,
+          item: itemSnapshot,
+          duration: 4500,
         })
 
         // 3. Queue Storefront API background synchronization
@@ -1066,6 +1185,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({
       isSyncing,
       error,
       notification,
+      notifications,
+      triggerNotification,
       addItem,
       addProduct,
       updateQuantity,
@@ -1075,6 +1196,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({
       closeCart,
       toggleCart,
       dismissNotification,
+      clearAllNotifications,
+      pauseNotificationTimer,
+      resumeNotificationTimer,
       refreshCart,
       proceedToCheckout,
       isItemInCart,
@@ -1093,6 +1217,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({
       isSyncing,
       error,
       notification,
+      notifications,
+      triggerNotification,
       addItem,
       addProduct,
       updateQuantity,
@@ -1102,6 +1228,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({
       closeCart,
       toggleCart,
       dismissNotification,
+      clearAllNotifications,
+      pauseNotificationTimer,
+      resumeNotificationTimer,
       refreshCart,
       proceedToCheckout,
       isItemInCart,
