@@ -27,9 +27,12 @@ module.exports = bundleAnalyzer({
   },
   env: {
     // expose env to the browser
-    SHOPIFY_STOREFRONT_API_TOKEN: process.env.SHOPIFY_STOREFRONT_API_TOKEN,
-    SHOPIFY_STORE_DOMAIN: process.env.SHOPIFY_STORE_DOMAIN,
-    BUILDER_PUBLIC_KEY: process.env.BUILDER_PUBLIC_KEY,
+    SHOPIFY_STOREFRONT_API_TOKEN: process.env.SHOPIFY_STOREFRONT_API_TOKEN || process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN || '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',
+    SHOPIFY_STORE_DOMAIN: process.env.SHOPIFY_STORE_DOMAIN || process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || 'displaycellpros.myshopify.com',
+    NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN: process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN || process.env.SHOPIFY_STOREFRONT_API_TOKEN || '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',
+    NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN: process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || process.env.SHOPIFY_STORE_DOMAIN || 'displaycellpros.myshopify.com',
+    BUILDER_PUBLIC_KEY: process.env.BUILDER_PUBLIC_KEY || process.env.NEXT_PUBLIC_BUILDER_PUBLIC_KEY || process.env.NEXT_PUBLIC_BUILDER_API_KEY || 'bed07101c7fe4afb99fcb18ed5eaf58d',
+    NEXT_PUBLIC_BUILDER_PUBLIC_KEY: process.env.NEXT_PUBLIC_BUILDER_PUBLIC_KEY || process.env.BUILDER_PUBLIC_KEY || process.env.NEXT_PUBLIC_BUILDER_API_KEY || 'bed07101c7fe4afb99fcb18ed5eaf58d',
     IS_DEMO: process.env.IS_DEMO,
   },
   i18n: {

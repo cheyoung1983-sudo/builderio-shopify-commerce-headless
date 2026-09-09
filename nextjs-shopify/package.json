@@ -81,8 +81,8 @@
     "prettier": "2.8.4",
     "typescript": "4.9.5"
   },
-  "license": "MIT",
-  "overrides": {
-    "isolated-vm": "7.0.1"
-  }
+  "engines": {
+    "node": "20.x"
+  },
+  "license": "MIT"
 }
