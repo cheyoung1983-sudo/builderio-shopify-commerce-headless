@@ -46,10 +46,18 @@ export async function getStaticProps({
 }
 
 export async function getStaticPaths({ locales }: GetStaticPathsContext) {
-  const paths = await getAllCollectionPaths(shopifyConfig)
-  return {
-    paths: paths.map((path) => `/collection/${path}`),
-    fallback: 'blocking',
+  try {
+    const paths = await getAllCollectionPaths(shopifyConfig)
+    return {
+      paths: (paths || []).map((path) => `/collection/${path}`),
+      fallback: 'blocking',
+    }
+  } catch (err) {
+    console.warn('Failed to get static paths for collections:', err)
+    return {
+      paths: [],
+      fallback: 'blocking',
+    }
   }
 }
 
