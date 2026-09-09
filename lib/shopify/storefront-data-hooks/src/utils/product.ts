@@ -1,8 +1,8 @@
-/* 
+/*
   prepareVariantsWithOptions()
 
   This function changes the structure of the variants to
-  more easily get at their options. The original data 
+  more easily get at their options. The original data
   structure looks like this:
 
   {
@@ -33,7 +33,6 @@ export function prepareVariantsWithOptions(
   // variants: Readonly<ShopifyBuy.ProductVariant[]>
 ) {
   return variants.map((variant) => {
-    // TODO: look into types, prob need update in @types/shopify-buy
     // convert the options to a dictionary instead of an array
     const optionsDictionary = variant.selectedOptions?.reduce(
       (options: any, option: any) => {

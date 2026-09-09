@@ -65,7 +65,7 @@ export default function NotFoundPage() {
               lineHeight: 1.6,
             }}
           >
-            The page you are looking for doesn't exist, has been moved, or has not yet been published in Builder.io.
+            The page you are looking for doesn&apos;t exist, has been moved, or has not yet been published in Builder.io.
           </Text>
           <Box
             sx={{

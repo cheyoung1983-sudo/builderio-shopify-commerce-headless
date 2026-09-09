@@ -74,6 +74,9 @@ export function CommerceProvider({
   const isConfigured = Boolean(domain && storefrontAccessToken)
   const initialCart = LocalStorage.getInitialCart()
   const [cart, setCart] = useState<ShopifyBuy.Cart | null>(initialCart)
+  const cartRef = useRef(cart)
+  cartRef.current = cart
+  const initialCartRef = useRef(initialCart)
   const isInitializingRef = useRef(false)
 
   const client = useMemo(() => {
@@ -114,7 +117,7 @@ export function CommerceProvider({
         if (fallbackRes.ok && fallbackRes.data?.cartCreate?.cart) {
           return formatStorefrontCartToBuyCart(fallbackRes.data.cartCreate.cart)
         }
-        return cart
+        return cartRef.current
       },
       updateLineItems: async (cartId: string, items: any[]) => {
         const lines = items.map((li: any) => ({
@@ -125,14 +128,14 @@ export function CommerceProvider({
         if (res.ok && res.data?.cartLinesUpdate?.cart) {
           return formatStorefrontCartToBuyCart(res.data.cartLinesUpdate.cart)
         }
-        return cart
+        return cartRef.current
       },
       removeLineItems: async (cartId: string, lineItemIds: string[]) => {
         const res = await removeStorefrontCartLines(cartId, lineItemIds)
         if (res.ok && res.data?.cartLinesRemove?.cart) {
           return formatStorefrontCartToBuyCart(res.data.cartLinesRemove.cart)
         }
-        return cart
+        return cartRef.current
       },
     }
 
@@ -162,7 +165,7 @@ export function CommerceProvider({
       console.warn('Failed to build Shopify client:', e)
       return { checkout: modernCheckout } as any
     }
-  }, [domain, storefrontAccessToken, isConfigured, cart])
+  }, [domain, storefrontAccessToken, isConfigured])
 
   useEffect(() => {
     if (!client) return
@@ -192,10 +195,11 @@ export function CommerceProvider({
       }
     }
 
-    if (cart == null) {
+    const savedCart = initialCartRef.current
+    if (savedCart == null) {
       getNewCart()
     } else {
-      refreshExistingCart(String(cart.id))
+      refreshExistingCart(String(savedCart.id))
     }
   }, [client])
 

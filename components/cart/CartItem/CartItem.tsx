@@ -15,7 +15,7 @@ const CartItem = ({
   item,
   currencyCode,
 }: {
-  item: /*ShopifyBuy.LineItem todo: check if updated types*/ any
+  item: any
   currencyCode: string
 }) => {
   const updateItem = useUpdateItemQuantity()
@@ -159,7 +159,7 @@ const CartItem = ({
 }
 
 /**
- *         
+ *
 
  */
 

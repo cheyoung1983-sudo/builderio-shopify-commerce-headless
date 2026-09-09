@@ -1,6 +1,6 @@
 /** @jsxRuntime classic */
 /** @jsx jsx */
-import React, { FC, useState, useEffect, useCallback, useRef } from 'react'
+import React, { FC, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/router'
 import shopifyConfig from '@config/shopify'
 import { ProductGrid } from 'blocks/ProductGrid/ProductGrid'
@@ -22,10 +22,11 @@ const Searchbar: FC<Props> = () => {
   const { q } = router.query
   const [isOpen, setIsOpen] = useState(false)
   const buttonRef = useRef<HTMLDivElement>(null)
+  const pathname = router.asPath.split('?')[0]
 
   useEffect(() => {
     setIsOpen(false)
-  }, [router.asPath.split('?')[0]])
+  }, [pathname])
 
   return (
     <React.Fragment>
@@ -88,29 +89,37 @@ const SearchModalContent = (props: {
   initialSearch?: string
   onSearch: (term: string) => any
 }) => {
+  const { onSearch } = props
   const [search, setSearch] = useState(
     props.initialSearch && String(props.initialSearch)
   )
   const [products, setProducts] = useState([] as any[])
   const [loading, setLoading] = useState(false)
-  const getProducts = async (searchTerm: string) => {
-    setLoading(true)
-    const results = await searchProducts(shopifyConfig, String(searchTerm))
-    setSearch(searchTerm)
-    setProducts(results)
-    setLoading(false)
-    if (searchTerm) {
-      props.onSearch(searchTerm)
-    }
-  }
+
+  const getProducts = useCallback(
+    async (searchTerm: string) => {
+      setLoading(true)
+      const results = await searchProducts(shopifyConfig, String(searchTerm))
+      setSearch(searchTerm)
+      setProducts(results)
+      setLoading(false)
+      if (searchTerm) {
+        onSearch(searchTerm)
+      }
+    },
+    [onSearch]
+  )
 
   useEffect(() => {
     if (search) {
       getProducts(search)
     }
-  }, [])
+  }, [getProducts, search])
 
-  const throttleSearch = useCallback(throttle(getProducts), [])
+  const throttleSearch = useMemo(
+    () => throttle((term: string) => getProducts(term), 500),
+    [getProducts]
+  )
 
   return (
     <Box
@@ -137,7 +146,7 @@ const SearchModalContent = (props: {
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <Label style={{ margin: 0 }}>
-              Search Results for "<strong>{search}</strong>" ({products.length} found)
+              Search Results for &quot;<strong>{search}</strong>&quot; ({products.length} found)
             </Label>
             <Link
               href={`/products?q=${encodeURIComponent(search || '')}`}
@@ -161,7 +170,7 @@ const SearchModalContent = (props: {
         <span>
           {search ? (
             <>
-              There are no products that match "<strong>{search}</strong>"
+              There are no products that match &quot;<strong>{search}</strong>&quot;
             </>
           ) : (
             <> </>
