@@ -1,19 +1,29 @@
-const bundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: !!process.env.BUNDLE_ANALYZE,
-})
-
-module.exports = bundleAnalyzer({
+const nextConfig = {
   output: 'standalone',
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // Next.js 16 uses Turbopack by default; only opt into webpack (via
+  // @next/bundle-analyzer below) when explicitly analyzing the bundle.
+  turbopack: {},
   images: {
-    domains: [
-      'res.cloudinary.com',
-      'cdn.shopify.com',
-      'cdn.builder.io',
-      'via.placeholder.com',
+    remotePatterns: [
+      { protocol: 'https', hostname: 'res.cloudinary.com' },
+      { protocol: 'https', hostname: 'cdn.shopify.com' },
+      { protocol: 'https', hostname: 'cdn.builder.io' },
+      { protocol: 'https', hostname: 'via.placeholder.com' },
     ],
+  },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value:
+              'frame-ancestors https://*.builder.io https://builder.io http://localhost:1234',
+          },
+        ],
+      },
+    ]
   },
   env: {
     // expose env to the browser
@@ -35,4 +45,8 @@ module.exports = bundleAnalyzer({
     // a non-locale prefixed path e.g. `/hello`
     defaultLocale: 'en-US',
   },
-})
+}
+
+module.exports = process.env.BUNDLE_ANALYZE
+  ? require('@next/bundle-analyzer')({ enabled: true })(nextConfig)
+  : nextConfig
