@@ -8,7 +8,12 @@ const Head: FC<{ seoInfo: any }> = (props) => {
       <DefaultSeo {...props.seoInfo} />
       <NextHead>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="manifest" href="/site.webmanifest" key="site-manifest" />
+        <link
+          rel="manifest"
+          href="/site.webmanifest"
+          key="site-manifest"
+          crossOrigin="use-credentials"
+        />
         <link
           rel="icon"
           type="image/png"
