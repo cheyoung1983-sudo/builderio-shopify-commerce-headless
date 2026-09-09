@@ -8,8 +8,10 @@ if (!apiKey) {
   console.warn('BUILDER_PUBLIC_KEY environment variable is missing or empty')
 }
 
-export default {
+const builderConfig = {
   apiKey,
   productsModel: 'shopify-product',
   collectionsModel: 'shopify-collection',
 }
+
+export default builderConfig
