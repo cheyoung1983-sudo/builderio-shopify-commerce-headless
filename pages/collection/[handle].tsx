@@ -26,22 +26,30 @@ export async function getStaticProps({
   params,
   locale,
 }: GetStaticPropsContext<{ handle: string }>) {
-  const collection = await getCollection(shopifyConfig, {
-    handle: params?.handle,
-  })
+  try {
+    const collection = await getCollection(shopifyConfig, {
+      handle: params?.handle,
+    })
 
-  const page = await resolveBuilderContent(builderModel, locale, {
-    collectionHandle: params?.handle,
-  })
+    const page = await resolveBuilderContent(builderModel, locale, {
+      collectionHandle: params?.handle,
+    })
 
-  return {
-    notFound: !collection,
-    revalidate: 30,
-    props: {
-      page: page,
-      collection: collection,
-      ...(await getLayoutProps()),
-    },
+    return {
+      notFound: !collection,
+      revalidate: 30,
+      props: {
+        page: page || null,
+        collection: collection || null,
+        ...(await getLayoutProps()),
+      },
+    }
+  } catch (err) {
+    console.error('getStaticProps error in collection:', err)
+    return {
+      notFound: true,
+      revalidate: 30,
+    }
   }
 }
 

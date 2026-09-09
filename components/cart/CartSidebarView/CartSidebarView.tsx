@@ -8,6 +8,7 @@ import { useCart, useCheckoutUrl } from '@lib/shopify/storefront-data-hooks'
 import { useCart as useModernCart } from '../../../context/CartContext'
 import CartItem from '../CartItem'
 import { BuilderComponent, builder } from '@builder.io/react'
+import builderConfig from '@config/builder'
 import env from '@config/env'
 
 const CartSidebarView: FC = () => {
@@ -90,6 +91,7 @@ const CartSidebarView: FC = () => {
 
   useEffect(() => {
     async function fetchContent() {
+      if (!builderConfig.apiKey) return
       try {
         const cartUpsellContent = await builder
           .get('cart-upsell-sidebar', {
@@ -99,9 +101,11 @@ const CartSidebarView: FC = () => {
             } as any,
           })
           .toPromise()
-        setCartUpsell(cartUpsellContent)
+        if (cartUpsellContent) {
+          setCartUpsell(cartUpsellContent)
+        }
       } catch (e) {
-        console.warn('Failed to fetch cart-upsell-sidebar:', e)
+        // Quiet fallback if model is not published
       }
     }
     fetchContent()

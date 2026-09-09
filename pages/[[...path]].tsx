@@ -35,26 +35,42 @@ export async function getStaticProps({
   params,
   locale,
 }: GetStaticPropsContext<{ path: string[] }>) {
-  const page = await resolveBuilderContent('page', locale, {
-    urlPath: '/' + (params?.path?.join('/') || ''),
-  })
-  return {
-    props: {
-      page,
-      locale,
-      ...(await getLayoutProps()),
-    },
-    // Next.js will attempt to re-generate the page:
-    // - When a request comes in
-    // - At most once every 5 seconds
-    revalidate: 5,
+  try {
+    const page = await resolveBuilderContent('page', locale, {
+      urlPath: '/' + (params?.path?.join('/') || ''),
+    })
+    return {
+      props: {
+        page: page || null,
+        locale: locale || 'en-US',
+        ...(await getLayoutProps()),
+      },
+      revalidate: 5,
+    }
+  } catch (err) {
+    console.error('getStaticProps error in [[...path]]:', err)
+    return {
+      props: {
+        page: null,
+        locale: locale || 'en-US',
+        ...(await getLayoutProps()),
+      },
+      revalidate: 5,
+    }
   }
 }
 
 export async function getStaticPaths({ locales }: GetStaticPathsContext) {
-  return {
-    paths: [{ params: { path: [] } }],
-    fallback: true,
+  try {
+    return {
+      paths: [{ params: { path: [] } }],
+      fallback: true,
+    }
+  } catch (err) {
+    return {
+      paths: [],
+      fallback: true,
+    }
   }
 }
 
