@@ -11,6 +11,20 @@ const nextConfig = {
       { protocol: 'https', hostname: 'via.placeholder.com' },
     ],
   },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value:
+              'frame-ancestors https://*.builder.io https://builder.io http://localhost:1234',
+          },
+        ],
+      },
+    ]
+  },
   env: {
     // expose env to the browser
     SHOPIFY_STOREFRONT_API_TOKEN: process.env.SHOPIFY_STOREFRONT_API_TOKEN || process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN,
