@@ -475,7 +475,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           id="storefront-products-grid"
           className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
         >
-          {filteredProducts.map((product) => {
+          {filteredProducts.map((product, index) => {
             const featuredImage =
               product.featuredImage?.url || product.images?.edges?.[0]?.node?.url
             const imageAlt =
@@ -508,6 +508,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                       src={featuredImage}
                       alt={imageAlt}
                       fill
+                      priority={index < 2}
                       sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                       className="object-cover object-center group-hover:scale-105 transition-transform duration-300"
                       referrerPolicy="no-referrer"
