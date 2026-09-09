@@ -143,7 +143,7 @@ const SearchModalContent = (props: {
           <ProductGridSkeleton count={4} />
         </div>
       ) : products.length ? (
-        <>
+        <React.Fragment>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <Label style={{ margin: 0 }}>
               Search Results for &quot;<strong>{search}</strong>&quot; ({products.length} found)
@@ -165,15 +165,15 @@ const SearchModalContent = (props: {
             offset={0}
             limit={products.length}
           ></ProductGrid>
-        </>
+        </React.Fragment>
       ) : (
         <span>
           {search ? (
-            <>
+            <React.Fragment>
               There are no products that match &quot;<strong>{search}</strong>&quot;
-            </>
+            </React.Fragment>
           ) : (
-            <> </>
+            <React.Fragment> </React.Fragment>
           )}
         </span>
       )}

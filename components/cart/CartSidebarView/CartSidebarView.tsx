@@ -123,15 +123,15 @@ const CartSidebarView: FC = () => {
       }}
     >
       {isEmpty ? (
-        <>
+        <React.Fragment>
           <Bag />
           Your cart is empty
           <Text>
             Biscuit oat cake wafer icing ice cream tiramisu pudding cupcake.
           </Text>
-        </>
+        </React.Fragment>
       ) : (
-        <>
+        <React.Fragment>
           {items.map((item: any) => (
             <CartItem
               key={item.id}
@@ -167,7 +167,7 @@ const CartSidebarView: FC = () => {
               Proceed to Checkout
             </NavLink>
           )}
-        </>
+        </React.Fragment>
       )}
     </Box>
   )

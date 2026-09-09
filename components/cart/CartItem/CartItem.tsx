@@ -107,7 +107,7 @@ const CartItem = ({
           href={productHandle ? `/product/${productHandle}/` : '#'}
           sx={{ fontSize: 3, m: 0, fontWeight: 700 }}
         >
-          <>
+          <React.Fragment>
             {item.title}
             <Text
               sx={{
@@ -119,7 +119,7 @@ const CartItem = ({
             >
               {getPrice(priceAmount, currency)}
             </Text>
-          </>
+          </React.Fragment>
         </Link>
         <ul sx={{ mt: 2, mb: 0, padding: 0, listStyle: 'none' }}>
           <li>
