@@ -4,6 +4,12 @@
   "engines": {
     "node": "24.x"
   },
+  "resolutions": {
+    "isolated-vm": "7.0.1"
+  },
+  "overrides": {
+    "isolated-vm": "7.0.1"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
