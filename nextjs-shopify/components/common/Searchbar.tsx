@@ -1,10 +1,8 @@
-/** @jsxRuntime classic */
-/** @jsx jsx */
 import React, { FC, useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/router'
 import shopifyConfig from '@config/shopify'
 import { ProductGrid } from 'blocks/ProductGrid/ProductGrid'
-import { Button, Box, jsx, Input, Label } from 'theme-ui'
+import { Button, Box, Input, Label } from 'theme-ui'
 import { searchProducts } from '@lib/shopify/storefront-data-hooks/src/api/operations'
 import { ExpandModal } from '@components/modals'
 import { throttle } from 'lodash'

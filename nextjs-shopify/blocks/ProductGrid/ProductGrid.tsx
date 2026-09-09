@@ -1,6 +1,4 @@
-/** @jsxRuntime classic */
-/** @jsx jsx */
-import { jsx } from 'theme-ui'
+
 import { FC, useEffect, useState } from 'react'
 import { Box, Grid } from '@theme-ui/components'
 import ProductCard, { ProductCardProps } from '@components/common/ProductCard'

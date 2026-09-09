@@ -24,30 +24,46 @@ export async function getStaticProps({
   params,
   locale,
 }: GetStaticPropsContext<{ handle: string }>) {
-  const collection = await getCollection(shopifyConfig, {
-    handle: params?.handle,
-  })
+  try {
+    const collection = await getCollection(shopifyConfig, {
+      handle: params?.handle,
+    })
 
-  const page = await resolveBuilderContent(builderModel, locale, {
-    collectionHandle: params?.handle,
-  })
+    const page = await resolveBuilderContent(builderModel, locale, {
+      collectionHandle: params?.handle,
+    })
 
-  return {
-    notFound: !collection,
-    revalidate: 30,
-    props: {
-      page: page,
-      collection: collection,
-      ...(await getLayoutProps()),
-    },
+    return {
+      notFound: !collection,
+      revalidate: 30,
+      props: {
+        page: page || null,
+        collection: collection || null,
+        ...(await getLayoutProps()),
+      },
+    }
+  } catch (err) {
+    console.error('getStaticProps error in collection:', err)
+    return {
+      notFound: true,
+      revalidate: 30,
+    }
   }
 }
 
 export async function getStaticPaths({ locales }: GetStaticPathsContext) {
-  const paths = await getAllCollectionPaths(shopifyConfig)
-  return {
-    paths: paths.map((path) => `/collection/${path}`),
-    fallback: 'blocking',
+  try {
+    const paths = await getAllCollectionPaths(shopifyConfig)
+    return {
+      paths: (paths || []).map((path) => `/collection/${path}`),
+      fallback: 'blocking',
+    }
+  } catch (err) {
+    console.warn('Failed to get static paths for collections:', err)
+    return {
+      paths: [],
+      fallback: 'blocking',
+    }
   }
 }
 
@@ -75,7 +91,7 @@ export default function Handle({
     <h1>Loading...</h1>
   ) : (
     <BuilderComponent
-      key={collection.id}
+      key={collection?.id || 'collection'}
       options={{ enrich: true }}
       model={builderModel}
       data={{ collection, theme }}

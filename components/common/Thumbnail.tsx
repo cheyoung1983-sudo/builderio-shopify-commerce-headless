@@ -1,6 +1,4 @@
-/** @jsxRuntime classic */
-/** @jsx jsx */
-import { jsx, AspectRatio } from 'theme-ui'
+import { AspectRatio } from 'theme-ui'
 import Image from 'next/legacy/image'
 
 export interface ThumbnailProps {

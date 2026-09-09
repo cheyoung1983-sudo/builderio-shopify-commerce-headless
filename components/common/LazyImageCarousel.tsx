@@ -1,6 +1,4 @@
-/** @jsxRuntime classic */
-/** @jsx jsx */
-import { jsx, IconButton } from 'theme-ui'
+import { IconButton } from 'theme-ui'
 import { FC } from 'react'
 import {
   CarouselProvider,

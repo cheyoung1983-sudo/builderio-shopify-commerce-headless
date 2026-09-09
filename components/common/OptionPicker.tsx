@@ -1,6 +1,4 @@
-/** @jsxRuntime classic */
-/** @jsx jsx */
-import { jsx } from 'theme-ui'
+
 import { Select, Label } from '@theme-ui/components'
 export interface OptionPickerProps {
   name: string

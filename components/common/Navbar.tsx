@@ -1,11 +1,9 @@
-/** @jsxRuntime classic */
-/** @jsx jsx */
 import React, { FC, useState, useEffect } from 'react'
 import { BuilderComponent, builder } from '@builder.io/react'
 import builderConfig from '@config/builder'
 import { useCart } from '@lib/shopify/storefront-data-hooks'
 import { useCart as useModernCart } from '../../context/CartContext'
-import { jsx, Box, useThemeUI, Heading, Button } from 'theme-ui'
+import { Box, useThemeUI, Heading, Button } from 'theme-ui'
 import { useUI } from '@components/common/context'
 import Image from 'next/legacy/image'
 import Searchbar from './Searchbar'

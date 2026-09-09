@@ -25,30 +25,46 @@ export async function getStaticProps({
   params,
   locale,
 }: GetStaticPropsContext<{ handle: string }>) {
-  const product = await getProduct(shopifyConfig, {
-    handle: params?.handle,
-  })
+  try {
+    const product = await getProduct(shopifyConfig, {
+      handle: params?.handle,
+    })
 
-  const page = await resolveBuilderContent(builderModel, locale, {
-    productHandle: params?.handle,
-  })
+    const page = await resolveBuilderContent(builderModel, locale, {
+      productHandle: params?.handle,
+    })
 
-  return {
-    notFound: !product,
-    revalidate: 30,
-    props: {
-      page: page,
-      product: product,
-      ...(await getLayoutProps()),
-    },
+    return {
+      notFound: !product,
+      revalidate: 30,
+      props: {
+        page: page || null,
+        product: product || null,
+        ...(await getLayoutProps()),
+      },
+    }
+  } catch (err) {
+    console.error('getStaticProps error in product:', err)
+    return {
+      notFound: true,
+      revalidate: 30,
+    }
   }
 }
 
 export async function getStaticPaths({ locales }: GetStaticPathsContext) {
-  const paths = await getAllProductPaths(shopifyConfig)
-  return {
-    paths: paths.map((path) => `/product/${path}`),
-    fallback: 'blocking',
+  try {
+    const paths = await getAllProductPaths(shopifyConfig)
+    return {
+      paths: (paths || []).map((path) => `/product/${path}`),
+      fallback: 'blocking',
+    }
+  } catch (err) {
+    console.error('Failed to get static paths for products:', err)
+    return {
+      paths: [],
+      fallback: 'blocking',
+    }
   }
 }
 
@@ -76,7 +92,7 @@ export default function Handle({
     <h1>Loading...</h1>
   ) : (
     <BuilderComponent
-      key={product!.id}
+      key={product?.id || 'product'}
       model={builderModel}
       options={{ enrich: true }}
       data={{ product, theme }}
