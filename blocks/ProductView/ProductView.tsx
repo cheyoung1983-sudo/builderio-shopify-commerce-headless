@@ -1,5 +1,7 @@
+/** @jsxRuntime classic */
+/** @jsx jsx */
 import React, { useMemo, useState, useEffect } from 'react'
-
+import { jsx } from 'theme-ui'
 import { Grid, Button, Heading } from '@theme-ui/components'
 import OptionPicker from '@components/common/OptionPicker'
 import { NextSeo } from 'next-seo'

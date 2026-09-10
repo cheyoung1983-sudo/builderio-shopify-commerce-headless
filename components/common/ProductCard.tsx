@@ -1,4 +1,6 @@
-import { Heading } from 'theme-ui'
+/** @jsxRuntime classic */
+/** @jsx jsx */
+import { Heading, jsx } from 'theme-ui'
 import { Card, Text } from '@theme-ui/components'
 import Image from 'next/legacy/image'
 import { getPrice } from '@lib/shopify/storefront-data-hooks/src/utils/product'

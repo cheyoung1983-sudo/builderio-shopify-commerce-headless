@@ -9,11 +9,17 @@ import {
   ShoppingBag,
   Check,
   ChevronRight,
+  ChevronDown,
+  ArrowUpDown,
+  ArrowLeftRight,
+  Loader2,
   SlidersHorizontal,
   Sparkles,
   Layers,
   AlertCircle,
   ExternalLink,
+  Eye,
+  X,
 } from 'lucide-react'
 import {
   fetchAllAvailableProducts,
@@ -21,6 +27,8 @@ import {
   StorefrontGraphQLError,
 } from '../../services/shopify'
 import { ProductDetail } from './ProductDetail'
+import { ProductComparisonModal } from './ProductComparisonModal'
+import { ComparisonDock } from './ComparisonDock'
 import { ProductGridSkeleton } from './ProductGridSkeleton'
 import { SearchBar } from './SearchBar'
 import { CartContext } from '../../context/CartContext'
@@ -50,7 +58,66 @@ export interface ProductGridProps {
   onSearchChange?: (query: string) => void
 }
 
-type SortOption = 'featured' | 'price-asc' | 'price-desc' | 'title-asc' | 'title-desc'
+export type ShopifySortOption =
+  | 'relevance'
+  | 'price-asc'
+  | 'price-desc'
+  | 'best-selling'
+  | 'title-asc'
+  | 'title-desc'
+
+export interface ShopifySortConfig {
+  value: ShopifySortOption
+  label: string
+  sortKey: 'RELEVANCE' | 'PRICE' | 'TITLE' | 'BEST_SELLING'
+  reverse: boolean
+  apiParamDescription: string
+}
+
+export const SHOPIFY_SORT_CONFIGS: Record<ShopifySortOption, ShopifySortConfig> = {
+  relevance: {
+    value: 'relevance',
+    label: 'Relevance',
+    sortKey: 'RELEVANCE',
+    reverse: false,
+    apiParamDescription: 'sortKey: RELEVANCE, reverse: false',
+  },
+  'price-asc': {
+    value: 'price-asc',
+    label: 'Price: Low to High',
+    sortKey: 'PRICE',
+    reverse: false,
+    apiParamDescription: 'sortKey: PRICE, reverse: false',
+  },
+  'price-desc': {
+    value: 'price-desc',
+    label: 'Price: High to Low',
+    sortKey: 'PRICE',
+    reverse: true,
+    apiParamDescription: 'sortKey: PRICE, reverse: true',
+  },
+  'best-selling': {
+    value: 'best-selling',
+    label: 'Best Selling',
+    sortKey: 'BEST_SELLING',
+    reverse: false,
+    apiParamDescription: 'sortKey: BEST_SELLING, reverse: false',
+  },
+  'title-asc': {
+    value: 'title-asc',
+    label: 'Alphabetical: A to Z',
+    sortKey: 'TITLE',
+    reverse: false,
+    apiParamDescription: 'sortKey: TITLE, reverse: false',
+  },
+  'title-desc': {
+    value: 'title-desc',
+    label: 'Alphabetical: Z to A',
+    sortKey: 'TITLE',
+    reverse: true,
+    apiParamDescription: 'sortKey: TITLE, reverse: true',
+  },
+}
 
 export const ProductGrid: React.FC<ProductGridProps> = ({
   initialProducts,
@@ -69,14 +136,47 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   const [products, setProducts] = useState<ShopifyProductNode[]>(initialProducts || [])
   const [loading, setLoading] = useState<boolean>(!initialProducts || initialProducts.length === 0)
   const [isSearching, setIsSearching] = useState<boolean>(false)
+  const [isSorting, setIsSorting] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState<string>(initialQuery)
   const [selectedTag, setSelectedTag] = useState<string>('ALL')
-  const [sortBy, setSortBy] = useState<SortOption>('featured')
+  const [sortBy, setSortBy] = useState<ShopifySortOption>('relevance')
   const [addedItemHandle, setAddedItemHandle] = useState<string | null>(null)
   const [selectedProductHandle, setSelectedProductHandle] = useState<string | null>(null)
   const [quickAddingId, setQuickAddingId] = useState<string | null>(null)
+
+  // Comparison tool states (up to 3 products)
+  const [compareProducts, setCompareProducts] = useState<ShopifyProductNode[]>([])
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState<boolean>(false)
+  const [compareNotice, setCompareNotice] = useState<string | null>(null)
+
+  const handleToggleCompare = (product: ShopifyProductNode, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    setCompareProducts((prev) => {
+      const exists = prev.some((p) => p.id === product.id)
+      if (exists) {
+        return prev.filter((p) => p.id !== product.id)
+      }
+      if (prev.length >= 3) {
+        setCompareNotice('Comparison limit reached: You can compare up to 3 products at a time.')
+        setTimeout(() => setCompareNotice(null), 3500)
+        return prev
+      }
+      return [...prev, product]
+    })
+  }
+
+  const handleRemoveCompare = (productId: string) => {
+    setCompareProducts((prev) => prev.filter((p) => p.id !== productId))
+  }
+
+  const handleClearCompare = () => {
+    setCompareProducts([])
+  }
 
   const cart = useContext(CartContext)
 
@@ -135,28 +235,87 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   }
 
   // Fetch products from shopify.ts Storefront service
-  const loadProducts = useCallback(async () => {
+  const loadProducts = useCallback(
+    async (currentSortOption: ShopifySortOption = sortBy, query?: string) => {
+      try {
+        setLoading(true)
+        setError(null)
+        const activeSortConfig = SHOPIFY_SORT_CONFIGS[currentSortOption] || SHOPIFY_SORT_CONFIGS.relevance
+        const res = await fetchAllAvailableProducts({
+          maxProducts: limit,
+          onlyAvailable: true,
+          query: query?.trim() || undefined,
+          sortKey: activeSortConfig.sortKey,
+          reverse: activeSortConfig.reverse,
+        })
+
+        if (!res.ok && res.products.length === 0) {
+          const msg = res.errors?.[0]?.message || 'Failed to fetch products from Storefront API'
+          setError(msg)
+        } else {
+          setBaseProducts(res.products)
+          setProducts(res.products)
+        }
+      } catch (err: any) {
+        setError(err?.message || 'An unexpected error occurred while loading products.')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [limit, sortBy]
+  )
+
+  // Handle user-initiated sorting change via Shopify API parameters
+  const handleSortChange = async (newSort: ShopifySortOption) => {
+    setSortBy(newSort)
+    const config = SHOPIFY_SORT_CONFIGS[newSort]
+
+    // 1. Instant optimistic reorder for snappy UI response
+    setProducts((prev) => {
+      const copy = [...prev]
+      if (newSort === 'price-asc') {
+        copy.sort((a, b) => {
+          const priceA = parseFloat(a.priceRange?.minVariantPrice?.amount || '0')
+          const priceB = parseFloat(b.priceRange?.minVariantPrice?.amount || '0')
+          return priceA - priceB
+        })
+      } else if (newSort === 'price-desc') {
+        copy.sort((a, b) => {
+          const priceA = parseFloat(a.priceRange?.minVariantPrice?.amount || '0')
+          const priceB = parseFloat(b.priceRange?.minVariantPrice?.amount || '0')
+          return priceB - priceA
+        })
+      } else if (newSort === 'title-asc') {
+        copy.sort((a, b) => a.title.localeCompare(b.title))
+      } else if (newSort === 'title-desc') {
+        copy.sort((a, b) => b.title.localeCompare(a.title))
+      }
+      return copy
+    })
+
+    // 2. Query Shopify Storefront API with sortKey and reverse parameters
     try {
-      setLoading(true)
-      setError(null)
+      setIsSorting(true)
       const res = await fetchAllAvailableProducts({
         maxProducts: limit,
         onlyAvailable: true,
+        query: searchQuery?.trim() || undefined,
+        sortKey: config.sortKey,
+        reverse: config.reverse,
       })
 
-      if (!res.ok && res.products.length === 0) {
-        const msg = res.errors?.[0]?.message || 'Failed to fetch products from Storefront API'
-        setError(msg)
-      } else {
-        setBaseProducts(res.products)
+      if (res.ok && res.products && res.products.length > 0) {
         setProducts(res.products)
+        if (!searchQuery.trim()) {
+          setBaseProducts(res.products)
+        }
       }
-    } catch (err: any) {
-      setError(err?.message || 'An unexpected error occurred while loading products.')
+    } catch (err) {
+      console.warn('Shopify Storefront sorting request notice:', err)
     } finally {
-      setLoading(false)
+      setIsSorting(false)
     }
-  }, [limit])
+  }
 
   // Initial load if not provided
   useEffect(() => {
@@ -267,8 +426,10 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       case 'title-desc':
         result.sort((a, b) => b.title.localeCompare(a.title))
         break
-      case 'featured':
+      case 'relevance':
+      case 'best-selling':
       default:
+        // Preserves server-side Storefront API ranking
         break
     }
 
@@ -333,6 +494,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                 placeholder="Search screen replacements, parts, models by title or keyword..."
                 onQueryStart={handleQueryStart}
                 onProductsFetched={handleProductsFetched}
+                sortKey={SHOPIFY_SORT_CONFIGS[sortBy].sortKey}
+                reverse={SHOPIFY_SORT_CONFIGS[sortBy].reverse}
                 onChange={(val) => {
                   setSearchQuery(val)
                   if (!val.trim()) {
@@ -350,27 +513,78 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
               />
             </div>
 
-            {/* Sort Dropdown */}
-            <div className="flex items-center gap-2 self-end lg:self-start pt-1">
-              <label
-                htmlFor="storefront-sort-select"
-                className="text-xs font-medium text-neutral-500 flex items-center gap-1 whitespace-nowrap"
+            {/* Shopify Storefront API Sorting Dropdown */}
+            <div
+              id="shopify-sorting-controls"
+              className="flex flex-col sm:flex-row sm:items-center gap-2.5 self-end lg:self-start pt-1 shrink-0"
+            >
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="storefront-sort-select"
+                  className="text-xs font-semibold text-neutral-600 flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                >
+                  <ArrowUpDown className="w-3.5 h-3.5 text-neutral-500" />
+                  <span>Sort by:</span>
+                </label>
+                <div className="relative inline-block">
+                  <select
+                    id="storefront-sort-select"
+                    value={sortBy}
+                    onChange={(e) => handleSortChange(e.target.value as ShopifySortOption)}
+                    disabled={loading}
+                    aria-label="Reorder products using Shopify Storefront API parameters"
+                    className="text-xs sm:text-sm font-medium bg-white border border-neutral-300 hover:border-neutral-400 rounded-xl pl-3 pr-8 py-2 text-neutral-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-xs transition-colors appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <option value="relevance">Relevance</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="best-selling">Best Selling</option>
+                    <option value="title-asc">Alphabetical: A to Z</option>
+                    <option value="title-desc">Alphabetical: Z to A</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-neutral-400">
+                    {isSorting ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Shopify API Sorting Parameter Badge */}
+              <div
+                id="shopify-sort-param-badge"
+                title={`Shopify Storefront API parameter: ${SHOPIFY_SORT_CONFIGS[sortBy].apiParamDescription}`}
+                className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono text-neutral-600 bg-neutral-100 border border-neutral-200/80 px-2.5 py-1 rounded-lg"
               >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                Sort by:
-              </label>
-              <select
-                id="storefront-sort-select"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="text-sm bg-white border border-neutral-300 rounded-xl px-3 py-2 text-neutral-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-xs"
-              >
-                <option value="featured">Featured (Default)</option>
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
-                <option value="title-asc">Title: A to Z</option>
-                <option value="title-desc">Title: Z to A</option>
-              </select>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-400">API</span>
+                <span className="text-neutral-400">•</span>
+                <span className="font-semibold text-emerald-700">
+                  sortKey: {SHOPIFY_SORT_CONFIGS[sortBy].sortKey}
+                </span>
+                {SHOPIFY_SORT_CONFIGS[sortBy].reverse && (
+                  <>
+                    <span className="text-neutral-400">•</span>
+                    <span className="text-amber-700 font-semibold bg-amber-50 px-1 py-0.5 rounded text-[10px]">
+                      reverse: true
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {/* Compare Quick Button if items selected */}
+              {compareProducts.length > 0 && (
+                <button
+                  type="button"
+                  id="controls-compare-now-btn"
+                  onClick={() => setIsCompareModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs transition-all cursor-pointer animate-scaleIn"
+                >
+                  <ArrowLeftRight className="w-3.5 h-3.5" />
+                  <span>Compare ({compareProducts.length}/3)</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -476,8 +690,10 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
         >
           {filteredProducts.map((product, index) => {
-            const featuredImage =
+            const primaryImage =
               product.featuredImage?.url || product.images?.edges?.[0]?.node?.url
+            const secondaryImage =
+              product.images?.edges?.[1]?.node?.url
             const imageAlt =
               product.featuredImage?.altText ||
               product.images?.edges?.[0]?.node?.altText ||
@@ -490,12 +706,21 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
               comparePrice && parseFloat(comparePrice) > parseFloat(minPrice || '0')
 
             const variantCount = product.variants?.edges?.length || 0
+            const isCompared = compareProducts.some((p) => p.id === product.id)
 
             return (
               <div
                 key={product.id}
                 id={`product-card-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
-                className="group relative bg-white border border-neutral-200/80 rounded-xl overflow-hidden hover:border-neutral-300 hover:shadow-lg transition-all duration-200 flex flex-col"
+                style={{
+                  animationDelay: `${Math.min(index * 45, 450)}ms`,
+                }}
+                onClick={(e) => handleProductCardClick(product, e)}
+                className={`animate-grid-fade-in group relative bg-white border rounded-xl overflow-hidden transition-all duration-300 ease-out flex flex-col cursor-pointer ${
+                  isCompared
+                    ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
+                    : 'border-surface-stone hover:border-neutral-300 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1'
+                }`}
               >
                 {/* Image Container with Link */}
                 <Link
@@ -503,16 +728,29 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                   onClick={(e) => handleProductCardClick(product, e)}
                   className="block relative aspect-square w-full bg-neutral-100 overflow-hidden cursor-pointer"
                 >
-                  {featuredImage ? (
-                    <Image
-                      src={featuredImage}
-                      alt={imageAlt}
-                      fill
-                      priority={index < 2}
-                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                      className="object-cover object-center group-hover:scale-105 transition-transform duration-300"
-                      referrerPolicy="no-referrer"
-                    />
+                  {primaryImage ? (
+                    <>
+                      <Image
+                        src={primaryImage}
+                        alt={imageAlt}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                        className={`object-cover object-center transition-all duration-500 ease-out group-hover:scale-105 ${
+                          secondaryImage ? 'group-hover:opacity-0' : ''
+                        }`}
+                        referrerPolicy="no-referrer"
+                      />
+                      {secondaryImage && (
+                        <Image
+                          src={secondaryImage}
+                          alt={`${imageAlt} - Alternate view`}
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                          className="object-cover object-center transition-all duration-500 ease-out opacity-0 group-hover:opacity-100 group-hover:scale-105"
+                          referrerPolicy="no-referrer"
+                        />
+                      )}
+                    </>
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-neutral-400 gap-2">
                       <PackageOpen className="w-10 h-10 stroke-[1.5]" />
@@ -520,8 +758,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                     </div>
                   )}
 
-                  {/* Badges Overlay */}
-                  <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10">
+                  {/* Badges Overlay (Left) */}
+                  <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10 pointer-events-none">
                     {isOnSale && (
                       <span className="bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded shadow-sm">
                         Sale
@@ -532,15 +770,58 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                         {product.productType}
                       </span>
                     )}
-                  </div>
-
-                  {/* Stock indicator badge */}
-                  <div className="absolute top-2.5 right-2.5 z-10">
-                    <span className="bg-emerald-600/90 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-0.5 rounded shadow-sm inline-flex items-center gap-1">
+                    {/* Stock indicator badge */}
+                    <span className="bg-emerald-600/90 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-0.5 rounded shadow-sm inline-flex items-center gap-1 w-fit">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
                       In Stock
                     </span>
                   </div>
+
+                  {/* Compare Toggle Button (Top Right) */}
+                  <div className="absolute top-2.5 right-2.5 z-20">
+                    <button
+                      type="button"
+                      id={`compare-toggle-btn-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
+                      onClick={(e) => handleToggleCompare(product, e)}
+                      aria-label={
+                        isCompared
+                          ? `Remove ${product.title} from comparison`
+                          : `Add ${product.title} to comparison`
+                      }
+                      title={
+                        isCompared
+                          ? 'Remove from comparison'
+                          : 'Compare with up to 3 products'
+                      }
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all shadow-xs cursor-pointer ${
+                        isCompared
+                          ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-400/40'
+                          : 'bg-white/95 hover:bg-white text-neutral-700 hover:text-neutral-950 border border-neutral-200/90 backdrop-blur-xs'
+                      }`}
+                    >
+                      {isCompared ? (
+                        <>
+                          <Check className="w-3 h-3 text-white" />
+                          <span>Comparing</span>
+                        </>
+                      ) : (
+                        <>
+                          <ArrowLeftRight className="w-3 h-3 text-neutral-500" />
+                          <span>Compare</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Multi-image indicator badge */}
+                  {secondaryImage && (
+                    <div className="absolute bottom-2.5 right-2.5 z-10 opacity-75 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <span className="bg-neutral-900/80 backdrop-blur-xs text-white text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                        <Layers className="w-2.5 h-2.5" />
+                        <span>2 views</span>
+                      </span>
+                    </div>
+                  )}
 
                   {/* Quick View Hover Hint */}
                   <div className="absolute inset-x-0 bottom-0 py-2 bg-neutral-950/70 backdrop-blur-xs text-white text-[11px] font-medium text-center opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
@@ -627,12 +908,12 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 
                       <button
                         type="button"
-                        id={`view-btn-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
+                        id={`quick-view-btn-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
                         onClick={(e) => handleProductCardClick(product, e)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-neutral-100 hover:bg-neutral-900 hover:text-white text-neutral-800 transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-neutral-100 hover:bg-neutral-900 hover:text-white text-neutral-800 transition-colors cursor-pointer"
                       >
-                        <span>Details</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Quick View</span>
                       </button>
                     </div>
                   </div>
@@ -643,14 +924,60 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
         </div>
       )}
 
-      {/* Product Detail Modal */}
-      <ProductDetail
-        handle={selectedProductHandle}
-        asModal={true}
-        isOpen={Boolean(selectedProductHandle)}
-        onClose={() => setSelectedProductHandle(null)}
-        productBaseUrl={productBaseUrl}
+      {/* Product Detail Quick View Modal */}
+      {selectedProductHandle && (
+        <ProductDetail
+          handle={selectedProductHandle}
+          asModal={true}
+          isOpen={Boolean(selectedProductHandle)}
+          onClose={() => setSelectedProductHandle(null)}
+          productBaseUrl={productBaseUrl}
+        />
+      )}
+
+      {/* Floating Comparison Dock (visible when products are selected) */}
+      <ComparisonDock
+        selectedProducts={compareProducts}
+        onOpenModal={() => setIsCompareModalOpen(true)}
+        onRemoveProduct={handleRemoveCompare}
+        onClearAll={handleClearCompare}
+        maxProducts={3}
       />
+
+      {/* Side-by-Side Product Comparison Table Modal Overlay */}
+      <ProductComparisonModal
+        products={compareProducts}
+        isOpen={isCompareModalOpen}
+        onClose={() => setIsCompareModalOpen(false)}
+        onRemoveProduct={handleRemoveCompare}
+        onClearAll={handleClearCompare}
+        productBaseUrl={productBaseUrl}
+        onSelectMore={() => {
+          const grid = document.getElementById('storefront-products-grid')
+          grid?.scrollIntoView({ behavior: 'smooth' })
+        }}
+      />
+
+      {/* Comparison Limit Notice Toast */}
+      {compareNotice && (
+        <div
+          id="comparison-notice-toast"
+          role="status"
+          aria-live="polite"
+          className="fixed top-24 right-4 z-50 bg-neutral-900 text-white border border-neutral-700 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs animate-slide-up"
+        >
+          <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+          <span className="font-medium">{compareNotice}</span>
+          <button
+            type="button"
+            onClick={() => setCompareNotice(null)}
+            className="text-neutral-400 hover:text-white p-0.5 rounded transition-colors ml-1"
+            aria-label="Dismiss notice"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
     </section>
   )
 }

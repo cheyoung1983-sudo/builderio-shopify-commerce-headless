@@ -1,4 +1,6 @@
-import { Close, Box } from 'theme-ui'
+/** @jsxRuntime classic */
+/** @jsx jsx */
+import { jsx, Close, Box } from 'theme-ui'
 import { useResponsiveValue } from '@theme-ui/match-media'
 import { FC } from 'react'
 import { BaseModal, ModalCloseTarget } from '@components/modals'

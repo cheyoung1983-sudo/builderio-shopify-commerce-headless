@@ -1,4 +1,6 @@
-
+/** @jsxRuntime classic */
+/** @jsx jsx */
+import { jsx } from 'theme-ui'
 import { FC, useEffect, useState } from 'react'
 import { Box, Grid } from '@theme-ui/components'
 import ProductCard, { ProductCardProps } from '@components/common/ProductCard'
@@ -65,7 +67,7 @@ export const ProductGrid: FC<ProductGridProps> = ({
     if (typeof collection === 'string' && !initialProducts) {
       fetchCollection()
     }
-  }, [collection, initialProducts])
+  }, [collection])
 
   if (loading) {
     return <ProductGridSkeleton count={limit || 4} />

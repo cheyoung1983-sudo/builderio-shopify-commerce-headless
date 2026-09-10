@@ -1,6 +1,8 @@
+/** @jsxRuntime classic */
+/** @jsx jsx */
 import React, { FC, useState, useEffect } from 'react'
 import { NextSeo } from 'next-seo'
-
+import { jsx } from 'theme-ui'
 import { Box, Heading } from '@theme-ui/components'
 import shopifyConfig from '@config/shopify'
 import { ProductGrid, ProductGridProps } from '../ProductGrid/ProductGrid'

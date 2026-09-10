@@ -1,9 +1,11 @@
-import React, { FC, useState, useEffect, useCallback, useMemo, useRef } from 'react'
+/** @jsxRuntime classic */
+/** @jsx jsx */
+import React, { FC, useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/router'
 import shopifyConfig from '@config/shopify'
 import { ProductGrid } from 'blocks/ProductGrid/ProductGrid'
 import { ProductGridSkeleton } from '@components/products/ProductGridSkeleton'
-import { Button, Box, Input, Label } from 'theme-ui'
+import { Button, Box, jsx, Input, Label } from 'theme-ui'
 import Link from 'next/link'
 import { searchProducts } from '@lib/shopify/storefront-data-hooks/src/api/operations'
 import { ExpandModal } from '@components/modals'
@@ -20,11 +22,10 @@ const Searchbar: FC<Props> = () => {
   const { q } = router.query
   const [isOpen, setIsOpen] = useState(false)
   const buttonRef = useRef<HTMLDivElement>(null)
-  const pathname = router.asPath.split('?')[0]
 
   useEffect(() => {
     setIsOpen(false)
-  }, [pathname])
+  }, [router.asPath.split('?')[0]])
 
   return (
     <React.Fragment>
@@ -87,37 +88,29 @@ const SearchModalContent = (props: {
   initialSearch?: string
   onSearch: (term: string) => any
 }) => {
-  const { onSearch } = props
   const [search, setSearch] = useState(
     props.initialSearch && String(props.initialSearch)
   )
   const [products, setProducts] = useState([] as any[])
   const [loading, setLoading] = useState(false)
-
-  const getProducts = useCallback(
-    async (searchTerm: string) => {
-      setLoading(true)
-      const results = await searchProducts(shopifyConfig, String(searchTerm))
-      setSearch(searchTerm)
-      setProducts(results)
-      setLoading(false)
-      if (searchTerm) {
-        onSearch(searchTerm)
-      }
-    },
-    [onSearch]
-  )
+  const getProducts = async (searchTerm: string) => {
+    setLoading(true)
+    const results = await searchProducts(shopifyConfig, String(searchTerm))
+    setSearch(searchTerm)
+    setProducts(results)
+    setLoading(false)
+    if (searchTerm) {
+      props.onSearch(searchTerm)
+    }
+  }
 
   useEffect(() => {
     if (search) {
       getProducts(search)
     }
-  }, [getProducts, search])
+  }, [])
 
-  const throttleSearch = useMemo(
-    () => throttle((term: string) => getProducts(term), 500),
-    [getProducts]
-  )
+  const throttleSearch = useCallback(throttle(getProducts), [])
 
   return (
     <Box
@@ -141,7 +134,7 @@ const SearchModalContent = (props: {
           <ProductGridSkeleton count={4} />
         </div>
       ) : products.length ? (
-        <React.Fragment>
+        <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <Label style={{ margin: 0 }}>
               Search Results for &quot;<strong>{search}</strong>&quot; ({products.length} found)
@@ -163,15 +156,15 @@ const SearchModalContent = (props: {
             offset={0}
             limit={products.length}
           ></ProductGrid>
-        </React.Fragment>
+        </>
       ) : (
         <span>
           {search ? (
-            <React.Fragment>
+            <>
               There are no products that match &quot;<strong>{search}</strong>&quot;
-            </React.Fragment>
+            </>
           ) : (
-            <React.Fragment> </React.Fragment>
+            <> </>
           )}
         </span>
       )}
