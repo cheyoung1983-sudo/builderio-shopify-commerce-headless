@@ -37,6 +37,21 @@ const nextConfig = {
               "font-src 'self' data: https://vercel.live",
             ].join('; '),
           },
+          // X-Frame-Options is intentionally omitted: it can't express "allow
+          // these specific origins" (only DENY/SAMEORIGIN), which would break
+          // the Builder.io visual editor's iframe embed. frame-ancestors above
+          // is the modern replacement and takes precedence in browsers that
+          // support both.
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), usb=(), payment=()',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains',
+          },
         ],
       },
     ]

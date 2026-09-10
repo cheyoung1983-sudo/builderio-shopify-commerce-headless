@@ -45,7 +45,9 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
     >
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        // Escape "<" so a label/handle containing "</script>" can't break out
+        // of this script tag (standard JSON-LD injection mitigation).
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
       <ol
         itemScope
