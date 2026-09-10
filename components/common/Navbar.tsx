@@ -201,6 +201,19 @@ const Navbar: FC = () => {
           }}
         >
           <Searchbar />
+          <Link
+            href="/account"
+            aria-label="My Account"
+            sx={{
+              padding: '6px 10px',
+              fontSize: '13px',
+              fontWeight: 500,
+              color: 'inherit',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Account
+          </Link>
           <Button
             id="navbar-bag-button"
             onClick={openSidebar}
