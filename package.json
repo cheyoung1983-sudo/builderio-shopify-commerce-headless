@@ -5,10 +5,12 @@
     "node": "24.x"
   },
   "resolutions": {
-    "isolated-vm": "7.0.1"
+    "isolated-vm": "7.0.1",
+    "minimatch": "9.0.9"
   },
   "overrides": {
-    "isolated-vm": "7.0.1"
+    "isolated-vm": "7.0.1",
+    "minimatch": "9.0.9"
   },
   "scripts": {
     "dev": "next dev -p 3000 -H 0.0.0.0",

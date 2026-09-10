@@ -4,7 +4,10 @@ const nextConfig = {
   // which handles serverless packaging automatically.
   // Next.js 16 uses Turbopack by default; only opt into webpack (via
   // @next/bundle-analyzer below) when explicitly analyzing the bundle.
-  turbopack: {},
+  // `root` is pinned to this project so Turbopack's workspace-root
+  // inference doesn't get confused by an unrelated lockfile in a parent
+  // directory (e.g. a stray package-lock.json in the user's home dir).
+  turbopack: { root: __dirname },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'res.cloudinary.com' },
