@@ -1,7 +1,9 @@
 const isInvalid = (val?: string) => !val || val === 'undefined' || val.includes('[SENSITIVE]')
 
 function assertProductionShopifyConfig(domainValue?: string, tokenValue?: string) {
-  if (process.env.NODE_ENV === 'production') {
+  const isProductionBuild = process.env.NEXT_PHASE === 'phase-production-build'
+
+  if (process.env.NODE_ENV === 'production' && !isProductionBuild) {
     if (isInvalid(domainValue)) {
       throw new Error(
         'SHOPIFY_STORE_DOMAIN is required in production. Set SHOPIFY_STORE_DOMAIN or NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN.'

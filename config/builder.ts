@@ -1,7 +1,9 @@
 function assertBuilderConfig() {
   const apiKey = process.env.BUILDER_PUBLIC_KEY || process.env.NEXT_PUBLIC_BUILDER_PUBLIC_KEY || ''
 
-  if (process.env.NODE_ENV === 'production' && !apiKey) {
+  const isProductionBuild = process.env.NEXT_PHASE === 'phase-production-build'
+
+  if (process.env.NODE_ENV === 'production' && !isProductionBuild && !apiKey) {
     throw new Error(
       'BUILDER_PUBLIC_KEY is required in production. Set BUILDER_PUBLIC_KEY or NEXT_PUBLIC_BUILDER_PUBLIC_KEY.'
     )
