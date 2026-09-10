@@ -11,6 +11,7 @@ Builder.registerComponent(
         src={props.cloudinaryOptions.url}
         width={props.cloudinaryOptions.width}
         height={props.cloudinaryOptions.height}
+        alt={props.alt || ''}
       />
     )
   },
@@ -18,6 +19,9 @@ Builder.registerComponent(
     name: 'CloudinaryImage',
     image:
       'https://res.cloudinary.com/cloudinary-marketing/image/upload/v1599098500/creative_source/Logo/Cloud%20Glyph/cloudinary_cloud_glyph_blue_png.png',
-    inputs: [{ name: 'cloudinaryOptions', type: 'cloudinaryImageEditor' }],
+    inputs: [
+      { name: 'cloudinaryOptions', type: 'cloudinaryImageEditor' },
+      { name: 'alt', type: 'string', helperText: 'Alt text for accessibility' },
+    ],
   }
 )
