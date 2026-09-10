@@ -9,9 +9,9 @@ Builder.registerComponent(
     return (
       <Image
         src={props.cloudinaryOptions.url}
+        alt={props.alt || ''}
         width={props.cloudinaryOptions.width}
         height={props.cloudinaryOptions.height}
-        alt={props.alt || ''}
       />
     )
   },

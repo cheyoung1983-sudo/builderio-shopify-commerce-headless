@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "target": "esnext",
     "lib": [
       "dom",
@@ -21,22 +20,25 @@
     "jsxImportSource": "theme-ui",
     "paths": {
       "@lib/*": [
-        "lib/*"
+        "./lib/*"
       ],
       "@assets/*": [
-        "assets/*"
+        "./assets/*"
+      ],
+      "@blocks/*": [
+        "./blocks/*"
       ],
       "@config/*": [
-        "config/*"
+        "./config/*"
       ],
       "@components/*": [
-        "components/*"
+        "./components/*"
       ],
       "@services/*": [
-        "services/*"
+        "./services/*"
       ],
       "@utils/*": [
-        "utils/*"
+        "./utils/*"
       ]
     },
     "incremental": true

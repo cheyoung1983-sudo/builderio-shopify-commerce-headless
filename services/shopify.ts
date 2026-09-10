@@ -157,7 +157,9 @@ export function getShopifyConfig(): ShopifyStorefrontConfig {
     : process.env.SHOPIFY_STORE_DOMAIN
 
   const token = isInvalid(process.env.SHOPIFY_STOREFRONT_API_TOKEN)
-    ? (isInvalid(process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN) ? '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' : process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN)
+    ? (isInvalid(process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN)
+        ? ''
+        : process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN)
     : process.env.SHOPIFY_STOREFRONT_API_TOKEN
 
   const rawApiVersion =
@@ -381,13 +383,17 @@ export async function storefrontFetch<TData = any, TVariables = Record<string, a
 
       // Check for non-2xx HTTP status
       if (!response.ok) {
+        const errors = json.errors?.map((error) => ({
+          ...error,
+          message: error.message || error.extensions?.code || 'Shopify Storefront API request failed',
+        }))
         const errorMsg =
-          json.errors?.[0]?.message ||
+          errors?.[0]?.message ||
           `Shopify Storefront API error: ${response.status} ${response.statusText}`
         const error = new ShopifyStorefrontError({
           message: errorMsg,
           status: response.status,
-          graphQLErrors: json.errors,
+          graphQLErrors: errors,
           responseBody: json,
         })
         if (throwOnError) throw error
@@ -395,19 +401,23 @@ export async function storefrontFetch<TData = any, TVariables = Record<string, a
           ok: false,
           status: response.status,
           data: json.data,
-          errors: json.errors || [{ message: errorMsg }],
+          errors: errors || [{ message: errorMsg }],
           extensions: json.extensions,
         }
       }
 
       // Successful HTTP response; might still contain GraphQL query errors
-      const hasGraphQLErrors = Boolean(json.errors && json.errors.length > 0)
+      const errors = json.errors?.map((error) => ({
+        ...error,
+        message: error.message || error.extensions?.code || 'Shopify Storefront API request failed',
+      }))
+      const hasGraphQLErrors = Boolean(errors && errors.length > 0)
       if (hasGraphQLErrors && throwOnError) {
         throw new ShopifyStorefrontError({
           message:
             json.errors![0].message || 'GraphQL error returned by Shopify Storefront API',
           status: response.status,
-          graphQLErrors: json.errors,
+          graphQLErrors: errors,
           responseBody: json,
         })
       }
@@ -416,7 +426,7 @@ export async function storefrontFetch<TData = any, TVariables = Record<string, a
         ok: !hasGraphQLErrors,
         status: response.status,
         data: json.data,
-        errors: json.errors,
+        errors,
         extensions: json.extensions,
       }
     } catch (err: any) {
@@ -1166,7 +1176,7 @@ export async function fetchAllAvailableProducts(
       lastErrors = response.errors
       console.error(
         '[Shopify Storefront] Failed to fetch page of available products:',
-        response.errors
+        JSON.stringify(response.errors)
       )
       break
     }

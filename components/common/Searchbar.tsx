@@ -1,7 +1,7 @@
 import React, { FC, useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/router'
 import shopifyConfig from '@config/shopify'
-import { ProductGrid } from 'blocks/ProductGrid/ProductGrid'
+import { ProductGrid } from '@blocks/ProductGrid/ProductGrid'
 import { ProductGridSkeleton } from '@components/products/ProductGridSkeleton'
 import { Button, Box, jsx, Input, Label } from 'theme-ui'
 import Link from 'next/link'
