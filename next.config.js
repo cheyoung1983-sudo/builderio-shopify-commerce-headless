@@ -20,8 +20,19 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value:
+            value: [
               'frame-ancestors https://*.builder.io https://builder.io http://localhost:1234',
+              // connect-src: covers client-side fetches — Builder.io content API
+              // (builder.get() calls from the browser, e.g. Navbar's announcement
+              // bar), the shopify-buy SDK talking to the Storefront API directly
+              // from the browser, and the Vercel Toolbar/Live feedback widget on
+              // preview deployments (fixes the sw.js/geist.woff2 console noise).
+              // ws://localhost:* is for next dev's Fast Refresh websocket.
+              "connect-src 'self' https://cdn.builder.io https://builder.io https://*.builder.io https://*.myshopify.com https://vercel.live wss://*.pusher.com https://vitals.vercel-insights.com ws://localhost:*",
+              // img-src: mirrors the remotePatterns allowed by next/image above.
+              "img-src 'self' data: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://via.placeholder.com https://vercel.live",
+              "font-src 'self' data: https://vercel.live",
+            ].join('; '),
           },
         ],
       },
