@@ -18,7 +18,13 @@ export const ScrollProgressBar: React.FC<ScrollProgressBarProps> = ({
   heightClass = 'h-[3px]',
   showPercentageChip = false,
 }) => {
-  const router = useRouter()
+  let router: any = null
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    router = useRouter()
+  } catch {
+    router = null
+  }
   const [mounted, setMounted] = useState<boolean>(false)
   const [scrollProgress, setScrollProgress] = useState<number>(0)
   const [isVisible, setIsVisible] = useState<boolean>(false)
@@ -29,8 +35,7 @@ export const ScrollProgressBar: React.FC<ScrollProgressBarProps> = ({
 
   // Check if current route is a product detail page
   const isProductPage =
-    router.pathname.startsWith('/product') ||
-    router.asPath.includes('/product/')
+    Boolean(router && (router.pathname?.startsWith('/product') || router.asPath?.includes('/product/')))
 
   // Determine if bar should be active
   const shouldBeActive = !onlyOnProductPages || isProductPage

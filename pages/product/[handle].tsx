@@ -3,7 +3,7 @@ import type {
   GetStaticPropsContext,
   InferGetStaticPropsType,
 } from 'next'
-import { useRouter } from 'next/router'
+import { useSafeRouter } from '@lib/hooks/useSafeRouter'
 import Head from 'next/head'
 import { BuilderComponent, builder, useIsPreviewing } from '@builder.io/react'
 import { resolveBuilderContent } from '@lib/resolve-builder-content'
@@ -79,7 +79,7 @@ export default function Handle({
   page,
   storefrontProduct,
 }: InferGetStaticPropsType<typeof getStaticProps>) {
-  const router = useRouter()
+  const router = useSafeRouter()
   const isLive = !useIsPreviewing()
 
   if (router.isFallback) {

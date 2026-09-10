@@ -16,7 +16,13 @@ export const ScrollToTop: React.FC<ScrollToTopProps> = ({
   fallbackThreshold = 350,
   className = '',
 }) => {
-  const router = useRouter()
+  let router: any = null
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    router = useRouter()
+  } catch {
+    router = null
+  }
   const [mounted, setMounted] = useState<boolean>(false)
   const [isVisible, setIsVisible] = useState<boolean>(false)
 
@@ -68,14 +74,18 @@ export const ScrollToTop: React.FC<ScrollToTopProps> = ({
       // Re-evaluate on page transition
       setTimeout(checkScrollPosition, 100)
     }
-    router.events.on('routeChangeComplete', handleRouteChange)
+    if (router?.events) {
+      router.events.on('routeChangeComplete', handleRouteChange)
+    }
 
     return () => {
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onScroll)
-      router.events.off('routeChangeComplete', handleRouteChange)
+      if (router?.events) {
+        router.events.off('routeChangeComplete', handleRouteChange)
+      }
     }
-  }, [mounted, router.events, checkScrollPosition])
+  }, [mounted, router?.events, checkScrollPosition])
 
   const handleScrollToTop = () => {
     if (typeof window === 'undefined') return

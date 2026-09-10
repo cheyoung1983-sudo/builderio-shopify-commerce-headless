@@ -1,7 +1,6 @@
 import React from 'react'
-import { ThemeProvider, jsx } from 'theme-ui'
 import dynamic from 'next/dynamic'
-import { Button } from 'theme-ui'
+import { ThemeProvider, Box, Button } from 'theme-ui'
 import { ManagedUIContext, useUI } from '@components/common/context'
 import Head from '@components/common/Head'
 import Navbar from '@components/common/Navbar'
@@ -105,10 +104,12 @@ const InnerLayout: React.FC<{
   return (
     <ThemeProvider theme={theme}>
       <CartProvider onOpen={openSidebar} onClose={closeSidebar}>
-        <ScrollProgressBar />
-        <ScrollToTop />
+        <NoSSR>
+          <ScrollProgressBar />
+          <ScrollToTop />
+        </NoSSR>
         <Navbar />
-        <div
+        <Box
           sx={{
             margin: `0 auto`,
             px: 20,
@@ -118,7 +119,7 @@ const InnerLayout: React.FC<{
           }}
         >
           <main>{children}</main>
-        </div>
+        </Box>
 
         <Sidebar
           open={

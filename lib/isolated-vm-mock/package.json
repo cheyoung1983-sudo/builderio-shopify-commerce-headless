@@ -1,0 +1,8 @@
+{
+  "name": "isolated-vm",
+  "version": "7.0.1",
+  "description": "Pure JS fallback mock for isolated-vm in environments without native binary",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "MIT"
+}

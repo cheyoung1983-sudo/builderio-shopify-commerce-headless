@@ -1,7 +1,7 @@
 import React from 'react'
 import type { GetStaticPropsContext, InferGetStaticPropsType } from 'next'
 import Head from 'next/head'
-import { useRouter } from 'next/router'
+import { useSafeRouter } from '../lib/hooks/useSafeRouter'
 import { ProductGrid } from '../components/products/ProductGrid'
 import { fetchAllAvailableProducts, ShopifyProductNode } from '../services/shopify'
 import { getLayoutProps } from '../lib/get-layout-props'
@@ -32,7 +32,7 @@ export async function getStaticProps(context: GetStaticPropsContext) {
 export default function ProductsPage({
   initialProducts,
 }: InferGetStaticPropsType<typeof getStaticProps>) {
-  const router = useRouter()
+  const router = useSafeRouter()
   const qParam = typeof router.query.q === 'string' ? router.query.q : ''
 
   const handleSearchChange = (query: string) => {
