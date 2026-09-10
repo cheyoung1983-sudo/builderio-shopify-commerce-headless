@@ -2,7 +2,7 @@
   "name": "nextjs-shopify",
   "version": "1.0.0",
   "engines": {
-    "node": "20.x"
+    "node": "24.x"
   },
   "resolutions": {
     "isolated-vm": "7.0.1",

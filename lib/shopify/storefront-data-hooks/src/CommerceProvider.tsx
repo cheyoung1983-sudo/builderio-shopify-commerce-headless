@@ -66,6 +66,13 @@ function formatStorefrontCartToBuyCart(sfCart: any): any {
   }
 }
 
+/**
+ * Legacy compatibility adapter.
+ *
+ * New cart logic should prefer the modern CartContext in `context/CartContext.tsx`.
+ * This bridge exists only to preserve older storefront-data-hooks consumers while
+ * translating them to the Storefront GraphQL cart operations used by the app.
+ */
 export function CommerceProvider({
   storefrontAccessToken,
   domain,
