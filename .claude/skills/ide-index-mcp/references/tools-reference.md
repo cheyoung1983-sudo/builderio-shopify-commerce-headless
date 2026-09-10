@@ -1,0 +1,850 @@
+# IDE Index MCP - Tools Reference
+
+Complete parameter reference for all IDE MCP tools. All tools use JSON-RPC via MCP protocol.
+
+## Common Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `project_path` | string, optional | Absolute path to project root. Required for multi-project workspaces. Omit for single-project setups. |
+| `file` | string | For project files, path relative to project root (e.g., `src/main/App.java`). `ide_read_file` and some read-only position-based navigation tools also accept dependency/library paths returned by the plugin as absolute paths or `jar://` URLs; check each tool section because support is tool-specific. |
+| `line` | integer | **1-based** line number |
+| `column` | integer | **1-based** column number. Place on the symbol name, not whitespace. For dotted expressions like `json.dumps()` or `os.path.join()`, point to the member token (`dumps`, `join`) when targeting the member definition. |
+| `language` | string | Language of the symbol (e.g., `"Java"`, `"PHP"`). Required when using `symbol`. |
+| `symbol` | string | Fully qualified symbol reference. Java format: `com.example.ClassName`, `com.example.ClassName#memberName`. PHP format: `\\App\\Service\\UserService`, `\\App\\Service\\UserService::method()`, `\\App\\Service\\UserService::CONSTANT`, `\\App\\Service\\UserService::$property`, `\\App\\Service\\StatusEnum::ACTIVE`. PHP properties require the `$property` form; plain `::name` resolves enum cases (on enum types), constants, or methods. Python format: see **Python symbol grammar** below. |
+
+**Symbol reference:** Some tools accept `language` + `symbol` as an alternative to `file` + `line` + `column`. The two groups are **mutually exclusive**. Supported languages: Java, PHP, JavaScript, TypeScript, Python. Unsupported languages are rejected explicitly; use `file` + `line` + `column` for other languages.
+
+**Python symbol grammar:** Symbols must be module-qualified (dotted path with ≥2 segments):
+- `pkg.mod.ClassName` — class
+- `pkg.mod.function_name` — module-level function
+- `pkg.mod.ClassName.method_name` — method (resolved via the function index; a method's qualified name is `pkg.mod.ClassName.method`)
+- `pkg.mod.ClassName#member_name` — method (inherited), class/instance attribute, or `@property` of the named class
+
+Parameter lists are not supported (Python has no overload-by-signature); bare unqualified names are rejected — use `file` + `line` + `column` for those.
+
+**JavaScript/TypeScript symbol grammar (v1):** Symbols must be module-qualified in one of these forms:
+- `modulePath#exportName` — named export (e.g., `src/utils#formatDate`)
+- `modulePath#default` — default export (e.g., `src/index#default`)
+- `modulePath#ClassName.memberName` — class member (e.g., `src/models#User.validate`)
+
+**Deterministic outcomes for JS/TS symbol resolution:**
+- `unsupported_grammar` — symbol does not match accepted forms
+- `not_found` — module path resolved but symbol not found in exports/members
+- `ambiguous_match` — multiple matching exports/members across candidate files
+
+**Fallback TypeScript cases:** Use `file` + `line` + `column` for local non-exported symbols, local import aliases, npm/package symbols, unresolved barrel/re-export chains, or any target that cannot be represented as a stable module-qualified export.
+
+**Example fallback:**
+```json
+{
+  "file": "src/utils/math.ts",
+  "line": 18,
+  "column": 12
+}
+```
+
+**Note:** Module-qualified lookup remains v1 grammar and bounded; unsupported cases should fall back to `file` + `line` + `column`.
+
+## Response Format
+
+All tools return: `{ "content": [{"type": "text", "text": "<JSON>"}], "isError": false|true }`
+
+Parse the `text` field as JSON for structured data.
+
+---
+
+## Navigation Tools
+
+### ide_find_references
+Find all usages of a symbol (semantic, not text search).
+
+**Target (mutually exclusive):** `file`+`line`+`column` OR `language`+`symbol`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | conditional | Project-relative file path, or a dependency/library absolute path or `jar://` URL previously returned by the plugin. Required for position-based lookup. |
+| `line` | integer | conditional | 1-based line. Required for position-based lookup. |
+| `column` | integer | conditional | 1-based column. Required for position-based lookup. |
+| `language` | string | conditional | Symbol language (e.g., `"Java"`). Required for symbol-based lookup. |
+| `symbol` | string | conditional | Fully qualified symbol reference. Required for symbol-based lookup. |
+| `scope` | enum | no | One of `project_files` (default), `project_and_libraries`, `project_production_files`, `project_test_files` |
+| `includeGenerated` | boolean | no | Include references in generated sources (KSP/Dagger/annotation-processor output). **Default true** — keeps valid runtime references (Dagger/MapStruct/gRPC/serializers). Set false to drop generated call sites when they dominate results on injected symbols. |
+| `paths` | array | no | Project-relative path globs restricting results, e.g. `["src/main/**", "!**/generated/**"]`. `*` matches within a segment, `**` crosses directories, a plain directory includes everything beneath it, `!` excludes. Composes with `scope`. An include glob whose literal prefix does not exist (or resolves under a different relative name) errors instead of returning zero results. Include globs also drop library/jar hits under `project_and_libraries`; `\` separators are normalized to `/` |
+| `maxResults` | integer | no | Deprecated alias for `pageSize`. Default 100, max 500 |
+| `cursor` | string | no | Pagination cursor from a previous response. When provided, search parameters are ignored; `project_path` and `pageSize` may still be provided. |
+| `pageSize` | integer | no | Results per page. Default 100, max 500 |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ usages: [{ file, line, column, context, type, astPath }], totalCount, totalIsExact, resolvedSymbol, truncated, nextCursor?, hasMore, totalCollected, offset, pageSize, stale }`
+**Pagination note**: `truncated` mirrors `hasMore`; when `hasMore` is `true`, pass `nextCursor` to fetch the next page.
+**Resolution note**: `resolvedSymbol` echoes the declaration that was actually searched — positions on comments or whitespace snap to the nearest enclosing named element, so check it matches the symbol you intended. When `totalIsExact` is `false`, `totalCount` is a lower bound.
+**type values**: `METHOD_CALL`, `FIELD_ACCESS`, `IMPORT`, `PARAMETER`, `VARIABLE`, `REFERENCE`
+
+### ide_find_definition
+Go to where a symbol is defined.
+
+**Target (mutually exclusive):** `file`+`line`+`column` OR `language`+`symbol`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | conditional | Project-relative file path, or a dependency/library absolute path or `jar://` URL previously returned by the plugin. Required for position-based lookup. |
+| `line` | integer | conditional | 1-based line. Required for position-based lookup. |
+| `column` | integer | conditional | 1-based column. Required for position-based lookup. |
+| `language` | string | conditional | Symbol language (e.g., `"Java"`). Required for symbol-based lookup. |
+| `symbol` | string | conditional | Fully qualified symbol reference. Required for symbol-based lookup. |
+| `fullElementPreview` | boolean | no | Return full element code (default false) |
+| `maxPreviewLines` | integer | no | Max lines for full preview (default 50, max 500) |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ file, line, column, preview, symbolName, astPath }`
+Handles: packages, compiled classes, library sources (jar: URLs).
+
+### ide_symbol_info (disabled by default)
+Resolved signature and documentation of the symbol at a position — the declaration facts
+`ide_find_definition` cannot give, because its preview is source text with unresolved short type
+names and no doc comment.
+
+**Target (mutually exclusive):** `file`+`line`+`column` OR `language`+`symbol`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | conditional | Project-relative file path, or a dependency/library absolute path or `jar://` URL previously returned by the plugin. Required for position-based lookup. |
+| `line` | integer | conditional | 1-based line. Required for position-based lookup. |
+| `column` | integer | conditional | 1-based column. Required for position-based lookup. |
+| `language` | string | conditional | Symbol language (e.g., `"Java"`). Required for symbol-based lookup. |
+| `symbol` | string | conditional | Fully qualified symbol reference. Required for symbol-based lookup. |
+| `includeDoc` | boolean | no | Include the rendered doc comment. Default true |
+| `maxDocLength` | integer | no | Truncate documentation beyond this many characters. Default 4000, max 20000 |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ name, kind, qualifiedName, signature, signatureSource, parameters: [{name, type}], returnType, typeParameters, thrownTypes, modifiers, visibility, containingDeclaration, documentation, documentationTruncated, file, line, column, language }`
+
+**Type resolution**: `signatureSource` says how far the types were resolved.
+- `java_psi` — Java declarations. Parameter and return types are fully qualified
+  (`java.util.List<com.example.Request>`), and `parameters` / `returnType` are populated.
+- `quick_navigation` — any language with a documentation provider (Kotlin, Python, JS/TS, Go, PHP,
+  Rust). The signature is what that language's Quick Documentation renders; type names may be short
+  and the structured fields are absent.
+- `element_text` — no documentation provider answered; the declaration's own source line.
+
+**Overloads**: address them by position — each overload's own `line`/`column` selects it.
+
+**Chaining**: on the `java_psi` path `qualifiedName` is in this plugin's `symbol` format and can be
+passed straight to `ide_find_references`, `ide_call_hierarchy`, or `ide_find_implementations` as
+`symbol`. A callable includes its resolved parameter list (`com.example.Service#handle(com.example.Request)`),
+because the bare name is rejected as ambiguous once a method is overloaded. On the
+`quick_navigation` / `element_text` paths the container is a best-effort dotted AST path, not a
+resolved FQN, so it is descriptive rather than round-trippable — address those by position.
+
+### ide_find_class
+Search for classes/interfaces by name using IDE's class index. Equivalent to Ctrl+N / Cmd+O.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | string | yes | Class name pattern |
+| `scope` | enum | no | One of `project_files` (default), `project_and_libraries`, `project_production_files`, `project_test_files` |
+| `language` | string | no | Filter: "Java", "Kotlin", "Python", etc. |
+| `includeGenerated` | boolean | no | Include classes from generated sources (KSP/Dagger/annotation-processor output). Default false |
+| `matchMode` | enum | no | `substring` (default), `prefix`, `exact` |
+| `limit` | integer | no | Deprecated alias for `pageSize`. Default 25, max 500 |
+| `cursor` | string | no | Pagination cursor from a previous response. When provided, search parameters are ignored; `project_path` and `pageSize` may still be provided. |
+| `pageSize` | integer | no | Results per page. Default 25, max 500 |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ classes: [{name, qualifiedName, file, line, kind, language}], totalCount, query }`
+**Path note**: Project results use relative paths. Dependency/library results may use absolute paths or `jar://` URLs.
+**Matching**: CamelCase (`USvc` -> `UserService`), substring, wildcard (`User*Impl`).
+
+### ide_find_file
+Search for files by name using IDE's file index. Equivalent to Ctrl+Shift+N / Cmd+Shift+O.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | string | yes | File name pattern |
+| `scope` | enum | no | One of `project_files` (default), `project_and_libraries`, `project_production_files`, `project_test_files` |
+| `includeGenerated` | boolean | no | Include files under generated sources (KSP/Dagger/annotation-processor output). Default false |
+| `limit` | integer | no | Deprecated alias for `pageSize`. Default 25, max 500 |
+| `cursor` | string | no | Pagination cursor from a previous response. When provided, search parameters are ignored; `project_path` and `pageSize` may still be provided. |
+| `pageSize` | integer | no | Results per page. Default 25, max 500 |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ files: [{name, path, directory}], totalCount, query }`
+**Path note**: Project results use relative paths. Dependency/library results may use absolute paths or `jar://` URLs.
+
+### ide_search_text
+Search for text using IntelliJ Find in Files. Plain-text queries do substring matching (e.g. `a_word` finds `a_word_and_another_word`); regex queries use regular expression matching.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | string | conditional | Text to search for; substring match unless `regex` is true. Required for fresh search, ignored when `cursor` is provided |
+| `regex` | boolean | no | Treat `query` as a regular expression. Default false |
+| `context` | enum | no | `all` (default), `code`, `comments`, `strings` |
+| `caseSensitive` | boolean | no | Default true |
+| `wholeWord` | boolean | no | Match whole words only. Default false (substring match) |
+| `filePattern` | string | no | IntelliJ file mask, e.g. `*.kt`, `*.java,!*Test.java` |
+| `paths` | array | no | Project-relative path globs restricting the search, e.g. `["src/main/kotlin/**/handlers/**", "!**/*Test.kt"]`. `*` matches within a segment, `**` crosses directories, a plain directory includes everything beneath it, `!` excludes. Composes with `filePattern`. An include glob whose literal prefix does not exist (or resolves under a different relative name) errors instead of returning zero matches. Include globs also drop library/jar hits under `project_and_libraries`; `\` separators are normalized to `/` |
+| `limit` | integer | no | Deprecated alias for `pageSize`. Default 100, max 500 |
+| `cursor` | string | no | Pagination cursor from a previous response. When provided, search parameters are ignored; `project_path` and `pageSize` may still be provided. |
+| `pageSize` | integer | no | Results per page. Default 100, max 500 |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ matches: [{file, line, column, context}], totalCount, query, nextCursor?, hasMore, totalCollected, offset, pageSize, stale }`
+**Pagination note**: when `hasMore` is `true`, pass `nextCursor` to fetch the next page.
+
+### ide_find_implementations
+Find implementations of interfaces, abstract classes, or abstract methods.
+
+**Target (mutually exclusive):** `file`+`line`+`column` OR `language`+`symbol`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | conditional | Project-relative file path, or a dependency/library absolute path or `jar://` URL previously returned by the plugin. Required for position-based lookup. |
+| `line` | integer | conditional | 1-based line. Required for position-based lookup. |
+| `column` | integer | conditional | 1-based column. Required for position-based lookup. |
+| `language` | string | conditional | Symbol language (e.g., `"Java"`). Required for symbol-based lookup. |
+| `symbol` | string | conditional | Fully qualified symbol reference. For JS/TS, use module-qualified forms: `modulePath#exportName`, `modulePath#default`, or `modulePath#ClassName.memberName`. Required for symbol-based lookup. |
+| `scope` | enum | no | One of `project_files` (default), `project_and_libraries`, `project_production_files`, `project_test_files` |
+| `includeGenerated` | boolean | no | Include implementations in generated sources (KSP/Dagger/annotation-processor output). Default false |
+| `cursor` | string | no | Pagination cursor from a previous response. When provided, search parameters are ignored; `project_path` and `pageSize` may still be provided. |
+| `pageSize` | integer | no | Results per page. Default 100, max 500 |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ implementations: [{name, file, line, column, kind, language}], totalCount, nextCursor?, hasMore, totalCollected, offset, pageSize, stale }`
+**Languages**: Java, Kotlin, Python, JS/TS, PHP, Rust (not Go).
+
+### ide_find_symbol (disabled by default)
+Search for any code symbol (classes, methods, fields, functions) by name.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | string | yes | Symbol name pattern. Matching follows IntelliJ's Go to Symbol popup, including qualified queries like `BasicSolver.run`. |
+| `scope` | enum | no | One of `project_files` (default), `project_and_libraries`, `project_production_files`, `project_test_files` |
+| `language` | string | no | Filter by language |
+| `includeGenerated` | boolean | no | Include symbols from generated sources (KSP/Dagger/annotation-processor output). Default false |
+| `limit` | integer | no | Deprecated alias for `pageSize`. Default 25, max 500 |
+| `cursor` | string | no | Pagination cursor from a previous response. When provided, search parameters are ignored; `project_path` and `pageSize` may still be provided. |
+| `pageSize` | integer | no | Results per page. Default 25, max 500 |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ symbols: [{name, qualifiedName, file, line, kind, language}], totalCount, query }`
+**Languages**: Java, Kotlin, Python, JS/TS, Go, PHP, Rust, plus other IDE-supplied symbol contributors where available.
+**Path note**: Project results use relative paths. Dependency/library results may use absolute paths or `jar://` URLs.
+
+### ide_find_super_methods
+Find parent methods that a given method overrides or implements.
+
+**Target (mutually exclusive):** `file`+`line`+`column` OR `language`+`symbol`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | conditional | Project-relative file path, or a dependency/library absolute path or `jar://` URL previously returned by the plugin. Required for position-based lookup. |
+| `line` | integer | conditional | 1-based line. Required for position-based lookup. |
+| `column` | integer | conditional | 1-based column (anywhere in method body works). Required for position-based lookup. |
+| `language` | string | conditional | Symbol language (e.g., `"Java"`). Required for symbol-based lookup. |
+| `symbol` | string | conditional | Fully qualified symbol reference. For JS/TS, use module-qualified forms: `modulePath#exportName`, `modulePath#default`, or `modulePath#ClassName.memberName`. Required for symbol-based lookup. |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ method: {name, class, file, line}, hierarchy: [{name, class, file, line, isInterface}], totalCount }`
+**Languages**: Java, Kotlin, Python, JS/TS, PHP (NOT Go, Rust).
+
+### ide_type_hierarchy
+Get complete type inheritance hierarchy (supertypes and subtypes).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `className` | string | no | FQN (preferred, faster). E.g., `com.example.MyClass` |
+| `file` | string | no | Alternative: project-relative file path. Unlike other read-only navigation tools, `ide_type_hierarchy` file mode does not resolve dependency/library absolute paths or `jar://` URLs. |
+| `line` | integer | no | Required with file |
+| `column` | integer | no | Required with file |
+| `scope` | enum | no | One of `project_files` (default), `project_and_libraries`, `project_production_files`, `project_test_files` |
+| `includeGenerated` | boolean | no | Include supertypes/subtypes in generated sources (KSP/Dagger/annotation-processor output). Default true — keeps generated types in the hierarchy |
+| `project_path` | string | no | Project root path |
+
+**Provide either** `className` **or** `file`+`line`+`column`.
+**Returns**: `{ element: {name, file, kind, language, supertypes?}, supertypes: [{name, file, kind, language, supertypes?}], subtypes: [{name, file, kind, language, supertypes?}] }`
+**Languages**: Java, Kotlin, Python, JS/TS, PHP, Rust.
+
+### ide_call_hierarchy
+Build call tree showing who calls a method or what a method calls.
+
+**Target (mutually exclusive):** `file`+`line`+`column` OR `language`+`symbol`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | conditional | Project-relative file path, or a dependency/library absolute path or `jar://` URL previously returned by the plugin. Required for position-based lookup. |
+| `line` | integer | conditional | 1-based line. Required for position-based lookup. |
+| `column` | integer | conditional | 1-based column. Required for position-based lookup. |
+| `language` | string | conditional | Symbol language (e.g., `"Java"`). Required for symbol-based lookup. |
+| `symbol` | string | conditional | Fully qualified symbol reference. For JS/TS, use module-qualified forms: `modulePath#exportName`, `modulePath#default`, or `modulePath#ClassName.memberName`. Required for symbol-based lookup. |
+| `direction` | enum | yes | `callers` or `callees` |
+| `depth` | integer | no | Recursion depth (default 3, max 5) |
+| `scope` | enum | no | One of `project_files` (default), `project_and_libraries`, `project_production_files`, `project_test_files` |
+| `includeGenerated` | boolean | no | Include callers/callees in generated sources (KSP/Dagger/annotation-processor output). Default true |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ element: {name, file, line, column, language}, calls: [{name, file, line, column, language, children: [...]}] }`
+
+### ide_file_structure (disabled by default)
+Get hierarchical file structure like IDE's Structure panel. Each element includes both start and end line numbers (e.g., `(lines 42-65)` for multi-line elements, `(line 42)` for single-line elements).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | yes | Relative file path |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ file, language, structure }` (formatted tree with types, modifiers, signatures, and start/end line numbers)
+**Languages**: Java, Kotlin, Python, JS/TS, PHP, Markdown.
+
+PHP support requires the PHP plugin and is available in PhpStorm or IntelliJ IDEA Ultimate with the PHP plugin enabled.
+
+### ide_read_file (disabled by default)
+Read file content by path or qualified name, including library/jar sources.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | no | File path (relative, absolute, or jar:// URL) |
+| `qualifiedName` | string | no | Java/PHP FQN (e.g., `java.util.ArrayList`) |
+| `startLine` | integer | no | 1-based start line |
+| `endLine` | integer | no | 1-based end line |
+| `project_path` | string | no | Project root path |
+
+**Provide either** `file` **or** `qualifiedName`.
+**Returns**: `{ file, content, language, lineCount, startLine?, endLine?, isLibraryFile }`
+
+---
+
+## Intelligence Tools
+
+### ide_diagnostics
+Get code diagnostics from multiple sources: per-file analysis (errors, warnings, quick fixes/intentions), build output from the last build, and test results from open test run tabs. At least one source must be active: provide `file` for code analysis, `includeBuildErrors` for build output, or `includeTestResults` for test results. Can combine all three.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | no | Relative file path. Optional — enables per-file code analysis |
+| `line` | integer | no | For intention lookup (default 1, requires `file`) |
+| `column` | integer | no | For intention lookup (default 1, requires `file`) |
+| `startLine` | integer | no | Filter problems to range (requires `file`) |
+| `endLine` | integer | no | Filter problems to range (requires `file`) |
+| `includeBuildErrors` | boolean | no | Include errors/warnings from the last build. Default false |
+| `includeTestResults` | boolean | no | Include test results from open test run tabs. Default false |
+| `severity` | enum | no | Filter by severity across all sources: `all` (default), `errors`, `warnings` |
+| `testResultFilter` | enum | no | Filter test results: `failed` (default) or `all` |
+| `maxBuildErrors` | integer | no | Max build errors to return. Default 100, max 500 |
+| `maxTestResults` | integer | no | Max test results to return. Default 100, max 500 |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ problems: [{message, severity, file, line, column, endLine?, endColumn?}], intentions: [{name, description}], problemCount, intentionCount, analysisFresh, analysisTimedOut, analysisMessage, buildErrors?, buildErrorCount?, buildWarningCount?, buildErrorsTruncated?, buildTimestamp?, testResults?, testResultsTruncated?, testSummary? }`
+**Notes**: Open files use fresh daemon highlights. Closed files use public batch analysis, so `WEAK_WARNING` results and quick-fix intentions may be less complete unless the file is already open in an editor. The `analysisMode` field reports which path ran: `open_daemon` or `closed_batch` (null when no analysis ran). The file is refreshed from disk before analysis, so no `ide_sync_files` call is needed after editing it with an external tool.
+**Severity levels**: `ERROR`, `WARNING`, `WEAK_WARNING`
+
+### ide_project_diagnostics (disabled by default)
+Analyze many files — up to the whole project, including files not open in any editor — with fail-closed coverage metadata. Every file in scope gets exactly one coverage state (`analyzed`, `timed_out`, `failed`, `skipped`, `not_analyzed`) and the top-level `complete` flag is true only when every considered file was analyzed, so an empty `problems` list can never be mistaken for a clean project when analysis was partial.
+
+Each call blocks at most `waitSeconds` (default 45) so the MCP client's request timeout is never hit. If analysis is still running when the wait budget ends, the call returns `{"status": "running", "analysisId": "..."}` while analysis continues in the IDE — call the tool again with that `analysisId` to keep waiting. Only one analysis runs per project at a time.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `project_path` | string | no | Project root path |
+| `paths` | string[] | no | Files or directories relative to the project root; omit to analyze every file in the project's content roots |
+| `severity` | enum | no | `all` (default), `errors`, `warnings` |
+| `maxFiles` | integer | no | Max files to analyze (default 1000, max 10000). Overflow files are reported `not_analyzed` and `complete` becomes false |
+| `maxProblems` | integer | no | Max problems returned across all files (default 1000, max 5000). `problemCount` keeps counting beyond it |
+| `timeoutSeconds` | integer | no | Max seconds for the whole analysis (default 600, max 3600). Remaining files are reported `not_analyzed` when it elapses. Ignored with `analysisId` |
+| `analysisId` | string | no | `analysisId` from a previous `{"status": "running"}` response — attaches to that analysis and keeps waiting |
+| `waitSeconds` | integer | no | Max seconds this call may block before returning results or a `running` status (default 45, max 55) |
+
+**Returns**: `{ complete, status: "completed"|"timed_out", filesConsidered, filesAnalyzed, filesAnalyzedOpenDaemon, filesAnalyzedClosedBatch, filesTimedOut, filesFailed, filesSkipped, filesNotAnalyzed, incompleteFiles: [{file, state, reason?}], incompleteFilesTruncated, problems: [{message, severity, file, line, column, endLine?, endColumn?}], problemCount, errorCount, warningCount, problemsTruncated, durationMs, analysisMessage }`, or while still executing: `{ status: "running", analysisId, elapsedSeconds, filesProcessed, filesConsidered, timeoutSeconds, message }`
+**Notes**: Open files are analyzed with fresh daemon highlights (`open_daemon`); closed files use the IDE's public batch analysis (`closed_batch`), which covers errors and warnings but not weak warnings or editor-only annotators. Binary files are excluded from scope. Treat empty `problems` as a clean signal only when `complete` is true.
+
+---
+
+## Refactoring Tools
+
+### ide_refactor_rename
+Rename a symbol or file and update ALL references (semantic rename, not find-replace). Works across ALL languages.
+
+**Target:** `file` + `targetType="file"` for file rename, or `file` + `targetType="symbol"` + `line` + `column` for symbol rename. Without `targetType`, legacy `null/null => file` and `line`+`column => symbol` behavior remains.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | conditional | Relative file path. Required for position-based lookup. |
+| `targetType` | string | no | `symbol` or `file`. When `file`, placeholder `line`/`column` values are ignored. |
+| `line` | integer | no | 1-based line for symbol rename. |
+| `column` | integer | no | 1-based column for symbol rename. |
+| `newName` | string | yes | New name for the symbol |
+| `overrideStrategy` | enum | no | `rename_base` (default), `rename_only_current`, `ask` |
+| `relatedRenamingStrategy` | enum | no | Controls automatic renaming of related symbols (same-named properties, getters/setters, test classes, variables): `all` (default) renames all related symbols, `none` renames only the targeted symbol, `accessors_and_tests` renames only getters/setters and test classes/methods, `ask` shows the IDE dialog for each related rename |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ success, affectedFiles: [paths], changesCount, message }`
+**Auto-renames**: getters/setters, overriding methods, constructor params <-> fields, test classes.
+**Supports IDE undo** (Ctrl+Z).
+
+### ide_move_file
+Move a file to a new directory. Applies language-aware reference, import, and package/namespace updates only when the IDE provides a semantic move backend for that file type.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | yes | Relative path of file to move |
+| `destination` | string | yes | Target directory (relative to project root, created if needed) |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ success, affectedFiles: [paths], changesCount, message }`
+**Supports IDE undo** (Ctrl+Z).
+
+### ide_refactor_safe_delete (Java, Kotlin)
+Delete a symbol or file, checking for usages first.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | yes | Relative file path |
+| `line` | integer | no | Required for target_type="symbol" |
+| `column` | integer | no | Required for target_type="symbol" |
+| `target_type` | enum | no | `symbol` (default) or `file` |
+| `force` | boolean | no | Force delete even with usages (default false) |
+| `project_path` | string | no | Project root path |
+
+**Returns (success)**: `{ success, affectedFiles, changesCount, message }`
+**Returns (blocked)**: `{ canDelete: false, elementName, usageCount, blockingUsages: [...], message }`
+**Only available in**: IntelliJ IDEA, Android Studio (requires Java plugin).
+
+### ide_reformat_code (disabled by default)
+Reformat code per project style (.editorconfig, IDE settings). Equivalent to Ctrl+Alt+L / Cmd+Opt+L.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | yes | Relative file path |
+| `startLine` | integer | no | 1-based start (requires endLine) |
+| `endLine` | integer | no | 1-based end (requires startLine) |
+| `optimizeImports` | boolean | no | Default true |
+| `rearrangeCode` | boolean | no | Default true |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ success, affectedFiles, changesCount, message }`
+
+### ide_optimize_imports (disabled by default)
+Optimize imports in a file: remove unused imports and organize remaining imports according to project code style. Equivalent to the IDE's "Optimize Imports" action (Ctrl+Alt+O / Cmd+Opt+O). Does NOT reformat code. Supports IDE undo (Ctrl+Z).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | yes | Relative file path |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ success, affectedFiles, changesCount, message }`
+
+### ide_convert_java_to_kotlin (disabled by default, Java + Kotlin plugins)
+Convert Java files to Kotlin using IntelliJ's built-in J2K converter. Handles classes, interfaces, enums, annotations, methods, fields, and Java 8+ features (lambdas, streams). Automatically formats and optimizes imports. Original Java files are deleted after successful conversion; some advanced constructs may need manual adjustment.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `files` | string[] | yes | Java files to convert (relative to project root) |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ files: [{requestedPath, status, kotlinFile?, linesConverted?, javaFileDeleted?, reason?}], summary: {totalRequested, converted, skipped, failed} }`
+**status values**: `CONVERTED`, `SKIPPED`, `FAILED`
+
+### ide_structural_search_replace (disabled by default)
+Pattern-based code search and transformation using IntelliJ's Structural Search and Replace engine. Search-only when `replacePattern` is omitted.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `searchPattern` | string | yes | Structural search pattern using IntelliJ SSR syntax |
+| `replacePattern` | string | no | Replacement pattern. Omit for search-only |
+| `filePattern` | string | no | IntelliJ file mask, e.g. `*.java`, `*.kt` |
+| `scope` | enum | no | One of `project_files` (default), `project_and_libraries`, `project_production_files`, `project_test_files` |
+| `paths` | array | no | Project-relative path globs restricting matching, e.g. `["src/main/**", "!**/generated/**"]`. `*` matches within a segment, `**` crosses directories, a plain directory includes everything beneath it, `!` excludes. In replace mode only files inside the globs are rewritten. An include glob whose literal prefix does not exist (or resolves under a different relative name) errors instead of returning zero matches. Include globs also drop library/jar hits under `project_and_libraries`; `\` separators are normalized to `/` |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ matchCount, replacedCount, matches: [{ file, line, matchedText }] }`
+**Languages**: Java, Kotlin.
+
+### ide_change_signature (disabled by default)
+Change method signature (name, return type, visibility, parameters) with automatic caller updates.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | yes | Relative file path containing the method |
+| `line` | integer | yes | 1-based line of the method |
+| `column` | integer | yes | 1-based column on the method name |
+| `newName` | string | no | New method name (unchanged if omitted) |
+| `newReturnType` | string | no | New return type (unchanged if omitted) |
+| `newVisibility` | string | no | `public`, `protected`, `private`, or `package-local` (unchanged if omitted) |
+| `newParameters` | array | no | Array of `{ oldIndex, name, type, defaultValue }`. Use `oldIndex: -1` for new params |
+| `generateDelegate` | boolean | no | Generate delegate with old signature (default false) |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ success, file, message, affectedFiles, changesCount }`
+**Language**: Java only.
+
+### ide_create_file (disabled by default)
+Create a new source file with content, immediately indexed by IntelliJ. The file is created through IntelliJ's VFS, so it is instantly available for `ide_find_references`, `ide_refactor_rename`, `ide_edit_member`, and all other IDE tools without needing `ide_sync_files`. Use this instead of the Write tool for creating `.java`, `.kt`, `.ts`, `.tsx`, `.py` files. The file must not already exist.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | yes | Path to the new file relative to project root. File must not already exist. |
+| `content` | string | yes | The file content to write |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ success, file, message }`
+
+### ide_replace_text_in_file (disabled by default)
+Find and replace text in a file using IntelliJ's Document API. Performs plain text or regex replacement through IntelliJ's document model, so changes are immediately visible to the index, PSI, and all other IDE tools without needing `ide_sync_files`. Use this for mechanical text substitutions — e.g., replacing a method call wrapper, updating import paths, or renaming a local pattern. For structural refactoring (renaming symbols across the project), use `ide_refactor_rename` instead.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | yes | Path to the file relative to project root |
+| `searchText` | string | yes | Text to find. Treated as literal unless `regex` is true |
+| `replaceText` | string | yes | Replacement text. Passed through as-is (no escape processing). Supports regex group references (`$1`, `$2`) when `regex` is true |
+| `regex` | boolean | no | Treat `searchText` as a regular expression. Default false |
+| `caseSensitive` | boolean | no | Case-sensitive matching. Default true |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ success, file, replacements, message }`
+
+### ide_edit_member (disabled by default, Java, Kotlin)
+Replace an entire member declaration (signature + body) with new content.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | yes | Relative file path |
+| `class` | string | no | Class name to scope the search |
+| `member` | string | yes | Name of the member to replace |
+| `parameterCount` | integer | no | Parameter count to disambiguate overloads |
+| `line` | integer | no | 1-based line to disambiguate same-name members |
+| `content` | string | yes | Full replacement declaration (signature + body) |
+| `reformat` | boolean | no | Reformat after replacement (default true) |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ success, file, message, startLine, endLine }`
+
+### ide_insert_member (disabled by default, Java, Kotlin)
+Insert a new member at a structural position in a class or file.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | yes | Relative file path |
+| `class` | string | no | Class name to insert into (omit for top-level) |
+| `content` | string | yes | Full member declaration to insert |
+| `position` | enum | no | `before`, `after`, `first`, `last` (default `last`) |
+| `anchor` | string | no | Existing member name to position relative to (required for `before`/`after`) |
+| `anchorParameterCount` | integer | no | Parameter count to disambiguate anchor overloads |
+| `anchorLine` | integer | no | 1-based line to disambiguate anchor |
+| `reformat` | boolean | no | Reformat after insertion (default true) |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ success, file, message, startLine, endLine }`
+
+### ide_replace_member (disabled by default, Java, Kotlin)
+Replace a method body or field initializer only, preserving the signature.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | yes | Relative file path |
+| `class` | string | no | Class name to scope the search |
+| `member` | string | yes | Name of the member whose body/initializer to replace |
+| `parameterCount` | integer | no | Parameter count to disambiguate overloads |
+| `line` | integer | no | 1-based line to disambiguate same-name members |
+| `content` | string | yes | New method body (without braces) or field initializer (without `=`) |
+| `reformat` | boolean | no | Reformat after replacement (default true) |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ success, file, message, startLine, endLine }`
+
+---
+
+## Project Tools
+
+### ide_index_status
+Check if IDE is ready for code intelligence operations.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ isDumbMode, isIndexing, indexingProgress? }`
+When `isDumbMode: true`, most tools will fail. Wait and retry.
+
+### ide_sync_files
+Force sync IDE's virtual file system with external file changes.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `paths` | string[] | no | Relative paths to sync (empty = sync entire project) |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ syncedPaths, syncedAll, message }`
+Call this when files were created/modified outside the IDE and search tools miss them.
+
+### ide_build_project (disabled by default)
+Build project using IDE's build system (JPS, Gradle, Maven, CMake (CLion)).
+
+Each call blocks at most `waitSeconds` (default 45) so the MCP client's request timeout is never hit. If the build is still executing when the wait budget ends, the call returns `{"status": "running", "buildId": "..."}` while the build continues in the IDE — call the tool again with that `buildId` to keep waiting.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `project_path` | string | no | For workspace sub-projects |
+| `rebuild` | boolean | no | Full rebuild (default false = incremental) |
+| `includeRawOutput` | boolean | no | Include raw build log (default false) |
+| `timeoutSeconds` | integer | no | Max seconds for the whole build before it is reported timed out, enforced across polls (no limit if omitted). Ignored with `buildId` |
+| `buildId` | string | no | `buildId` from a previous `{"status": "running"}` response — attaches to that build and keeps waiting |
+| `waitSeconds` | integer | no | Max seconds this call may block before returning results or a `running` status (default 45, max 55) |
+
+**Returns**: `{ success, aborted, errors?, warnings?, buildMessages: [{message, file, line, column, severity}], truncated, rawOutput?, durationMs }`, or while still executing: `{ status: "running", buildId, elapsedSeconds, timeoutSeconds?, message }`
+Note: `errors`/`warnings` are `null` when no messages were captured (not 0).
+
+### ide_list_tests (disabled by default)
+List all test methods/classes discovered by the IDE's test framework extension points (JUnit, TestNG, etc.).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `project_path` | string | no | For workspace sub-projects |
+| `file` | string | no | Relative path to a specific test file; omit to scan all test sources |
+
+**Returns**: `{ tests: [{framework, className, methodName, displayName, file, line}], count, truncated }`
+
+### ide_run_tests (disabled by default)
+Run tests via the IDE's run configuration infrastructure. Results are read from the IDE's test runner, so they work with any Service-Message-based framework (JUnit, TestNG, pytest, Jest, Go test, PHPUnit). Targeting by class/method FQN creates a run config for Java/Kotlin only; for other languages pass an existing run-configuration name. Returns structured pass/fail results with per-test console output.
+
+Each call blocks at most `waitSeconds` (default 45) so the MCP client's own request timeout is never hit. If the run is still going when the wait budget ends — whether the IDE is still compiling before the test process starts, or the tests themselves are still executing — the call returns `{"status": "running", "runId": "..."}` while the run continues in the IDE — call the tool again with that `runId` (and no `target`) to keep waiting. The run itself is bounded by `timeoutSeconds`, counted from when the test process starts (build time before that is not billed to the run): when it expires the process is killed and the next poll reports `timedOut: true`.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `project_path` | string | no | For workspace sub-projects |
+| `target` | string | no* | Existing run config name (any language), or a Java/Kotlin class FQN (`com.example.MyTest`) / method FQN (`com.example.MyTest#testFoo`) — FQN forms are Java/Kotlin-only |
+| `runId` | string | no* | `runId` from a previous `{"status": "running"}` response — attaches to that run and keeps waiting instead of starting a new one |
+| `timeoutSeconds` | integer | no | Max seconds the whole test run may take before its process is killed, counted from test process start and enforced across polls (default 120). Ignored with `runId` |
+| `waitSeconds` | integer | no | Max seconds this call may block before returning results or a `running` status (default 45, max 55). Keep below the MCP client's request timeout |
+| `activateToolWindow` | boolean | no | Open the Run tool window for this run (default `false` — the run stays in the background without stealing focus; content is still added to the Run tool window) |
+
+*Exactly one of `target` / `runId` is required.
+
+**Returns**: `{ success, timedOut, noTestsFound, exitCode, passed, failed, errors, total, output?, tests: [{name, status, errorMessage?, stackTrace?, output?}] }`, or while still executing: `{ status: "running", runId, configName, elapsedSeconds, timeoutSeconds, message }`. Each test's `output` is the console output it printed (stdout/stderr merged in print order, ANSI stripped, system messages excluded); the top-level `output` carries output not attributed to any test (framework/suite messages, `@BeforeAll`/`@AfterAll` prints, build-runner log lines, and prints from a test killed mid-run — e.g. at `timeoutSeconds` — which gets no per-test entry). `stackTrace` is set for failed/errored tests; very long traces and outputs are trimmed in the middle (for traces that keeps the throw site and the root cause). On mass failures per-run size budgets apply: earlier failures keep their traces, later entries carry `errorMessage` only, and per-test output stops attaching once its own budget is spent.
+
+### ide_reload_project (disabled by default)
+Force-reload the project build model (Maven, Gradle, or both). Use after changing build files so IntelliJ resolves updated dependencies before diagnostics or builds. The reload is asynchronous.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `project_path` | string | no | Project root path |
+
+**Returns**: text summary of scheduled Maven/Gradle reloads or skipped unlinked build systems.
+
+### ide_link_build_system (disabled by default)
+Link an unlinked Maven or Gradle project so the IDE resolves its dependencies. Use when `ide_reload_project` reports "build file found but project is not linked". Detects the build system automatically from build files in the project directory.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `path` | string | no | Absolute path of the project directory to link. Defaults to the resolved project's base path. |
+| `project_path` | string | no | Project root path |
+
+**Returns**: text confirming link status ("Maven project linked — dependency resolution scheduled.", "already linked", or error).
+
+### ide_import_modules (disabled by default, Maven plugin only)
+Import one or more external Maven project directories as modules into the current IntelliJ project window. Already imported module roots are skipped.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `paths` | string[] | yes | Absolute directory paths to import; each must contain `pom.xml` |
+| `project_path` | string | no | Project root path |
+
+**Returns**: text summary of imported, skipped, and failed module paths.
+
+### ide_open_workspace (disabled by default, Maven plugin only)
+Scan a root directory for Maven projects, or provide an explicit list of Maven project paths, and open them all in one IntelliJ window with full cross-project code intelligence. Creates a temporary aggregator POM with relative module paths.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `path` | string | no* | Root directory to scan for Maven projects (each must contain `pom.xml`). Mutually exclusive with `modules`. |
+| `modules` | string[] | no* | Explicit list of absolute paths to Maven project directories. Mutually exclusive with `path`. Uses SHA-based caching so the same module combination reuses the cached workspace. |
+| `timeoutSeconds` | integer | no | Timeout in seconds for opening and indexing (default 600) |
+| `project_path` | string | no | Project root path |
+
+*Either `path` or `modules` must be provided, but not both.
+
+**Returns**: text confirmation with count of Maven projects found and indexing status.
+
+### ide_set_power_save_mode (disabled by default)
+Enable or disable IDE Power Save Mode (IDE-wide). Suspends background inspections and code analysis; the index and code intelligence tools stay functional.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `enabled` | boolean | yes | `true` to enable, `false` to disable |
+| `project_path` | string | no | Project root path |
+
+**Returns**: text confirmation, e.g. `Power Save Mode enabled (IDE-wide).`
+
+### ide_close_project (disabled by default)
+Close an open project window and free its memory. Non-blocking; returns once the close is scheduled. Refuses to close the last open project.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `project_path` | string | no | Project root path (required when multiple projects are open) |
+
+**Returns**: text confirmation, e.g. `Project 'name' is closing.`
+
+### ide_create_module (disabled by default)
+Add a directory as an IntelliJ module with a content root, enabling code intelligence for non-Maven projects (TypeScript, plain directories, etc.). Supports optional directory exclusions. For Maven projects, use `ide_import_modules` instead.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `path` | string | yes | Absolute directory path to add as a module content root |
+| `name` | string | no | Module name (defaults to directory name) |
+| `excludes` | string[] | no | Relative paths to exclude from indexing (e.g., `["node_modules", "dist"]`) |
+| `project_path` | string | no | Target project when multiple are open |
+
+**Returns**: text confirmation with module name, content root path, module file path, count of excluded directories, and an async-indexing note.
+
+### ide_open_project (disabled by default)
+Open a project by absolute path and wait until indexing completes. Idempotent: returns immediately if the project is already open. May require a human to answer the IDE's "Trust project?" dialog for first-time projects.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `path` | string | yes | Absolute path of the project directory |
+| `timeoutSeconds` | integer | no | Max seconds to wait for open + indexing (default 600) |
+| `project_path` | string | no | JSON-RPC context project when multiple are open |
+
+**Returns**: text confirmation; on indexing timeout returns success with a note to check `ide_index_status`.
+
+---
+
+## Lifecycle Tools
+
+Lifecycle management sleeps and wakes open projects based on window focus and MCP activity. Modes: `active` (full IDE), `background` (Power Save on), `dormant` (editors closed, PSI caches dropped), `closed` (fully unloaded, auto-reopens on next MCP call).
+
+It is opt-in and disabled by default — enable "Enable lifecycle management" in Settings > Tools > Index MCP Server. Until then the tools below only report or alter persisted enrollment state; no automatic transitions occur.
+
+### ide_project_status
+Report the status of all known projects in one table. Combines open projects (currently loaded in the IDE) and managed projects (enrolled in MCP lifecycle management). Each row includes whether the project is open, whether it is managed, and its current lifecycle mode when managed.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `project_path` | string | no | Routing hint, required when multiple projects are open |
+
+**Returns**: `{ projects: [{name, path, open, managed, mode?}], summary: {total, open, managed, open_not_managed, managed_closed, lifecycle_enabled, note?} }`
+
+### ide_get_project_modes (disabled by default)
+List all MCP-managed projects and their current lifecycle mode (active, background, dormant, or closed).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `project_path` | string | no | Routing hint when multiple projects are open; does not affect which projects are listed — all managed projects are always returned |
+
+**Returns**: `{ managed_projects: [{path, name, mode}], total }`. Plain-text message when no projects are managed.
+
+### ide_set_project_mode (disabled by default)
+Set the lifecycle mode for a specific managed project.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `mode` | enum | yes | Target mode: `active`, `background`, `dormant`, or `closed` |
+| `project_path` | string | no | Required when multiple projects are open |
+
+**Returns**: text confirmation of the mode transition.
+
+### ide_set_all_project_modes (disabled by default)
+Set the lifecycle mode for every currently managed open project at once. Closed projects are skipped — use `ide_open_project` or `ide_set_project_mode` on a specific project to bring a closed project back first.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `mode` | enum | yes | Target mode: `active`, `background`, or `dormant` (`closed` is not supported — use `ide_set_project_mode` per project) |
+| `project_path` | string | no | Routing hint required when multiple projects are open; does not limit which projects are affected |
+
+**Returns**: text confirmation of the applied transitions.
+
+### ide_enroll_all_projects (disabled by default)
+Enroll all currently open projects in MCP lifecycle management. Projects already managed are skipped. Only open projects can be enrolled — closed projects must be opened first (via `ide_open_project` or auto-open).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `project_path` | string | no | Routing hint when multiple projects are open |
+
+**Returns**: text summary of enrolled and skipped projects.
+
+### ide_release_project (disabled by default)
+Release a project from MCP lifecycle management, returning full control to the user. After release: Power Save Mode is disabled, all lifecycle timers are cancelled, and the project is no longer auto-slept or auto-closed.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `path` | string | no | Filesystem path of a closed managed project to release. Omit to release the routed project (must be open) |
+| `project_path` | string | no | Routing hint when multiple projects are open |
+
+**Returns**: text confirmation of the release.
+
+### ide_release_all_projects (disabled by default)
+Release every managed project from MCP lifecycle management at once, including projects currently closed by the lifecycle manager. Power Save Mode is disabled after all releases complete.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `project_path` | string | no | Routing hint when multiple projects are open |
+
+**Returns**: text summary of released projects.
+
+### ide_lifecycle_log (disabled by default)
+Return recent lifecycle events for all projects (ring buffer, last 500 events). Covers state transitions, open/close, focus changes, timer firings, and MCP-triggered wakes for all IntelliJ projects, not just managed ones. The same log is also written to a file (path returned as `log_file`) when file logging is enabled via `ide_set_lifecycle_log_file` or IDE debug logging.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `limit` | integer | no | Number of recent events to return, newest first (default 50, max 500) |
+| `project` | string | no | Optional path filter (substring match against project path) |
+| `project_path` | string | no | Routing hint when multiple projects are open |
+
+**Returns**: `{ events: [{timestamp, project, path, event, from?, to?, trigger}], log_file, buffered }`. Event types: `open`, `closed`, `transition`, `enroll`, `release`, `wake`. Trigger values: `focus_gained`, `focus_lost`, `timer:focus`, `timer:inactivity`, `timer:close`, `mcp_call`, `auto_open`, `user`.
+
+### ide_set_lifecycle_log_file (disabled by default)
+Enable or disable writing lifecycle events to the log file on disk. The in-memory ring buffer (queryable via `ide_lifecycle_log`) is always active regardless of this setting; the file allows `tail -f` monitoring and post-mortem analysis even when no MCP connection is available.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `enabled` | boolean | yes | `true` to write events to the log file, `false` to stop |
+| `project_path` | string | no | Routing hint when multiple projects are open |
+
+**Returns**: text confirmation (includes the log file path when enabling).
+
+---
+
+## Editor Tools
+
+### ide_get_active_file (disabled by default)
+Get currently active file(s) in editor with cursor position and selection.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ activeFiles: [{file, line, column, selectedText, language}] }`
+
+### ide_open_file (disabled by default)
+Open a file in the editor with optional navigation.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | yes | Relative or absolute path |
+| `line` | integer | no | 1-based line to navigate to |
+| `column` | integer | no | 1-based column (requires line) |
+| `project_path` | string | no | Project root path |
+
+**Returns**: `{ file, opened, message }`
+
+---
+
+## Plugin Development Tools
+
+### ide_install_plugin (disabled by default)
+Install a plugin zip into the IDE, replacing any existing version. Auto-detects the newest `build/distributions/*.zip` of the active project when `path` is omitted. Requires `ide_restart` to load the new version.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `path` | string | no | Absolute path to the plugin zip (default: auto-detect) |
+| `project_path` | string | no | Project root path when `path` is omitted |
+
+**Returns**: text confirmation with the installed plugin id and zip name.
+
+### ide_restart (disabled by default)
+Restart the IDE. Terminates the MCP connection immediately — reconnect after the IDE comes back up.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `project_path` | string | no | Project root path |
+
+**Returns**: text confirmation; the connection drops right after.
