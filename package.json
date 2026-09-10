@@ -5,10 +5,12 @@
     "node": "24.x"
   },
   "resolutions": {
-    "isolated-vm": "7.0.1"
+    "isolated-vm": "7.0.1",
+    "minimatch": "9.0.9"
   },
   "overrides": {
-    "isolated-vm": "7.0.1"
+    "isolated-vm": "7.0.1",
+    "minimatch": "9.0.9"
   },
   "scripts": {
     "dev": "next dev -p 3000 -H 0.0.0.0",
@@ -71,6 +73,7 @@
     "@types/shopify-buy": "2.10.3",
     "@types/traverse": "0.6.32",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "autoprefixer": "^10.5.5",
     "cheerio": "1.0.0-rc.12",
     "js-cookie": "3.0.7",

@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="favBg" cx="30%" cy="20%" r="90%">
+      <stop offset="0%" stop-color="#24262c" />
+      <stop offset="50%" stop-color="#18191c" />
+      <stop offset="100%" stop-color="#0f1013" />
+    </radialGradient>
+
+    <!-- Persimmon Vermillion Gradient -->
+    <linearGradient id="favPersimmon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff7f62" />
+      <stop offset="50%" stop-color="#e05332" />
+      <stop offset="100%" stop-color="#c84223" />
+    </linearGradient>
+
+    <!-- Celadon Mineral Gradient -->
+    <linearGradient id="favCeladon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2dd4bf" />
+      <stop offset="100%" stop-color="#0d9488" />
+    </linearGradient>
+
+    <!-- Glass Specular Highlight -->
+    <linearGradient id="favGloss" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.32" />
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+
+    <filter id="favShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#0f1013" flood-opacity="0.6" />
+    </filter>
+  </defs>
+
+  <!-- Base Squircle Canvas -->
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="url(#favBg)" filter="url(#favShadow)" />
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="none" stroke="#3c3f46" stroke-width="5" />
+
+  <!-- Smartphone Outer Frame -->
+  <rect x="110" y="60" width="292" height="392" rx="42" fill="#141518" stroke="#3c3f46" stroke-width="4.5" />
+
+  <!-- Inner Active Display Glass -->
+  <rect x="124" y="74" width="264" height="364" rx="30" fill="#0d0e11" />
+
+  <!-- Top Notch & Sensor -->
+  <rect x="216" y="86" width="80" height="8" rx="4" fill="#3c3f46" />
+  <circle cx="308" cy="90" r="4.5" fill="#2dd4bf" />
+
+  <!-- 'D' & 'P' Precision Monogram Glyph -->
+  <rect x="176" y="148" width="26" height="216" rx="13" fill="url(#favPersimmon)" />
+
+  <path d="M 194 148 
+           H 268 
+           C 314 148, 342 178, 342 220 
+           C 342 262, 314 292, 268 292 
+           H 194" 
+        fill="none" 
+        stroke="url(#favPersimmon)" 
+        stroke-width="26" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" />
+
+  <!-- Precision Display Reticle in Celadon -->
+  <path d="M 204 220 H 262" stroke="#2dd4bf" stroke-width="8" stroke-linecap="round" opacity="0.85" />
+  <circle cx="270" cy="220" r="7" fill="#0d9488" />
+
+  <!-- Accent Dot in Persimmon -->
+  <circle cx="264" cy="340" r="14" fill="url(#favPersimmon)" />
+  <circle cx="316" cy="340" r="8" fill="#2dd4bf" opacity="0.9" />
+
+  <!-- Glass Specular Reflection Curve -->
+  <path d="M 126 76 
+           H 386 
+           C 386 76, 386 160, 360 210 
+           C 290 270, 180 230, 126 150 
+           Z" 
+        fill="url(#favGloss)" />
+
+  <!-- Bottom Home Bar Indicator -->
+  <rect x="216" y="418" width="80" height="5" rx="2.5" fill="#2dd4bf" opacity="0.75" />
+</svg>

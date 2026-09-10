@@ -1,5 +1,5 @@
-const envConfig = {
+const env = {
   isDev: process.env.NODE_ENV === 'development',
 }
 
-export default envConfig
+export default env

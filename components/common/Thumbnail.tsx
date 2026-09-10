@@ -1,5 +1,5 @@
-import { AspectRatio } from 'theme-ui'
-import Image from 'next/legacy/image'
+import { jsx, AspectRatio } from 'theme-ui'
+import Image from 'next/image'
 
 export interface ThumbnailProps {
   src: any // for now;

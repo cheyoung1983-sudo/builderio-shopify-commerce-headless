@@ -1,12 +1,11 @@
 import React from 'react'
-import { Box, Text, Card, Grid, Divider, NavLink } from 'theme-ui'
+import { Box, jsx, Text, Card, Grid, Divider, NavLink } from 'theme-ui'
 import { FC, useEffect, useState } from 'react'
 import { Bag } from '@components/icons'
 import { useCart, useCheckoutUrl } from '@lib/shopify/storefront-data-hooks'
 import { useCart as useModernCart } from '../../../context/CartContext'
 import CartItem from '../CartItem'
 import { BuilderComponent, builder } from '@builder.io/react'
-import builderConfig from '@config/builder'
 import env from '@config/env'
 
 const CartSidebarView: FC = () => {
@@ -89,7 +88,6 @@ const CartSidebarView: FC = () => {
 
   useEffect(() => {
     async function fetchContent() {
-      if (!builderConfig.apiKey) return
       try {
         const cartUpsellContent = await builder
           .get('cart-upsell-sidebar', {
@@ -99,11 +97,9 @@ const CartSidebarView: FC = () => {
             } as any,
           })
           .toPromise()
-        if (cartUpsellContent) {
-          setCartUpsell(cartUpsellContent)
-        }
+        setCartUpsell(cartUpsellContent)
       } catch (e) {
-        // Quiet fallback if model is not published
+        console.warn('Failed to fetch cart-upsell-sidebar:', e)
       }
     }
     fetchContent()
@@ -125,19 +121,20 @@ const CartSidebarView: FC = () => {
       }}
     >
       {isEmpty ? (
-        <React.Fragment>
+        <>
           <Bag />
           Your cart is empty
           <Text>
             Biscuit oat cake wafer icing ice cream tiramisu pudding cupcake.
           </Text>
-        </React.Fragment>
+        </>
       ) : (
-        <React.Fragment>
+        <>
           {items.map((item: any) => (
             <CartItem
               key={item.id}
               item={item}
+              // todo update types
               currencyCode={item.variant?.priceV2?.currencyCode || 'USD'}
             />
           ))}
@@ -163,13 +160,28 @@ const CartSidebarView: FC = () => {
           {checkoutUrl && (
             <NavLink
               variant="nav"
-              sx={{ width: '100%', m: 2, p: 12, textAlign: 'center' }}
+              sx={{
+                width: '100%',
+                m: 2,
+                p: 3,
+                textAlign: 'center',
+                bg: '#e05332',
+                color: '#ffffff',
+                fontWeight: 700,
+                borderRadius: 8,
+                textDecoration: 'none',
+                transition: 'background-color 0.15s ease',
+                '&:hover': {
+                  bg: '#c84223',
+                  color: '#ffffff',
+                },
+              }}
               href={checkoutUrl!}
             >
               Proceed to Checkout
             </NavLink>
           )}
-        </React.Fragment>
+        </>
       )}
     </Box>
   )

@@ -1,15 +1,18 @@
-if (!process.env.SHOPIFY_STORE_DOMAIN) {
-  console.warn('Missing environment variable SHOPIFY_STORE_DOMAIN')
-}
-if (!process.env.SHOPIFY_STOREFRONT_API_TOKEN) {
-  console.warn(
-    'Missing environment variable SHOPIFY_STOREFRONT_API_TOKEN'
-  )
-}
+const isInvalid = (val?: string) => !val || val === 'undefined' || val.includes('[SENSITIVE]')
+
+const domain = isInvalid(process.env.SHOPIFY_STORE_DOMAIN)
+  ? (isInvalid(process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN) ? 'displaycellpros.myshopify.com' : process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN)
+  : process.env.SHOPIFY_STORE_DOMAIN
+
+const storefrontAccessToken = isInvalid(process.env.SHOPIFY_STOREFRONT_API_TOKEN)
+  ? (isInvalid(process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN)
+      ? ''
+      : process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN)
+  : process.env.SHOPIFY_STOREFRONT_API_TOKEN
 
 const shopifyConfig = {
-  domain: process.env.SHOPIFY_STORE_DOMAIN || process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || '',
-  storefrontAccessToken: process.env.SHOPIFY_STOREFRONT_API_TOKEN || process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN || '',
+  domain: domain || 'displaycellpros.myshopify.com',
+  storefrontAccessToken: storefrontAccessToken || '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',
   apiVersion: process.env.SHOPIFY_STOREFRONT_API_VERSION || '2024-07',
   clientId: process.env.SHOPIFY_CLIENT_ID || '',
   clientSecret: process.env.SHOPIFY_CLIENT_SECRET || '',

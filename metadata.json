@@ -1,6 +1,6 @@
 {
   "name": "Builder.io Shopify Headless Commerce",
-  "description": "Headless Shopify commerce storefront powered by Builder.io CMS and Next.js.",
+  "description": "Headless Shopify commerce storefront featuring side-by-side product comparison, interactive image hover reveals, and instant catalog search.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

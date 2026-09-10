@@ -150,14 +150,18 @@ export function normalizeShopifyDomain(rawDomain?: string): string {
  * with support for client-side (NEXT_PUBLIC_) and server-side keys
  */
 export function getShopifyConfig(): ShopifyStorefrontConfig {
-  const rawDomain =
-    process.env.SHOPIFY_STORE_DOMAIN ||
-    process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN ||
-    ''
-  const token =
-    process.env.SHOPIFY_STOREFRONT_API_TOKEN ||
-    process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN ||
-    ''
+  const isInvalid = (val?: string) => !val || val === 'undefined' || val.includes('[SENSITIVE]')
+
+  const rawDomain = isInvalid(process.env.SHOPIFY_STORE_DOMAIN)
+    ? (isInvalid(process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN) ? 'displaycellpros.myshopify.com' : process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN)
+    : process.env.SHOPIFY_STORE_DOMAIN
+
+  const token = isInvalid(process.env.SHOPIFY_STOREFRONT_API_TOKEN)
+    ? (isInvalid(process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN)
+        ? ''
+        : process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN)
+    : process.env.SHOPIFY_STOREFRONT_API_TOKEN
+
   const rawApiVersion =
     process.env.SHOPIFY_STOREFRONT_API_VERSION ||
     process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_VERSION
@@ -176,7 +180,7 @@ export function getShopifyConfig(): ShopifyStorefrontConfig {
 
   return {
     domain,
-    storefrontAccessToken: token.trim(),
+    storefrontAccessToken: (token || '').trim(),
     apiVersion,
     endpoint,
     clientId,
@@ -379,13 +383,17 @@ export async function storefrontFetch<TData = any, TVariables = Record<string, a
 
       // Check for non-2xx HTTP status
       if (!response.ok) {
+        const errors = json.errors?.map((error) => ({
+          ...error,
+          message: error.message || error.extensions?.code || 'Shopify Storefront API request failed',
+        }))
         const errorMsg =
-          json.errors?.[0]?.message ||
+          errors?.[0]?.message ||
           `Shopify Storefront API error: ${response.status} ${response.statusText}`
         const error = new ShopifyStorefrontError({
           message: errorMsg,
           status: response.status,
-          graphQLErrors: json.errors,
+          graphQLErrors: errors,
           responseBody: json,
         })
         if (throwOnError) throw error
@@ -393,19 +401,23 @@ export async function storefrontFetch<TData = any, TVariables = Record<string, a
           ok: false,
           status: response.status,
           data: json.data,
-          errors: json.errors || [{ message: errorMsg }],
+          errors: errors || [{ message: errorMsg }],
           extensions: json.extensions,
         }
       }
 
       // Successful HTTP response; might still contain GraphQL query errors
-      const hasGraphQLErrors = Boolean(json.errors && json.errors.length > 0)
+      const errors = json.errors?.map((error) => ({
+        ...error,
+        message: error.message || error.extensions?.code || 'Shopify Storefront API request failed',
+      }))
+      const hasGraphQLErrors = Boolean(errors && errors.length > 0)
       if (hasGraphQLErrors && throwOnError) {
         throw new ShopifyStorefrontError({
           message:
             json.errors![0].message || 'GraphQL error returned by Shopify Storefront API',
           status: response.status,
-          graphQLErrors: json.errors,
+          graphQLErrors: errors,
           responseBody: json,
         })
       }
@@ -414,7 +426,7 @@ export async function storefrontFetch<TData = any, TVariables = Record<string, a
         ok: !hasGraphQLErrors,
         status: response.status,
         data: json.data,
-        errors: json.errors,
+        errors,
         extensions: json.extensions,
       }
     } catch (err: any) {
@@ -1138,6 +1150,13 @@ export async function fetchAllAvailableProducts(
       typeof maxProducts === 'number' ? maxProducts - allProducts.length : effectiveBatchSize
     const currentFirst = Math.min(effectiveBatchSize, Math.max(remaining, 1))
 
+    // In Shopify Storefront API, RELEVANCE requires a search keyword query;
+    // without one, default catalog sort is used
+    const effectiveSortKey =
+      sortKey === 'RELEVANCE' && (!customQuery || !customQuery.trim())
+        ? undefined
+        : sortKey
+
     const response: StorefrontFetchResult<ShopifyProductsPageData> =
       await storefrontFetch<ShopifyProductsPageData>({
         query: ALL_AVAILABLE_PRODUCTS_QUERY,
@@ -1145,7 +1164,7 @@ export async function fetchAllAvailableProducts(
           first: currentFirst,
           after: cursor,
           query: combinedQuery || undefined,
-          sortKey,
+          sortKey: effectiveSortKey,
           reverse,
         },
         timeoutMs,
@@ -1157,7 +1176,7 @@ export async function fetchAllAvailableProducts(
       lastErrors = response.errors
       console.error(
         '[Shopify Storefront] Failed to fetch page of available products:',
-        response.errors
+        JSON.stringify(response.errors)
       )
       break
     }
@@ -1215,6 +1234,8 @@ export async function searchStorefrontProducts(
     ...options,
     query: sanitized,
     onlyAvailable: options.onlyAvailable ?? true,
+    sortKey: options.sortKey ?? 'RELEVANCE',
+    reverse: options.reverse ?? false,
   })
 }
 

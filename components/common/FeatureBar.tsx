@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Box } from 'theme-ui'
+import { Box, jsx } from 'theme-ui'
 import { CenterModal, ModalTitle } from '@components/modals'
 
 interface FeatureBarProps {

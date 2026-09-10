@@ -1,5 +1,71 @@
 @import "tailwindcss";
 
+@theme {
+  --color-canvas: #faf9f5;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f3f1ea;
+  --color-border-subtle: #e7e5df;
+  --color-border-strong: #d2cfc7;
+
+  --color-ink-950: #0f1013;
+  --color-ink-900: #141518;
+  --color-ink-800: #24262b;
+  --color-ink-700: #3c3f46;
+  --color-ink-600: #585c66;
+  --color-ink-500: #747985;
+  --color-ink-400: #9da1ad;
+  --color-ink-300: #c5c8d1;
+
+  --color-primary-50: #fff5f2;
+  --color-primary-100: #ffe8e2;
+  --color-primary-200: #ffd3c7;
+  --color-primary-300: #ffae9b;
+  --color-primary-400: #ff7f62;
+  --color-primary-500: #e05332;
+  --color-primary-600: #c84223;
+  --color-primary-700: #a73318;
+  --color-primary-800: #872915;
+  --color-primary-900: #6f2515;
+  --color-primary-950: #3c0f05;
+
+  --color-secondary-50: #f0fdfa;
+  --color-secondary-100: #ccfbf1;
+  --color-secondary-200: #99f6e4;
+  --color-secondary-300: #5eead4;
+  --color-secondary-400: #2dd4bf;
+  --color-secondary-500: #0d9488;
+  --color-secondary-600: #0f766e;
+  --color-secondary-700: #115e59;
+  --color-secondary-800: #134e4a;
+  --color-secondary-900: #133e3b;
+  --color-secondary-950: #042f2e;
+
+  --color-brass-500: #d97706;
+  --color-brass-600: #b45309;
+  --color-brass-700: #92400e;
+
+  --font-serif: "Iowan Old Style", "Apple Garamond", "Baskerville", "Palatino Linotype", "Palatino", "Book Antiqua", "Georgia", serif;
+}
+
+body {
+  background-color: #faf9f5;
+  color: #141518;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6,
+.font-serif,
+.font-display {
+  font-family: "Iowan Old Style", "Apple Garamond", "Baskerville", "Palatino Linotype", "Palatino", "Book Antiqua", "Georgia", serif;
+  letter-spacing: -0.015em;
+}
+
+button, input, select, textarea, .font-sans {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -29,4 +95,27 @@
   );
   background-size: 200% 100%;
   animation: shimmer 2s infinite linear;
+}
+
+@keyframes gridEntranceFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-grid-fade-in {
+  animation: gridEntranceFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-grid-fade-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }

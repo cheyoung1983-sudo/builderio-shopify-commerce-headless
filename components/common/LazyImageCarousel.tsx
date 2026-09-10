@@ -1,4 +1,4 @@
-import { IconButton } from 'theme-ui'
+import { jsx, IconButton } from 'theme-ui'
 import { FC } from 'react'
 import {
   CarouselProvider,
@@ -7,7 +7,7 @@ import {
   Slider,
   Dot,
 } from 'pure-react-carousel'
-import Image from 'next/legacy/image'
+import Image from 'next/image'
 
 import 'pure-react-carousel/dist/react-carousel.es.css'
 

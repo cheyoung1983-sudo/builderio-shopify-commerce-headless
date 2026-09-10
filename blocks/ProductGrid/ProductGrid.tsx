@@ -1,4 +1,4 @@
-
+import { jsx } from 'theme-ui'
 import { FC, useEffect, useState } from 'react'
 import { Box, Grid } from '@theme-ui/components'
 import ProductCard, { ProductCardProps } from '@components/common/ProductCard'
@@ -78,6 +78,7 @@ export const ProductGrid: FC<ProductGridProps> = ({
           key={String(product.id) + i}
           {...(highlightCard?.index === i ? highlightCard : cardProps)}
           product={product}
+          imgPriority={i < 2}
         />
       ))}
     </Grid>

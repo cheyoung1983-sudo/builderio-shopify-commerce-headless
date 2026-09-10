@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080" fill="none">
+  <defs>
+    <!-- Warm Tactile Stone Canvas -->
+    <radialGradient id="h3Bg" cx="50%" cy="50%" r="75%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="60%" stop-color="#faf9f5" />
+      <stop offset="100%" stop-color="#f2efe7" />
+    </radialGradient>
+
+    <!-- Persimmon Circuit Node -->
+    <linearGradient id="h3Persimmon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff7f62" />
+      <stop offset="50%" stop-color="#e05332" />
+      <stop offset="100%" stop-color="#c84223" />
+    </linearGradient>
+
+    <!-- Celadon Flex Ribbon -->
+    <linearGradient id="h3CeladonRibbon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2dd4bf" />
+      <stop offset="50%" stop-color="#0d9488" />
+      <stop offset="100%" stop-color="#115e59" />
+    </linearGradient>
+
+    <!-- Gold / Brass Contact Pads -->
+    <linearGradient id="h3Gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+
+    <!-- Blueprint Grid -->
+    <pattern id="h3Grid" width="80" height="80" patternUnits="userSpaceOnUse">
+      <path d="M 80 0 L 0 0 0 80" fill="none" stroke="#e8e5dc" stroke-width="0.75" />
+      <circle cx="40" cy="40" r="1" fill="#d2cfc7" />
+    </pattern>
+
+    <filter id="h3Shadow" x="-15%" y="-15%" width="130%" height="135%">
+      <feDropShadow dx="0" dy="25" stdDeviation="35" flood-color="#141518" flood-opacity="0.08" />
+    </filter>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1920" height="1080" fill="url(#h3Bg)" />
+  <rect width="1920" height="1080" fill="url(#h3Grid)" opacity="0.7" />
+
+  <!-- Ambient Glow -->
+  <circle cx="1280" cy="540" r="380" fill="#f0fdfa" opacity="0.8" />
+  <circle cx="940" cy="620" r="280" fill="#fff5f2" opacity="0.9" />
+
+  <!-- ==================== MICRO-MATRIX HARDWARE ASSEMBLY ==================== -->
+  <g transform="translate(860, 180)" filter="url(#h3Shadow)">
+    <!-- Substrate Board: Crisp White Ceramic -->
+    <rect x="0" y="0" width="760" height="680" rx="36" fill="#ffffff" stroke="#e7e5df" stroke-width="2" />
+
+    <!-- Corner Fiducial Alignment Marks -->
+    <g stroke="#e05332" stroke-width="2" fill="none">
+      <circle cx="48" cy="48" r="14" />
+      <line x1="48" y1="26" x2="48" y2="70" />
+      <line x1="26" y1="48" x2="70" y2="48" />
+
+      <circle cx="712" cy="48" r="14" stroke="#0d9488" />
+      <line x1="712" y1="26" x2="712" y2="70" stroke="#0d9488" />
+      <line x1="690" y1="48" x2="734" y2="48" stroke="#0d9488" />
+
+      <circle cx="48" cy="632" r="14" stroke="#0d9488" />
+      <line x1="48" y1="610" x2="48" y2="654" stroke="#0d9488" />
+      <line x1="26" y1="632" x2="70" y2="632" stroke="#0d9488" />
+
+      <circle cx="712" cy="632" r="14" />
+      <line x1="712" y1="610" x2="712" y2="654" />
+      <line x1="690" y1="632" x2="734" y2="632" />
+    </g>
+
+    <!-- Microprocessor Core: Sumi Slate -->
+    <rect x="230" y="190" width="300" height="300" rx="20" fill="#141518" stroke="#3c3f46" stroke-width="2" />
+    <rect x="254" y="214" width="252" height="252" rx="12" fill="#1e2026" stroke="#2dd4bf" stroke-width="1.2" stroke-dasharray="4 6" />
+
+    <!-- Core OLED Driver Glyph -->
+    <rect x="310" y="270" width="140" height="140" rx="16" fill="url(#h3Persimmon)" opacity="0.95" />
+    <circle cx="380" cy="340" r="32" fill="#ffffff" />
+    <circle cx="380" cy="340" r="16" fill="#0d9488" />
+
+    <!-- Trace Bus Lines: Celadon & Persimmon -->
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Top Bus Lines -->
+      <path d="M 280 190 V 90 H 160 V 50" stroke="#0d9488" stroke-width="3" />
+      <path d="M 330 190 V 110 H 220 V 50" stroke="#0d9488" stroke-width="2" />
+      <path d="M 380 190 V 70" stroke="#e05332" stroke-width="3" />
+      <path d="M 430 190 V 110 H 540 V 50" stroke="#0d9488" stroke-width="2" />
+      <path d="M 480 190 V 90 H 600 V 50" stroke="#0d9488" stroke-width="3" />
+
+      <!-- Bottom Bus Lines (Gold Flex Contact Pins) -->
+      <path d="M 280 490 V 590 H 200 V 640" stroke="#0d9488" stroke-width="2.5" />
+      <path d="M 330 490 V 570 H 300 V 640" stroke="#f59e0b" stroke-width="2" />
+      <path d="M 380 490 V 640" stroke="#e05332" stroke-width="3" />
+      <path d="M 430 490 V 570 H 460 V 640" stroke="#f59e0b" stroke-width="2" />
+      <path d="M 480 490 V 590 H 560 V 640" stroke="#0d9488" stroke-width="2.5" />
+
+      <!-- Left Bus -->
+      <path d="M 230 280 H 120 V 220 H 60" stroke="#e05332" stroke-width="2.5" />
+      <path d="M 230 340 H 90" stroke="#0d9488" stroke-width="3" />
+      <path d="M 230 400 H 120 V 460 H 60" stroke="#e05332" stroke-width="2.5" />
+
+      <!-- Right Bus -->
+      <path d="M 530 280 H 640 V 220 H 700" stroke="#0d9488" stroke-width="2.5" />
+      <path d="M 530 340 H 670" stroke="#e05332" stroke-width="3" />
+      <path d="M 530 400 H 640 V 460 H 700" stroke="#0d9488" stroke-width="2.5" />
+    </g>
+
+    <!-- Gold Contact Test Pads -->
+    <g fill="url(#h3Gold)" stroke="#b45309" stroke-width="1">
+      <rect x="190" y="636" width="20" height="28" rx="4" />
+      <rect x="290" y="636" width="20" height="28" rx="4" />
+      <rect x="370" y="636" width="20" height="28" rx="4" />
+      <rect x="450" y="636" width="20" height="28" rx="4" />
+      <rect x="550" y="636" width="20" height="28" rx="4" />
+    </g>
+
+    <!-- SMD Capacitors / Resistors -->
+    <rect x="140" y="272" width="24" height="16" rx="3" fill="#3c3f46" stroke="#e05332" stroke-width="1" />
+    <rect x="596" y="392" width="24" height="16" rx="3" fill="#3c3f46" stroke="#0d9488" stroke-width="1" />
+  </g>
+
+  <!-- ==================== TYPOGRAPHY / SPECIFICATION ==================== -->
+  <g transform="translate(240, 460)">
+    <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" letter-spacing="4" fill="#0d9488">
+      FIG. 03 — INTERCONNECT MATRIX
+    </text>
+    <text x="0" y="44" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="800" letter-spacing="-0.5" fill="#141518">
+      Ribbon &amp; IC Assembly
+    </text>
+    <text x="0" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="17" font-weight="400" fill="#585c66" letter-spacing="0.2">
+      Gold-plated flex ribbon connections and integrated touch drivers.
+    </text>
+
+    <!-- Hardware Badge -->
+    <g transform="translate(0, 110)">
+      <rect x="0" y="0" width="168" height="32" rx="16" fill="#fffbeb" stroke="#fde68a" stroke-width="1" />
+      <circle cx="16" cy="16" r="4" fill="#d97706" />
+      <text x="28" y="21" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" letter-spacing="1.5" fill="#b45309">
+        GOLD PADS &#8226; ZERO LATENCY
+      </text>
+    </g>
+  </g>
+</svg>
