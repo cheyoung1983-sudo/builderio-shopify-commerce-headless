@@ -34,6 +34,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# nested git worktrees used to isolate concurrent agent sessions
+.worktrees/
+
 # dev
 framework
 
