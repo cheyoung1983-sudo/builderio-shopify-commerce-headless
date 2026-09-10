@@ -776,7 +776,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({
         setIsLoading(false)
       }
     },
-    [cartId, syncWithStorefront, triggerNotification]
+    [cartId, checkoutUrl, syncWithStorefront, triggerNotification]
   )
 
   /**
@@ -837,6 +837,57 @@ export const CartProvider: React.FC<CartProviderProps> = ({
   )
 
   /**
+   * Removes an item completely from the shopping bag.
+   */
+  const removeItem = useCallback(
+    async (variantOrLineId: string) => {
+      let removedItem: CartItem | null = null
+      let targetLineId: string | undefined
+
+      setItems((prev) => {
+        const match = prev.find(
+          (it) =>
+            it.variantId === variantOrLineId ||
+            it.id === variantOrLineId ||
+            it.lineId === variantOrLineId
+        )
+        if (match) {
+          removedItem = match
+          targetLineId = match.lineId
+        }
+        const next = prev.filter(
+          (it) =>
+            it.variantId !== variantOrLineId &&
+            it.id !== variantOrLineId &&
+            it.lineId !== variantOrLineId
+        )
+        persistAllCartData(next, cartId, checkoutUrl)
+        return next
+      })
+
+      if (removedItem) {
+        triggerNotification({
+          type: 'remove',
+          title: 'Item Removed',
+          message: `${(removedItem as any).title} was removed from your shopping bag.`,
+          item: removedItem,
+        })
+      }
+
+      // Background Storefront sync
+      syncQueueRef.current = syncQueueRef.current.then(async () => {
+        if (!cartId || !targetLineId) return
+        try {
+          await removeStorefrontCartLines(cartId, [targetLineId])
+        } catch (err) {
+          console.warn('[CartContext] Failed to remove line from Shopify:', err)
+        }
+      })
+    },
+    [cartId, checkoutUrl, triggerNotification]
+  )
+
+  /**
    * Updates the quantity of an item in the bag.
    */
   const updateQuantity = useCallback(
@@ -886,58 +937,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({
         }
       })
     },
-    [cartId, checkoutUrl, triggerNotification]
-  )
-
-  /**
-   * Removes an item completely from the shopping bag.
-   */
-  const removeItem = useCallback(
-    async (variantOrLineId: string) => {
-      let removedItem: CartItem | null = null
-      let targetLineId: string | undefined
-
-      setItems((prev) => {
-        const match = prev.find(
-          (it) =>
-            it.variantId === variantOrLineId ||
-            it.id === variantOrLineId ||
-            it.lineId === variantOrLineId
-        )
-        if (match) {
-          removedItem = match
-          targetLineId = match.lineId
-        }
-        const next = prev.filter(
-          (it) =>
-            it.variantId !== variantOrLineId &&
-            it.id !== variantOrLineId &&
-            it.lineId !== variantOrLineId
-        )
-        persistAllCartData(next, cartId, checkoutUrl)
-        return next
-      })
-
-      if (removedItem) {
-        triggerNotification({
-          type: 'remove',
-          title: 'Item Removed',
-          message: `${(removedItem as any).title} was removed from your shopping bag.`,
-          item: removedItem,
-        })
-      }
-
-      // Background Storefront sync
-      syncQueueRef.current = syncQueueRef.current.then(async () => {
-        if (!cartId || !targetLineId) return
-        try {
-          await removeStorefrontCartLines(cartId, [targetLineId])
-        } catch (err) {
-          console.warn('[CartContext] Failed to remove line from Shopify:', err)
-        }
-      })
-    },
-    [cartId, checkoutUrl, triggerNotification]
+    [cartId, checkoutUrl, triggerNotification, removeItem]
   )
 
   /**

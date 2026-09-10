@@ -197,6 +197,10 @@ export function CommerceProvider({
     } else {
       refreshExistingCart(String(cart.id))
     }
+    // Intentionally run once on mount using whatever `cart` was loaded from
+    // LocalStorage at that time — this effect itself calls setCart(), so
+    // including `cart` in the deps would re-trigger it on every refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client])
 
   useEffect(() => {

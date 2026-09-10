@@ -21,9 +21,10 @@ const Searchbar: FC<Props> = () => {
   const [isOpen, setIsOpen] = useState(false)
   const buttonRef = useRef<HTMLDivElement>(null)
 
+  const pathWithoutQuery = router.asPath.split('?')[0]
   useEffect(() => {
     setIsOpen(false)
-  }, [router.asPath.split('?')[0]])
+  }, [pathWithoutQuery])
 
   return (
     <React.Fragment>
@@ -102,12 +103,20 @@ const SearchModalContent = (props: {
     }
   }
 
+  // Run once on mount to populate results for an initial search term from the
+  // URL query. Intentionally excludes getProducts/search: getProducts itself
+  // calls setSearch, so including them would re-run this on every keystroke.
   useEffect(() => {
     if (search) {
       getProducts(search)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Throttled once for the component's lifetime so rapid typing is actually
+  // throttled; recreating it per-render (to satisfy exhaustive-deps) would
+  // reset the throttle window on every keystroke and defeat the throttling.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const throttleSearch = useCallback(throttle(getProducts), [])
 
   return (
