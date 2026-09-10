@@ -1,11 +1,13 @@
 import React from 'react'
-import { ThemeProvider } from 'theme-ui'
+import { ThemeProvider, jsx } from 'theme-ui'
 import dynamic from 'next/dynamic'
 import { Button } from 'theme-ui'
 import { ManagedUIContext, useUI } from '@components/common/context'
 import Head from '@components/common/Head'
 import Navbar from '@components/common/Navbar'
 import { useAcceptCookies } from '@lib/hooks/useAcceptCookies'
+import Sidebar from '@components/common/Sidebar'
+import { CartSidebarView } from '@components/cart'
 import { CartNotification } from '@components/cart/CartNotification'
 import { CartProvider } from '../../context/CartContext'
 import { CommerceProvider } from '@lib/shopify/storefront-data-hooks'
@@ -21,13 +23,6 @@ import { ScrollToTop } from './ScrollToTop'
 const FeatureBar = dynamic(() => import('@components/common/FeatureBar'), {
   ssr: false,
 })
-const Sidebar = dynamic(() => import('@components/common/Sidebar'), {
-  ssr: false,
-})
-const CartSidebarView = dynamic(
-  () => import('@components/cart/CartSidebarView'),
-  { ssr: false }
-)
 
 const Layout: React.FC<{ pageProps: any; children: React.ReactNode }> = ({
   children,

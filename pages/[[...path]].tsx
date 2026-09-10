@@ -16,6 +16,8 @@ import DefaultErrorPage from 'next/error'
 import Head from 'next/head'
 import { resolveBuilderContent } from '@lib/resolve-builder-content'
 import { ProductGrid } from '../components/products/ProductGrid'
+import { HeroBanner } from '../components/common/HeroBanner'
+import { AgenticShopAssistant } from '../components/trends/AgenticShopAssistant'
 
 if (builderConfig.apiKey) {
   builder.init(builderConfig.apiKey)
@@ -35,48 +37,38 @@ export async function getStaticProps({
   params,
   locale,
 }: GetStaticPropsContext<{ path: string[] }>) {
-  try {
-    const page = await resolveBuilderContent('page', locale, {
-      urlPath: '/' + (params?.path?.join('/') || ''),
-    })
-    return {
-      props: {
-        page: page || null,
-        locale: locale || 'en-US',
-        ...(await getLayoutProps()),
-      },
-      revalidate: 5,
-    }
-  } catch (err) {
-    console.error('getStaticProps error in [[...path]]:', err)
-    return {
-      props: {
-        page: null,
-        locale: locale || 'en-US',
-        ...(await getLayoutProps()),
-      },
-      revalidate: 5,
-    }
+  const path = params?.path || []
+  const isRoot = path.length === 0
+  const page = await resolveBuilderContent('page', locale, {
+    urlPath: '/' + path.join('/'),
+  })
+  return {
+    props: {
+      page,
+      locale,
+      path,
+      isRoot,
+      ...(await getLayoutProps()),
+    },
+    // Next.js will attempt to re-generate the page:
+    // - When a request comes in
+    // - At most once every 5 seconds
+    revalidate: 5,
   }
 }
 
 export async function getStaticPaths({ locales }: GetStaticPathsContext) {
-  try {
-    return {
-      paths: [{ params: { path: [] } }],
-      fallback: true,
-    }
-  } catch (err) {
-    return {
-      paths: [],
-      fallback: true,
-    }
+  return {
+    paths: [{ params: { path: [] } }],
+    fallback: true,
   }
 }
 
 export default function Path({
   page,
   locale,
+  path = [],
+  isRoot = false,
 }: InferGetStaticPropsType<typeof getStaticProps>) {
   const router = useRouter()
   const { theme } = useThemeUI()
@@ -89,22 +81,36 @@ export default function Path({
 
   // If no page content from Builder and not previewing
   if (!page && !isPreviewing) {
-    const isRoot = !router.asPath || router.asPath === '/' || router.asPath === ''
-    if (isRoot) {
+    const isRootRoute =
+      isRoot ||
+      path.length === 0 ||
+      !router.asPath ||
+      router.asPath === '/' ||
+      router.asPath === '/[[...path]]'
+    if (isRootRoute) {
       return (
-        <div className="min-h-screen bg-neutral-50/50 py-6">
+        <div className="min-h-screen bg-canvas py-4 sm:py-6">
           <Head>
-            <title>DisplayCellPros | Quality Screen Replacements</title>
+            <title>DisplayCellPros | Precision Screen Replacements & OEM Parts</title>
             <meta
               name="description"
               content="Shop high quality OEM and LCD replacement screens for Samsung Galaxy and modern smartphones."
             />
           </Head>
-          <ProductGrid
-            title="All Screen Replacements & Parts"
-            subtitle="Explore our live inventory of smartphone display assemblies and parts fetched directly via the Shopify Storefront API."
-            showControls={true}
-          />
+          <HeroBanner />
+
+          {/* Agentic Shopping Assistant Bar (Trend 04 Integration) */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-2 mb-8">
+            <AgenticShopAssistant />
+          </div>
+
+          <div id="catalog">
+            <ProductGrid
+              title="All Screen Replacements & Parts"
+              subtitle="Explore our live inventory of smartphone display assemblies and parts fetched directly via the Shopify Storefront API."
+              showControls={true}
+            />
+          </div>
         </div>
       )
     }

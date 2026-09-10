@@ -1,4 +1,4 @@
-import { Box, Grid, Input, Text, IconButton } from 'theme-ui'
+import { Box, jsx, Grid, Input, Text, IconButton } from 'theme-ui'
 import React, { ChangeEvent, useEffect, useState } from 'react'
 import Image from 'next/image'
 import { Plus, Minus } from '@components/icons'
@@ -13,7 +13,7 @@ const CartItem = ({
   item,
   currencyCode,
 }: {
-  item: any
+  item: /*ShopifyBuy.LineItem todo: check if updated types*/ any
   currencyCode: string
 }) => {
   const updateItem = useUpdateItemQuantity()
@@ -105,7 +105,7 @@ const CartItem = ({
           href={productHandle ? `/product/${productHandle}/` : '#'}
           sx={{ fontSize: 3, m: 0, fontWeight: 700 }}
         >
-          <React.Fragment>
+          <>
             {item.title}
             <Text
               sx={{
@@ -117,7 +117,7 @@ const CartItem = ({
             >
               {getPrice(priceAmount, currency)}
             </Text>
-          </React.Fragment>
+          </>
         </Link>
         <ul sx={{ mt: 2, mb: 0, padding: 0, listStyle: 'none' }}>
           <li>
@@ -157,7 +157,7 @@ const CartItem = ({
 }
 
 /**
- *
+ *         
 
  */
 

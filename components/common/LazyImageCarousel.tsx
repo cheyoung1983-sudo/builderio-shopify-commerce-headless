@@ -1,4 +1,4 @@
-import { IconButton } from 'theme-ui'
+import { jsx, IconButton } from 'theme-ui'
 import { FC } from 'react'
 import {
   CarouselProvider,

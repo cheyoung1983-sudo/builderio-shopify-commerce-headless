@@ -29,40 +29,32 @@ export async function getStaticProps({
   params,
   locale,
 }: GetStaticPropsContext<{ handle: string }>) {
-  try {
-    const handle = params?.handle || ''
+  const handle = params?.handle || ''
 
-    // Fetch product directly from Shopify Storefront API using the handle
-    const res = await fetchStorefrontProductByHandle(handle)
-    const storefrontProduct = res.ok && res.data?.product ? res.data.product : null
+  // Fetch product directly from Shopify Storefront API using the handle
+  const res = await fetchStorefrontProductByHandle(handle)
+  const storefrontProduct = res.ok && res.data?.product ? res.data.product : null
 
-    // Optionally resolve Builder CMS content if configured
-    const page = await resolveBuilderContent(builderModel, locale, {
-      productHandle: handle,
-    })
+  // Optionally resolve Builder CMS content if configured
+  const page = await resolveBuilderContent(builderModel, locale, {
+    productHandle: handle,
+  })
 
-    // If neither product nor builder page exists, return 404
-    if (!storefrontProduct && !page) {
-      return {
-        notFound: true,
-        revalidate: 30,
-      }
-    }
-
-    return {
-      revalidate: 30,
-      props: {
-        page: page || null,
-        storefrontProduct: storefrontProduct || null,
-        ...(await getLayoutProps()),
-      },
-    }
-  } catch (err) {
-    console.error('getStaticProps error in product:', err)
+  // If neither product nor builder page exists, return 404
+  if (!storefrontProduct && !page) {
     return {
       notFound: true,
       revalidate: 30,
     }
+  }
+
+  return {
+    revalidate: 30,
+    props: {
+      page: page,
+      storefrontProduct: storefrontProduct,
+      ...(await getLayoutProps()),
+    },
   }
 }
 

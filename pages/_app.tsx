@@ -3,8 +3,6 @@ import type { AppProps } from 'next/app'
 import Layout from '@components/common/Layout'
 import { builder, Builder } from '@builder.io/react'
 import builderConfig from '@config/builder'
-import { Analytics } from '@vercel/analytics/next'
-import { SpeedInsights } from '@vercel/speed-insights/next'
 if (builderConfig.apiKey) {
   builder.init(builderConfig.apiKey)
 }
@@ -45,12 +43,8 @@ const Noop: FC<{ children: React.ReactNode }> = ({ children }) => (
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   return (
-    <>
-      <Layout pageProps={pageProps}>
-        <Component {...pageProps} />
-      </Layout>
-      <Analytics />
-      <SpeedInsights />
-    </>
+    <Layout pageProps={pageProps}>
+      <Component {...pageProps} />
+    </Layout>
   )
 }
