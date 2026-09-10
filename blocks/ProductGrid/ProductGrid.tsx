@@ -78,6 +78,7 @@ export const ProductGrid: FC<ProductGridProps> = ({
           key={String(product.id) + i}
           {...(highlightCard?.index === i ? highlightCard : cardProps)}
           product={product}
+          imgPriority={i < 2}
         />
       ))}
     </Grid>

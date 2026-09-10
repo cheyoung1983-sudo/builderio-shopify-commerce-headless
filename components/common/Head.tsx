@@ -19,6 +19,13 @@ const Head: FC<{ seoInfo: any }> = (props) => {
           type="image/png"
           href="https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F2d86a5bb30f44d2db3564aa2962bb093"
         />
+        <style>{`
+          @font-face {
+            font-family: 'Geist';
+            src: url('https://vercel.live/geist.woff2') format('woff2');
+            font-display: swap;
+          }
+        `}</style>
       </NextHead>
     </>
   )
