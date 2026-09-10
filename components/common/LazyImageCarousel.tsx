@@ -7,7 +7,7 @@ import {
   Slider,
   Dot,
 } from 'pure-react-carousel'
-import Image from 'next/legacy/image'
+import Image from 'next/image'
 
 import 'pure-react-carousel/dist/react-carousel.es.css'
 

@@ -1,6 +1,6 @@
 import { Box, jsx, Grid, Input, Text, IconButton } from 'theme-ui'
 import React, { ChangeEvent, useEffect, useState } from 'react'
-import Image from 'next/legacy/image'
+import Image from 'next/image'
 import { Plus, Minus } from '@components/icons'
 import { getPrice } from '@lib/shopify/storefront-data-hooks/src/utils/product'
 import {
