@@ -23,7 +23,7 @@
     "find:unused": "next-unused",
     "prettier": "prettier",
     "lint:a11y": "stylelint \"**/*.css\"",
-    "test:a11y": "jest",
+    "test:a11y": "jest"
   },
   "prettier": {
     "semi": false,

@@ -9,6 +9,7 @@ import { useUniqueId } from '../../hooks/useUniqueId'
 export const CartNotification: React.FC = () => {
   const { notification, dismissNotification, openCart, totalQuantity, subtotalFormatted } =
     useCart()
+  const getId = useUniqueId('cart-notification')
 
   if (!notification) return null
 
@@ -16,11 +17,10 @@ export const CartNotification: React.FC = () => {
   const imageUrl = item?.image?.url || item?.image?.src
 
   const isError = notification.type === 'error'
-  const getId = useUniqueId('cart-notification')
 
   return (
     <aside
-      id="cart-notification-toast"
+      id={getId('toast')}
       aria-label="Shopping bag notification"
       className="fixed bottom-5 right-5 z-50 max-w-sm sm:max-w-md w-full animate-in fade-in slide-in-from-bottom-5 duration-300"
     >
@@ -53,7 +53,7 @@ export const CartNotification: React.FC = () => {
               </h4>
               <button
                 type="button"
-                id="dismiss-cart-notification-btn"
+                id={getId('dismiss-btn')}
                 onClick={dismissNotification}
                 className="text-neutral-400 hover:text-neutral-600 p-1 rounded-lg hover:bg-neutral-100 transition-colors"
                 aria-label="Dismiss notification"
@@ -111,7 +111,7 @@ export const CartNotification: React.FC = () => {
 
                 <button
                   type="button"
-                  id="view-bag-from-toast-btn"
+                  id={getId('view-bag-btn')}
                   onClick={() => {
                     dismissNotification()
                     openCart()
