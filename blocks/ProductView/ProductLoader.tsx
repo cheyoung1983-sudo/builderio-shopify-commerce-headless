@@ -1,5 +1,3 @@
-/** @jsxRuntime classic */
-/** @jsx jsx */
 import React, { useState, useEffect } from 'react'
 import { jsx } from 'theme-ui'
 import { getProduct } from '@lib/shopify/storefront-data-hooks/src/api/operations'

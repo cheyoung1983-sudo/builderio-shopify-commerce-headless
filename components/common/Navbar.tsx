@@ -1,5 +1,3 @@
-/** @jsxRuntime classic */
-/** @jsx jsx */
 import React, { FC, useState, useEffect } from 'react'
 import { BuilderComponent, builder } from '@builder.io/react'
 import builderConfig from '@config/builder'

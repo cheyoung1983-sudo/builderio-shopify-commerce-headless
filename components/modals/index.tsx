@@ -236,11 +236,11 @@ export function CenterModal({
       overlayProps={{
         ...overlayProps,
         className:
-          `${style['ModalOverlay--center']} ` + overlayProps?.className ?? '',
+          `${style['ModalOverlay--center']} ` + (overlayProps?.className ?? ''),
       }}
       contentProps={{
         ...contentProps,
-        className: `${style.CenterModal} ` + contentProps?.className ?? '',
+        className: `${style.CenterModal} ` + (contentProps?.className ?? ''),
       }}
       {...props}
     />
@@ -263,7 +263,7 @@ export function ExpandModal({
       overlayProps={{
         ...overlayProps,
         className:
-          `${style['ExpandModal__overlay']} ` + overlayProps?.className,
+          `${style['ExpandModal__overlay']} ` + (overlayProps?.className ?? ''),
       }}
       contentTransition={{
         from: { clipPath: `circle(0% at ${x}% ${y}%)` },
@@ -272,7 +272,7 @@ export function ExpandModal({
       }}
       contentProps={{
         ...contentProps,
-        className: `${style.ExpandModal} ` + contentProps?.className ?? '',
+        className: `${style.ExpandModal} ` + (contentProps?.className ?? ''),
       }}
       {...props}
     />

@@ -1,5 +1,3 @@
-/** @jsxRuntime classic */
-/** @jsx jsx */
 import { jsx, Box, AspectRatio } from 'theme-ui'
 import React from 'react'
 import Image from 'next/legacy/image'

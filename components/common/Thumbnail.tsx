@@ -1,5 +1,3 @@
-/** @jsxRuntime classic */
-/** @jsx jsx */
 import { jsx, AspectRatio } from 'theme-ui'
 import Image from 'next/legacy/image'
 

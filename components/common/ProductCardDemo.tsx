@@ -1,5 +1,3 @@
-/** @jsxRuntime classic */
-/** @jsx jsx */
 import { Heading, jsx } from 'theme-ui'
 import Image from 'next/legacy/image'
 import { Card, Text } from '@theme-ui/components'

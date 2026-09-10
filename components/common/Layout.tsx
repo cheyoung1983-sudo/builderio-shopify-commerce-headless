@@ -1,5 +1,3 @@
-/** @jsxRuntime classic */
-/** @jsx jsx */
 import React from 'react'
 import { ThemeProvider, jsx } from 'theme-ui'
 import dynamic from 'next/dynamic'
