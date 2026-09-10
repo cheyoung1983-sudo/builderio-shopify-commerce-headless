@@ -48,9 +48,9 @@ export const CartNotification: React.FC = () => {
           {/* Body */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+              <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">
                 {notification.title}
-              </h4>
+              </p>
               <button
                 type="button"
                 id={getId('dismiss-btn')}
