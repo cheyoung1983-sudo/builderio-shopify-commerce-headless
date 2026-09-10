@@ -259,8 +259,42 @@ export const CartProvider: React.FC<CartProviderProps> = ({
         checkoutUrl: storedCheckout,
       } = loadStoredCartItems()
 
+      const toCartItem = (item: any) => ({
+        id: item.id,
+        lineId: item.lineId,
+        variantId: item.variantId,
+        productId: item.productId,
+        title: item.title,
+        handle: item.handle,
+        variantTitle: item.variantTitle,
+        quantity: item.quantity,
+        price: {
+          amount: item.price?.amount ?? '0.00',
+          currencyCode: item.price?.currencyCode ?? 'USD',
+        },
+        compareAtPrice: item.compareAtPrice
+          ? {
+              amount: item.compareAtPrice.amount,
+              currencyCode: item.compareAtPrice.currencyCode,
+            }
+          : null,
+        image: item.image
+          ? {
+              url: item.image.url,
+              src: item.image.src,
+              altText: item.image.altText,
+              width: item.image.width,
+              height: item.image.height,
+            }
+          : null,
+        options: item.options,
+        vendor: item.vendor,
+        sku: item.sku,
+        customAttributes: item.customAttributes,
+      })
+
       if (storedItems && Array.isArray(storedItems) && storedItems.length > 0) {
-        setItems(storedItems)
+        setItems(storedItems.map(toCartItem))
       }
       if (storedCartId) {
         setCartId(storedCartId)
@@ -294,7 +328,40 @@ export const CartProvider: React.FC<CartProviderProps> = ({
       ) {
         try {
           const { items: freshItems } = loadStoredCartItems()
-          setItems(freshItems)
+          const toCartItem = (item: any) => ({
+            id: item.id,
+            lineId: item.lineId,
+            variantId: item.variantId,
+            productId: item.productId,
+            title: item.title,
+            handle: item.handle,
+            variantTitle: item.variantTitle,
+            quantity: item.quantity,
+            price: {
+              amount: item.price?.amount ?? '0.00',
+              currencyCode: item.price?.currencyCode ?? 'USD',
+            },
+            compareAtPrice: item.compareAtPrice
+              ? {
+                  amount: item.compareAtPrice.amount,
+                  currencyCode: item.compareAtPrice.currencyCode,
+                }
+              : null,
+            image: item.image
+              ? {
+                  url: item.image.url,
+                  src: item.image.src,
+                  altText: item.image.altText,
+                  width: item.image.width,
+                  height: item.image.height,
+                }
+              : null,
+            options: item.options,
+            vendor: item.vendor,
+            sku: item.sku,
+            customAttributes: item.customAttributes,
+          })
+          setItems(freshItems.map(toCartItem))
         } catch {
           // ignore
         }

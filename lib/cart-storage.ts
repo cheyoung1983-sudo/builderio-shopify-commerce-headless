@@ -68,6 +68,11 @@ export function loadStoredCartItems(): {
       if (Array.isArray(parsed) && parsed.length > 0) {
         items = parsed
       }
+      // Ensure each stored item has a price object to satisfy CartItem type
+      items = items.map((it) => ({
+        ...it,
+        price: it.price ?? { amount: '0.00', currencyCode: 'USD' },
+      }))
     }
   } catch (e) {
     console.warn(`[CartContext] Failed to parse primary cart items from localStorage:`, e)
@@ -81,6 +86,11 @@ export function loadStoredCartItems(): {
         if (Array.isArray(parsed) && parsed.length > 0) {
           items = parsed
         }
+        // Ensure each stored item has a price object to satisfy CartItem type
+        items = items.map((it) => ({
+          ...it,
+          price: it.price ?? { amount: '0.00', currencyCode: 'USD' },
+        }))
       }
     } catch {
       // ignore

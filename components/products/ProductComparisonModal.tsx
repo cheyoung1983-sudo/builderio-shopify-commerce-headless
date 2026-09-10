@@ -243,7 +243,7 @@ export const ProductComparisonModal: React.FC<ProductComparisonModalProps> = ({
               </button>
             </div>
           ) : (
-            <table className="w-full border-collapse min-w-[640px] text-left">
+            <table className="w-full border-collapse min-w-160 text-left">
               <thead>
                 <tr className="border-b border-neutral-200">
                   <th className="w-40 sm:w-48 p-3 text-xs font-semibold uppercase tracking-wider text-neutral-500 align-top bg-neutral-50/50 rounded-tl-lg">
