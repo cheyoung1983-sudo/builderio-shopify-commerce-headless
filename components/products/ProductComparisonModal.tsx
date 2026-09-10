@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { ShopifyProductNode } from '../../services/shopify'
 import { CartContext } from '../../context/CartContext'
+import { useUniqueId } from '../../hooks/useUniqueId'
 
 export interface ProductComparisonModalProps {
   products: ShopifyProductNode[]
@@ -43,6 +44,7 @@ export const ProductComparisonModal: React.FC<ProductComparisonModalProps> = ({
   const [addedId, setAddedId] = useState<string | null>(null)
 
   const cart = useContext(CartContext)
+  const getId = useUniqueId('product-comparison-modal')
 
   // Close on Escape key press
   useEffect(() => {
@@ -140,7 +142,7 @@ export const ProductComparisonModal: React.FC<ProductComparisonModalProps> = ({
 
   return (
     <div
-      id="product-comparison-modal-backdrop"
+      id={getId('backdrop')}
       className="fixed inset-0 z-50 overflow-y-auto bg-neutral-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-fade-in"
       onClick={onClose}
       role="dialog"
@@ -148,7 +150,7 @@ export const ProductComparisonModal: React.FC<ProductComparisonModalProps> = ({
       aria-labelledby="comparison-dialog-title"
     >
       <div
-        id="product-comparison-modal-container"
+        id={getId('container')}
         className="relative w-full max-w-5xl max-h-[92vh] bg-white rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden flex flex-col my-auto"
         onClick={(e) => e.stopPropagation()}
       >
@@ -179,7 +181,7 @@ export const ProductComparisonModal: React.FC<ProductComparisonModalProps> = ({
             {products.length > 1 && (
               <button
                 type="button"
-                id="toggle-highlight-diff-btn"
+                id={getId('toggle-highlight')}
                 onClick={() => setHighlightDifferences(!highlightDifferences)}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
                   highlightDifferences
@@ -196,7 +198,7 @@ export const ProductComparisonModal: React.FC<ProductComparisonModalProps> = ({
             {products.length > 0 && (
               <button
                 type="button"
-                id="clear-all-comparison-btn"
+                id={getId('clear-all')}
                 onClick={onClearAll}
                 className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-neutral-600 hover:text-red-700 hover:bg-red-50 border border-neutral-300 transition-colors"
                 title="Clear all selected items"

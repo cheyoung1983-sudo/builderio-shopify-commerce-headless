@@ -1,0 +1,6 @@
+{
+  "plugins": ["stylelint-a11y"],
+  "rules": {
+    "a11y/color-contrast": [true, { "severity": "warning" }]
+  }
+}

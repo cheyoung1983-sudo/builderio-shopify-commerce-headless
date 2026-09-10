@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Search, X, Loader2, Sparkles, CornerDownLeft } from 'lucide-react'
+import { useUniqueId } from '../../hooks/useUniqueId'
 import {
   searchStorefrontProducts,
   ShopifyProductNode,

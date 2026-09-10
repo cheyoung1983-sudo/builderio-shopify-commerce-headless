@@ -4,6 +4,7 @@ import React from 'react'
 import Image from 'next/image'
 import { CheckCircle2, ShoppingBag, X, ArrowRight, AlertCircle } from 'lucide-react'
 import { useCart } from '../../context/CartContext'
+import { useUniqueId } from '../../hooks/useUniqueId'
 
 export const CartNotification: React.FC = () => {
   const { notification, dismissNotification, openCart, totalQuantity, subtotalFormatted } =
@@ -15,6 +16,7 @@ export const CartNotification: React.FC = () => {
   const imageUrl = item?.image?.url || item?.image?.src
 
   const isError = notification.type === 'error'
+  const getId = useUniqueId('cart-notification')
 
   return (
     <aside
