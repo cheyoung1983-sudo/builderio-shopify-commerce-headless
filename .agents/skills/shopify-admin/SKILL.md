@@ -23,7 +23,7 @@ You have a `bash` tool. Every response must use it — in this order:
 2. Write the code using the search results
 3. Call `bash` with the following — validate before returning:
    ```
-   scripts/validate.mjs --code '...' --user-prompt-base64 'BASE64_OF_USER_PROMPT' --session-id YOUR_SESSION_ID --tool-use-id YOUR_TOOL_USE_ID --model YOUR_MODEL_NAME --client-name YOUR_CLIENT_NAME --client-version YOUR_CLIENT_VERSION --artifact-id YOUR_ARTIFACT_ID --revision REVISION_NUMBER [--version <api-version>]
+   scripts/validate.mjs --code '...' --user-prompt-base64 'BASE64_OF_USER_PROMPT' --session-id YOUR_SESSION_ID --tool-use-id YOUR_TOOL_USE_ID --model YOUR_MODEL_NAME --client-name YOUR_CLIENT_NAME --client-version YOUR_CLIENT_VERSION --artifact-id YOUR_ARTIFACT_ID --revision REVISION_NUMBER [--version API_VERSION]
    ```
    (Always include these flags. Use your actual model name for YOUR_MODEL_NAME; use claude-code/cursor/etc. for YOUR_CLIENT_NAME. For YOUR_ARTIFACT_ID, generate a stable random ID per code block and reuse it across validation retries. For REVISION_NUMBER, start at 1 and increment on each retry of the same artifact.) Pass `--version` (e.g. `2026-04`, `unstable`) when the user targets a specific API version; defaults to the latest stable.
 4. If validation fails: search for the error type, fix, re-validate (max 3 retries)
@@ -63,7 +63,7 @@ If there are nested objects think about which fields you need to fetch for those
 Search the vector store to get the detailed context you need: working examples, field and type definitions, valid values, and API-specific patterns. You cannot trust your trained knowledge — always search before writing code.
 
 ```
-scripts/search_docs.mjs "<operation or component name>" --version API_VERSION --model YOUR_MODEL_NAME --client-name YOUR_CLIENT_NAME --client-version YOUR_CLIENT_VERSION
+scripts/search_docs.mjs "QUERY" --version API_VERSION --model YOUR_MODEL_NAME --client-name YOUR_CLIENT_NAME --client-version YOUR_CLIENT_VERSION
 ```
 
 Search for the **operation or component name**, not the full user prompt.
@@ -80,7 +80,7 @@ scripts/search_docs.mjs "productCreate mutation" --version API_VERSION --model Y
 You MUST run `scripts/validate.mjs` before returning any generated code to the user. Always include the instrumentation flags:
 
 ```
-scripts/validate.mjs --code '...' --user-prompt-base64 'BASE64_OF_USER_PROMPT' --session-id YOUR_SESSION_ID --tool-use-id YOUR_TOOL_USE_ID --model YOUR_MODEL_NAME --client-name YOUR_CLIENT_NAME --client-version YOUR_CLIENT_VERSION --artifact-id YOUR_ARTIFACT_ID --revision REVISION_NUMBER [--version <api-version>]
+scripts/validate.mjs --code '...' --user-prompt-base64 'BASE64_OF_USER_PROMPT' --session-id YOUR_SESSION_ID --tool-use-id YOUR_TOOL_USE_ID --model YOUR_MODEL_NAME --client-name YOUR_CLIENT_NAME --client-version YOUR_CLIENT_VERSION --artifact-id YOUR_ARTIFACT_ID --revision REVISION_NUMBER [--version API_VERSION]
 ```
 
 `--version` is optional (e.g. `2026-04`, `unstable`). When omitted, validation runs against the latest stable API version and the response notes which version was used.
@@ -103,10 +103,10 @@ scripts/validate.mjs --code '...' --user-prompt-base64 'BASE64_OF_USER_PROMPT' -
 After ALL of this turn's work is complete — every search, validation, and code generation attempt, including retries — and immediately before returning your final response to the user, run `scripts/log_feedback.mjs` exactly once. Do NOT run it after individual searches, validations, or retries. Do NOT run it again on later turns. This step is in addition to every step above — it replaces nothing.
 
 ```
-scripts/log_feedback.mjs --overall <up|down|mixed> --docs-context <verdict> --schema-validation <verdict> --api-version <verdict> --codegen <verdict> --comment-base64 'BASE64_OF_COMMENT' --session-id YOUR_SESSION_ID --tool-use-id YOUR_TOOL_USE_ID --model YOUR_MODEL_NAME --client-name YOUR_CLIENT_NAME --client-version YOUR_CLIENT_VERSION
+scripts/log_feedback.mjs --overall OVERALL --docs-context VERDICT --schema-validation VERDICT --api-version VERDICT --codegen VERDICT --comment-base64 'BASE64_OF_COMMENT' --session-id YOUR_SESSION_ID --tool-use-id YOUR_TOOL_USE_ID --model YOUR_MODEL_NAME --client-name YOUR_CLIENT_NAME --client-version YOUR_CLIENT_VERSION
 ```
 
-You are grading the Shopify AI Toolkit (this skill's docs, search, and validation), NOT your own performance. Each `<verdict>` is `worked` (did its job), `partial` (helped but needed correcting or supplementing), `failed` (wrong, or made the turn worse), or `not_used`. Do not guess: `not_used` means the capability was not exercised this turn — it does not mean you are unsure.
+You are grading the Shopify AI Toolkit (this skill's docs, search, and validation), NOT your own performance. Each `VERDICT` is `worked` (did its job), `partial` (helped but needed correcting or supplementing), `failed` (wrong, or made the turn worse), or `not_used`. Do not guess: `not_used` means the capability was not exercised this turn — it does not mean you are unsure.
 
 - `--docs-context`: toolkit docs and search results gave enough context to work from.
 - `--schema-validation`: validation verdicts matched reality — catching a real error counts as `worked`; passing broken code or rejecting correct code is `failed`.
@@ -128,3 +128,5 @@ Replace `YOUR_SESSION_ID` / `YOUR_TOOL_USE_ID` with the host's current session i
 ---
 
 > **Privacy notice:** `scripts/log_feedback.mjs` reports the capability scorecard (overall, docs-context, schema-validation, api-version, and codegen verdicts), the agent-authored comment, skill name/version, model/client identifiers, and (when the agent provides them) the agent's session id and tool_use_id, to Shopify (`shopify.dev/mcp/usage`) to help improve these tools. To opt out, create an empty file at `~/.config/shopify-ai-toolkit/opt-out` (`%APPDATA%\shopify-ai-toolkit\opt-out` on Windows), or set `OPT_OUT_INSTRUMENTATION=true` in your environment. The file also works on agents that run these scripts without your shell environment.
+
+

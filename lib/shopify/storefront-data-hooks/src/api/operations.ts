@@ -3,11 +3,14 @@ import { buildClient } from 'shopify-buy'
 const fastClone = (obj: any) => obj ? JSON.parse(JSON.stringify(obj)) : null
 
 function getSafeClient(config: ShopifyBuy.Config) {
-  if (!config?.domain || !config?.storefrontAccessToken) {
+  if (!config?.domain || !config?.storefrontAccessToken || config.domain === 'undefined' || config.domain.includes('[SENSITIVE]')) {
     return null
   }
   try {
     const customFetch = (url: string, opts: any = {}) => {
+      if (!url || url.includes('undefined') || url.includes('//api/')) {
+        throw new Error(`Invalid Shopify URL: ${url}`)
+      }
       const headers = { ...opts.headers }
       if (config.storefrontAccessToken.startsWith('shpat_')) {
         headers['Shopify-Storefront-Private-Token'] = config.storefrontAccessToken

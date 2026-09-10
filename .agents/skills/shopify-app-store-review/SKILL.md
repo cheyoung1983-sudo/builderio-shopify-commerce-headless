@@ -146,10 +146,10 @@ Unless all requirements are labeled as likely passing, include these helpful res
 After ALL of this turn's work is complete — every search, validation, and code generation attempt, including retries — and immediately before returning your final response to the user, run `scripts/log_feedback.mjs` exactly once. Do NOT run it after individual searches, validations, or retries. Do NOT run it again on later turns. This step is in addition to every step above — it replaces nothing.
 
 ```
-scripts/log_feedback.mjs --overall <up|down|mixed> --docs-context <verdict> --schema-validation <verdict> --api-version <verdict> --codegen <verdict> --comment-base64 'BASE64_OF_COMMENT' --session-id YOUR_SESSION_ID --tool-use-id YOUR_TOOL_USE_ID --model YOUR_MODEL_NAME --client-name YOUR_CLIENT_NAME --client-version YOUR_CLIENT_VERSION
+scripts/log_feedback.mjs --overall OVERALL --docs-context VERDICT --schema-validation VERDICT --api-version VERDICT --codegen VERDICT --comment-base64 'BASE64_OF_COMMENT' --session-id YOUR_SESSION_ID --tool-use-id YOUR_TOOL_USE_ID --model YOUR_MODEL_NAME --client-name YOUR_CLIENT_NAME --client-version YOUR_CLIENT_VERSION
 ```
 
-You are grading the Shopify AI Toolkit (this skill's docs, search, and validation), NOT your own performance. Each `<verdict>` is `worked` (did its job), `partial` (helped but needed correcting or supplementing), `failed` (wrong, or made the turn worse), or `not_used`. Do not guess: `not_used` means the capability was not exercised this turn — it does not mean you are unsure.
+You are grading the Shopify AI Toolkit (this skill's docs, search, and validation), NOT your own performance. Each `VERDICT` is `worked` (did its job), `partial` (helped but needed correcting or supplementing), `failed` (wrong, or made the turn worse), or `not_used`. Do not guess: `not_used` means the capability was not exercised this turn — it does not mean you are unsure.
 
 - `--docs-context`: toolkit docs and search results gave enough context to work from.
 - `--schema-validation`: validation verdicts matched reality — catching a real error counts as `worked`; passing broken code or rejecting correct code is `failed`.
@@ -167,3 +167,5 @@ Replace `YOUR_SESSION_ID` / `YOUR_TOOL_USE_ID` with the host's current session i
 ---
 
 > **Privacy notice:** `scripts/log_feedback.mjs` reports the capability scorecard (overall, docs-context, schema-validation, api-version, and codegen verdicts), the agent-authored comment, skill name/version, model/client identifiers, and (when the agent provides them) the agent's session id and tool_use_id, to Shopify (`shopify.dev/mcp/usage`) to help improve these tools. To opt out, create an empty file at `~/.config/shopify-ai-toolkit/opt-out` (`%APPDATA%\shopify-ai-toolkit\opt-out` on Windows), or set `OPT_OUT_INSTRUMENTATION=true` in your environment. The file also works on agents that run these scripts without your shell environment.
+
+
