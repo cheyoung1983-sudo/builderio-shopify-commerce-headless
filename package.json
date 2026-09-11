@@ -25,6 +25,7 @@
     "check:node-version": "node scripts/check-node-version-consistency.js",
     "check:project-health": "node scripts/check-project-health.js",
     "check:ci-integrity": "node scripts/check-ci-integrity.js",
+    "check:stale-branches": "node scripts/check-stale-branches.js",
     "deploy:dev": "node scripts/deploy.js dev",
     "deploy:preview": "node scripts/deploy.js preview",
     "deploy:production": "node scripts/deploy.js production",
