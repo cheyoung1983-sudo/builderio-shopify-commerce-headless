@@ -1,5 +1,4 @@
 const nextConfig = {
-  output: 'standalone',
   // Next.js 16 uses Turbopack by default; only opt into webpack (via
   // @next/bundle-analyzer below) when explicitly analyzing the bundle.
   // `root` is pinned to this project so Turbopack's workspace-root
