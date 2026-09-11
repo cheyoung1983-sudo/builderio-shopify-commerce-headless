@@ -14,7 +14,7 @@ function runConfigCheck(relativeFile, envOverrides, expectedPattern) {
     } catch (error) {
       const message = String(error && error.message ? error.message : error)
       console.log(message)
-      if (message.match(${JSON.stringify(expectedPattern)})) {
+      if (new RegExp(${JSON.stringify(expectedPattern.source)}, ${JSON.stringify(expectedPattern.flags)}).test(message)) {
         process.exit(0)
       }
       process.exit(1)
