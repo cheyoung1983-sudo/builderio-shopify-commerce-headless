@@ -12,7 +12,6 @@ import {
   getCollection,
   getAllCollectionPaths,
 } from '@lib/shopify/storefront-data-hooks/src/api/operations'
-import DefaultErrorPage from 'next/error'
 import Head from 'next/head'
 import { useThemeUI } from '@theme-ui/core'
 import { getLayoutProps } from '@lib/get-layout-props'
@@ -68,7 +67,7 @@ export default function Handle({
           <meta name="robots" content="noindex" />
           <meta name="title"></meta>
         </Head>
-        <DefaultErrorPage statusCode={404} />
+        <main>Page not found</main>
       </>
     )
   }

@@ -1,5 +1,5 @@
 import React, { FC, useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/router'
+import useSafeRouter from '@lib/hooks/useSafeRouter'
 import shopifyConfig from '@config/shopify'
 import { ProductGrid } from '@blocks/ProductGrid/ProductGrid'
 import { ProductGridSkeleton } from '@components/products/ProductGridSkeleton'
@@ -16,7 +16,7 @@ interface Props {
 }
 
 const Searchbar: FC<Props> = () => {
-  const router = useRouter()
+  const router = useSafeRouter()
   const { q } = router.query
   const [isOpen, setIsOpen] = useState(false)
   const buttonRef = useRef<HTMLDivElement>(null)
