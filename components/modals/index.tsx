@@ -148,9 +148,12 @@ export function BaseModal({
   )
   const transition = useTransition(isOpen, values)
 
-  // If the dev doesn't set `dangerouslyBypassFocusLock`, use our status
-  if (dangerouslyBypassFocusLock === undefined)
-    dangerouslyBypassFocusLock = status === 'focus-unlocked'
+  // If the dev doesn't set `dangerouslyBypassFocusLock`, use our status.
+  // Derived into a new binding rather than reassigning the parameter.
+  const effectiveDangerouslyBypassFocusLock =
+    dangerouslyBypassFocusLock === undefined
+      ? status === 'focus-unlocked'
+      : dangerouslyBypassFocusLock
 
   return (
     <ModalContext.Provider value={{ labelId, onDismiss }}>
@@ -161,7 +164,7 @@ export function BaseModal({
               key={key}
               as="div"
               onDismiss={onDismiss}
-              dangerouslyBypassFocusLock={dangerouslyBypassFocusLock}
+              dangerouslyBypassFocusLock={effectiveDangerouslyBypassFocusLock}
               style={{
                 ...removePropertyPrefixes('overlay', styles),
                 ...overlayStyle,

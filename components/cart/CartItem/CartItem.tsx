@@ -1,5 +1,5 @@
 import { Box, jsx, Grid, Input, Text, IconButton } from 'theme-ui'
-import React, { ChangeEvent, useEffect, useState } from 'react'
+import React, { ChangeEvent, useState } from 'react'
 import Image from 'next/image'
 import { Plus, Minus } from '@components/icons'
 import { getPrice } from '@lib/shopify/storefront-data-hooks/src/utils/product'
@@ -63,10 +63,14 @@ const CartItem = ({
     setRemoving(false)
   }
 
-  useEffect(() => {
-    // Reset the quantity state if the item quantity changes
+  // Reset the quantity input when item.quantity changes elsewhere (e.g. a
+  // cart update from another component), without an effect: React's
+  // documented "adjusting state during render" pattern.
+  const [prevItemQuantity, setPrevItemQuantity] = useState(item.quantity)
+  if (item.quantity !== prevItemQuantity) {
+    setPrevItemQuantity(item.quantity)
     setQuantity(item.quantity)
-  }, [item.quantity])
+  }
 
   const imgSrc = item.variant?.image?.src || item.variant?.image?.url || ''
   const altText = item.variant?.image?.altText || item.title || 'Product Image'
