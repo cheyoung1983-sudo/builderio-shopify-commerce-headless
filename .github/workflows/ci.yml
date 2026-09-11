@@ -21,6 +21,8 @@ jobs:
         run: npm run check:node-version
       - name: Check project health
         run: npm run check:project-health
+      - name: Check CI/config integrity
+        run: npm run check:ci-integrity
       - name: Type-check
         run: npm run typecheck
       - name: Run ESLint
