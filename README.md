@@ -34,7 +34,7 @@ Learn how to get started with this Builder + Next.js + Shopify example with this
 
 ### Prerequisites
 
-*   **Node.js**: `>=22.x` (See [`.nvmrc`](./.nvmrc))
+*   **Node.js**: `>=24.x` (See [`.nvmrc`](./.nvmrc))
 *   **NPM**: `>=8.x`
 *   **Shopify Account**: An active Shopify store and partner account.
 *   **Builder.io Account**: [Create one here](https://builder.io/signup).
