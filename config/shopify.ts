@@ -26,15 +26,21 @@ const domain = isInvalid(process.env.SHOPIFY_STORE_DOMAIN)
 
 const storefrontAccessToken = isInvalid(process.env.SHOPIFY_STOREFRONT_API_TOKEN)
   ? (isInvalid(process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN)
-      ? (process.env.NODE_ENV === 'production' ? '' : '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')
+      ? ''
       : process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN)
   : process.env.SHOPIFY_STOREFRONT_API_TOKEN
 
 assertProductionShopifyConfig(domain, storefrontAccessToken)
 
+if (!storefrontAccessToken && process.env.NODE_ENV !== 'production') {
+  console.warn(
+    'SHOPIFY_STOREFRONT_API_TOKEN environment variable is missing or empty. Set SHOPIFY_STOREFRONT_API_TOKEN or NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN in .env.'
+  )
+}
+
 const shopifyConfig = {
   domain: domain || 'displaycellpros.myshopify.com',
-  storefrontAccessToken: storefrontAccessToken || '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',
+  storefrontAccessToken: storefrontAccessToken || '',
   apiVersion: process.env.SHOPIFY_STOREFRONT_API_VERSION || '2024-07',
   clientId: process.env.SHOPIFY_CLIENT_ID || '',
   clientSecret: process.env.SHOPIFY_CLIENT_SECRET || '',
