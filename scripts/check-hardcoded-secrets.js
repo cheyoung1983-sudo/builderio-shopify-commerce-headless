@@ -34,6 +34,7 @@ const EXCLUDED_PATH_PATTERNS = [
   /(^|\/)node_modules\//,
   /(^|\/)\.next\//,
   /(^|\/)\.git\//,
+  /(^|\/)chrome-devtools-mcp\//,
   /package-lock\.json$/,
   /bun\.lock$/,
   /yarn\.lock$/,

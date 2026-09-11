@@ -15,6 +15,6 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '22'
       - name: Report stale branches
         run: node scripts/check-stale-branches.js >> "$GITHUB_STEP_SUMMARY"

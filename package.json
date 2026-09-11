@@ -2,7 +2,7 @@
   "name": "nextjs-shopify",
   "version": "1.0.0",
   "engines": {
-    "node": "24.x"
+    "node": "22.x"
   },
   "resolutions": {
     "isolated-vm": "7.0.1",
@@ -89,8 +89,6 @@
     "@theme-ui/presets": "0.15.5",
     "@types/shopify-buy": "2.10.3",
     "@types/traverse": "0.6.32",
-    "@vercel/analytics": "^2.0.1",
-    "@vercel/speed-insights": "^2.0.0",
     "autoprefixer": "^10.5.5",
     "cheerio": "1.0.0-rc.12",
     "js-cookie": "3.0.7",

@@ -20,6 +20,9 @@ import {
   ExternalLink,
   Eye,
   X,
+  Info,
+  DollarSign,
+  Smartphone,
 } from 'lucide-react'
 import {
   fetchAllAvailableProducts,
@@ -31,6 +34,7 @@ import { ProductComparisonModal } from './ProductComparisonModal'
 import { ComparisonDock } from './ComparisonDock'
 import { ProductGridSkeleton } from './ProductGridSkeleton'
 import { SearchBar } from './SearchBar'
+import { ProductCatalogSidebar } from './ProductCatalogSidebar'
 import { CartContext } from '../../context/CartContext'
 
 export interface ProductGridProps {
@@ -139,6 +143,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   const [isSorting, setIsSorting] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
+  const [catalogNotice, setCatalogNotice] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState<string>(initialQuery)
   const [selectedTag, setSelectedTag] = useState<string>('ALL')
   const [sortBy, setSortBy] = useState<ShopifySortOption>('relevance')
@@ -249,12 +254,16 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           reverse: activeSortConfig.reverse,
         })
 
-        if (!res.ok && res.products.length === 0) {
-          const msg = res.errors?.[0]?.message || 'Failed to fetch products from Storefront API'
-          setError(msg)
-        } else {
+        if (res.products && res.products.length > 0) {
           setBaseProducts(res.products)
           setProducts(res.products)
+          setError(null)
+          if ((res as any).notice) {
+            setCatalogNotice((res as any).notice)
+          }
+        } else if (!res.ok) {
+          const msg = res.errors?.[0]?.message || 'Failed to fetch products from Storefront API'
+          setError(msg)
         }
       } catch (err: any) {
         setError(err?.message || 'An unexpected error occurred while loading products.')
@@ -618,6 +627,27 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Informative Preview Notice when live token is not yet connected */}
+      {catalogNotice && !loading && !error && (
+        <div
+          id="storefront-preview-notice-banner"
+          className="mt-6 p-4 rounded-xl border border-sky-200 bg-sky-50/80 text-sky-900 flex items-center justify-between gap-3 text-xs sm:text-sm"
+        >
+          <div className="flex items-center gap-2.5">
+            <Info className="w-4 h-4 text-sky-600 shrink-0" />
+            <p className="font-medium text-sky-800">{catalogNotice}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCatalogNotice(null)}
+            className="text-sky-600 hover:text-sky-900 p-1 rounded transition-colors"
+            aria-label="Dismiss notice"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
