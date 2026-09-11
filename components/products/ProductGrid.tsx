@@ -632,7 +632,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           className="mt-8 p-6 rounded-xl border border-red-200 bg-red-50/70 text-red-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
         >
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
             <div>
               <h4 className="font-semibold text-sm sm:text-base text-red-900">
                 Shopify Storefront API Search Notice
@@ -766,7 +766,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                       </span>
                     )}
                     {product.productType && (
-                      <span className="bg-neutral-900/80 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-0.5 rounded shadow-sm max-w-[120px] truncate">
+                      <span className="bg-neutral-900/80 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-0.5 rounded shadow-sm max-w-30 truncate">
                         {product.productType}
                       </span>
                     )}

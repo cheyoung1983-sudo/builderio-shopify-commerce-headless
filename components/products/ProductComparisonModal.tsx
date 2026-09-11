@@ -379,7 +379,7 @@ export const ProductComparisonModal: React.FC<ProductComparisonModalProps> = ({
                           onClose()
                           onSelectMore?.()
                         }}
-                        className="h-full min-h-[220px] rounded-xl border-2 border-dashed border-neutral-300 hover:border-emerald-500 hover:bg-emerald-50/30 transition-all flex flex-col items-center justify-center p-4 text-center cursor-pointer group"
+                        className="h-full min-h-55 rounded-xl border-2 border-dashed border-neutral-300 hover:border-emerald-500 hover:bg-emerald-50/30 transition-all flex flex-col items-center justify-center p-4 text-center cursor-pointer group"
                       >
                         <div className="w-10 h-10 rounded-full bg-neutral-100 group-hover:bg-emerald-100 text-neutral-400 group-hover:text-emerald-700 flex items-center justify-center mb-2 transition-colors">
                           <Plus className="w-5 h-5" />
