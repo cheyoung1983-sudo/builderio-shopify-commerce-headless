@@ -7,6 +7,27 @@ import {
   getProduct,
 } from './shopify/storefront-data-hooks/src/api/operations'
 
+const BUILDER_FETCH_TIMEOUT_MS = 8000
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`Builder fetch for "${label}" timed out after ${ms}ms`)),
+      ms
+    )
+    promise.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      (error) => {
+        clearTimeout(timer)
+        reject(error)
+      }
+    )
+  })
+}
+
 export async function resolveBuilderContent(
   modelName: string,
   locale = 'en-US',
@@ -15,21 +36,25 @@ export async function resolveBuilderContent(
   let page: any = null
   if (builderConfig.apiKey) {
     try {
-      page = await builder
-        .get(modelName, {
-          apiKey: builderConfig.apiKey,
-          enrich: true,
-          options: {
-            locale,
-            // only cachebust if you're statically generating the page
-            cachebust: true,
-          },
-          userAttributes: {
-            ...targetingAttributes,
-            locale,
-          },
-        })
-        .toPromise()
+      page = await withTimeout(
+        builder
+          .get(modelName, {
+            apiKey: builderConfig.apiKey,
+            enrich: true,
+            options: {
+              locale,
+              // only cachebust if you're statically generating the page
+              cachebust: true,
+            },
+            userAttributes: {
+              ...targetingAttributes,
+              locale,
+            },
+          })
+          .toPromise(),
+        BUILDER_FETCH_TIMEOUT_MS,
+        modelName
+      )
     } catch (e) {
       console.warn(`Builder get error for ${modelName}:`, e)
     }

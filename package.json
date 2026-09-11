@@ -23,6 +23,7 @@
     "typecheck": "tsc --noEmit",
     "check:secrets": "node scripts/check-hardcoded-secrets.js",
     "check:node-version": "node scripts/check-node-version-consistency.js",
+    "check:builder-content": "node scripts/check-builder-content-health.js",
     "check:project-health": "node scripts/check-project-health.js",
     "check:ci-integrity": "node scripts/check-ci-integrity.js",
     "check:dev-health": "node scripts/check-dev-health.js",
