@@ -22,6 +22,7 @@
 
 const { execFileSync } = require('node:child_process')
 const fs = require('node:fs')
+const path = require('node:path')
 
 const SUPPRESS_MARKER = 'secret-scan-ignore'
 
@@ -84,6 +85,24 @@ function isScannableFile(filePath) {
   return SCAN_EXTENSIONS.has(ext)
 }
 
+// Deploy sandboxes (e.g. Vercel's build container) don't always ship a
+// `.git` directory, so `git ls-files` isn't available there. Walk the
+// filesystem directly in that case.
+function walkFiles(dir, results = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name)
+    const relPath = path.relative(process.cwd(), fullPath).split(path.sep).join('/')
+
+    if (entry.isDirectory()) {
+      if (isExcludedPath(`${relPath}/`)) continue
+      walkFiles(fullPath, results)
+    } else {
+      results.push(relPath)
+    }
+  }
+  return results
+}
+
 function getFilesToScan(staged) {
   if (staged) {
     const output = execFileSync(
@@ -94,8 +113,12 @@ function getFilesToScan(staged) {
     return output.split('\n').filter(Boolean).filter(isScannableFile)
   }
 
-  const output = execFileSync('git', ['ls-files'], { encoding: 'utf8' })
-  return output.split('\n').filter(Boolean).filter(isScannableFile)
+  try {
+    const output = execFileSync('git', ['ls-files'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    return output.split('\n').filter(Boolean).filter(isScannableFile)
+  } catch {
+    return walkFiles(process.cwd()).filter(isScannableFile)
+  }
 }
 
 function readFileContent(filePath, staged) {
