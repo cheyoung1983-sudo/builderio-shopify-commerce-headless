@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import { DollarSign, RotateCcw, SlidersHorizontal } from 'lucide-react'
 
 export interface PriceRangeSliderProps {
@@ -49,12 +49,15 @@ export const PriceRangeSlider: React.FC<PriceRangeSliderProps> = ({
   const [inputMaxStr, setInputMaxStr] = useState<string>(String(Math.round(value[1])))
 
   // Synchronize internal state when value prop changes externally
-  useEffect(() => {
+  // Using the "adjusting state during render" pattern to avoid cascading renders
+  const [prevValue, setPrevValue] = useState<[number, number]>(value)
+  if (value[0] !== prevValue[0] || value[1] !== prevValue[1]) {
+    setPrevValue(value)
     setLocalMin(value[0])
     setLocalMax(value[1])
     setInputMinStr(String(Math.round(value[0])))
     setInputMaxStr(String(Math.round(value[1])))
-  }, [value])
+  }
 
   // Calculate percentage positions for track fill
   const minPercent = useMemo(() => {
