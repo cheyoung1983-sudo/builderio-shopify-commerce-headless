@@ -1,4 +1,5 @@
 import ShopifyBuy from 'shopify-buy'
+import shopifyConfig from '../config/shopify.ts'
 
 /**
  * Shopify Storefront API Configuration
@@ -146,46 +147,25 @@ export function normalizeShopifyDomain(rawDomain?: string): string {
 }
 
 /**
- * Reads credentials from environment variables (.env / .env.local)
- * with support for client-side (NEXT_PUBLIC_) and server-side keys
+ * Reads credentials from the shared Shopify config (config/shopify.ts), which
+ * is the single source of truth for env var resolution and enforces the
+ * production guard (throws if credentials are missing outside of build time).
  */
 export function getShopifyConfig(): ShopifyStorefrontConfig {
-  const isInvalid = (val?: string) => !val || val === 'undefined' || val.includes('[SENSITIVE]')
-
-  const rawDomain = isInvalid(process.env.SHOPIFY_STORE_DOMAIN)
-    ? (isInvalid(process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN) ? 'displaycellpros.myshopify.com' : process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN)
-    : process.env.SHOPIFY_STORE_DOMAIN
-
-  const token = isInvalid(process.env.SHOPIFY_STOREFRONT_API_TOKEN)
-    ? (isInvalid(process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN)
-        ? ''
-        : process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN)
-    : process.env.SHOPIFY_STOREFRONT_API_TOKEN
-
-  const rawApiVersion =
-    process.env.SHOPIFY_STOREFRONT_API_VERSION ||
-    process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_VERSION
-  const apiVersion = normalizeShopifyApiVersion(rawApiVersion)
-  const clientId =
-    process.env.SHOPIFY_CLIENT_ID ||
-    process.env.NEXT_PUBLIC_SHOPIFY_CLIENT_ID ||
-    ''
-  const clientSecret = process.env.SHOPIFY_CLIENT_SECRET || ''
-  const adminAccessToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || ''
-
-  const domain = normalizeShopifyDomain(rawDomain)
+  const domain = normalizeShopifyDomain(shopifyConfig.domain)
+  const apiVersion = normalizeShopifyApiVersion(shopifyConfig.apiVersion)
   const endpoint = domain
     ? `https://${domain}/api/${apiVersion}/graphql.json`
     : ''
 
   return {
     domain,
-    storefrontAccessToken: (token || '').trim(),
+    storefrontAccessToken: (shopifyConfig.storefrontAccessToken || '').trim(),
     apiVersion,
     endpoint,
-    clientId,
-    clientSecret,
-    adminAccessToken,
+    clientId: shopifyConfig.clientId,
+    clientSecret: shopifyConfig.clientSecret,
+    adminAccessToken: shopifyConfig.adminAccessToken,
   }
 }
 

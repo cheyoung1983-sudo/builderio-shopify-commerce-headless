@@ -20,6 +20,9 @@ out/
 .DS_Store
 *.pem
 
+# IDE state (machine-local, not shared)
+.idea/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
