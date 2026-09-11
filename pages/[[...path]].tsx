@@ -3,12 +3,13 @@ import type {
   GetStaticPropsContext,
   InferGetStaticPropsType,
 } from 'next'
+import { useSafeRouter } from '@lib/hooks/useSafeRouter'
+import { BuilderComponent, builder, useIsPreviewing } from '@builder.io/react'
 import Head from 'next/head'
 import Link from 'next/link'
-import { BuilderComponent, builder, useIsPreviewing } from '@builder.io/react'
+import { useThemeUI } from '@theme-ui/core'
 import { ProductGrid } from '@components/products/ProductGrid'
-import type { ShopifyProductNode } from '@services/shopify'
-import { fetchAllAvailableProducts } from '@services/shopify'
+import { fetchAllAvailableProducts, ShopifyProductNode } from '@services/shopify'
 import { resolveBuilderContent } from '@lib/resolve-builder-content'
 import { getLayoutProps } from '@lib/get-layout-props'
 import builderConfig from '@config/builder'
@@ -30,7 +31,7 @@ export async function getStaticProps({
   if (!page && urlPath !== '/') {
     return {
       notFound: true,
-      revalidate: 5,
+      revalidate: 30,
     }
   }
 
@@ -40,7 +41,7 @@ export async function getStaticProps({
       const result = await fetchAllAvailableProducts({ batchSize: 50, onlyAvailable: true })
       fallbackProducts = result.products
     } catch (error) {
-      console.error('[pages/[[...path]]] Failed to load fallback products:', error)
+      console.error('[pages/[[...path]]] Failed to load fallback homepage products:', error)
     }
   }
 
@@ -50,13 +51,15 @@ export async function getStaticProps({
       fallbackProducts,
       ...(await getLayoutProps()),
     },
-    revalidate: 60,
+    revalidate: 30,
   }
 }
 
 export async function getStaticPaths({ locales }: GetStaticPathsContext) {
   return {
-    paths: locales?.flatMap((locale) => [{ params: { path: [] }, locale }]) || [{ params: { path: [] } }],
+    paths:
+      locales?.flatMap((locale) => [{ params: { path: [] }, locale }]) ||
+      [{ params: { path: [] } }],
     fallback: 'blocking',
   }
 }
@@ -65,10 +68,25 @@ export default function Path({
   page,
   fallbackProducts,
 }: InferGetStaticPropsType<typeof getStaticProps>) {
+  const router = useSafeRouter()
   const isPreviewing = useIsPreviewing()
+  const isLive = !isPreviewing
+  const { theme } = useThemeUI()
+
+  if (router.isFallback && isLive) {
+    return <h1>Loading...</h1>
+  }
 
   if (page || isPreviewing) {
-    return <BuilderComponent model={builderModel} content={page} />
+    return (
+      <BuilderComponent
+        key={page?.id || 'page'}
+        options={{ enrich: true }}
+        model={builderModel}
+        data={{ theme }}
+        content={page}
+      />
+    )
   }
 
   return (

@@ -14,13 +14,15 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '22'
       - name: Install dependencies
         run: npm ci
       - name: Check Node version consistency
         run: npm run check:node-version
       - name: Check project health
         run: npm run check:project-health
+      - name: Check CI/config integrity
+        run: npm run check:ci-integrity
       - name: Type-check
         run: npm run typecheck
       - name: Run ESLint

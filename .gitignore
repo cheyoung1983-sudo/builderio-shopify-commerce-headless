@@ -28,18 +28,21 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# env files (all of them; never commit real credentials)
+# env files (never commit real credentials)
 .env
 .env*.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.development
+.env.production
 
 # vercel
 .vercel
 
 # nested git worktrees used to isolate concurrent agent sessions
 .worktrees/
+.claude/worktrees/
 
 # dev
 framework

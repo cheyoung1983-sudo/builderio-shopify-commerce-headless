@@ -17,7 +17,14 @@ const ProductLoader: React.FC<Props> = ({
   const [product, setProduct] = useState(initialProduct)
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => setProduct(initialProduct), [initialProduct])
+  // Reset local state when the `product` prop changes, without an effect:
+  // React's documented "adjusting state during render" pattern — triggers
+  // an immediate re-render instead of an extra post-commit one.
+  const [prevInitialProduct, setPrevInitialProduct] = useState(initialProduct)
+  if (initialProduct !== prevInitialProduct) {
+    setPrevInitialProduct(initialProduct)
+    setProduct(initialProduct)
+  }
 
   useEffect(() => {
     const fetchProduct = async () => {

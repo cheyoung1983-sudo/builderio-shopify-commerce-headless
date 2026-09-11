@@ -132,6 +132,14 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
   useEffect(() => {
     if (initialProduct && (!handle || initialProduct.handle === handle)) {
+      // This branch resyncs local state when `handle`/`initialProduct`
+      // change on an already-mounted instance (client-side nav between
+      // product pages reuses the component); the other branch below
+      // triggers a genuine async fetch, so the effect can't be split into
+      // a pure derived-state read without duplicating the
+      // handle/initialProduct matching logic in two places.
+       
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProduct(initialProduct)
       setLoading(false)
       const variants = initialProduct.variants?.edges || []

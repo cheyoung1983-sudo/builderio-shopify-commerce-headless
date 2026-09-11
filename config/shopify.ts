@@ -20,11 +20,17 @@ function assertProductionShopifyConfig(domainValue?: string, tokenValue?: string
       )
     }
   }
+
+  if (isInvalid(domainValue) || isInvalid(tokenValue)) {
+    console.warn(
+      '[Shopify Config] SHOPIFY_STOREFRONT_API_TOKEN is not configured. Running in preview catalog mode.'
+    )
+  }
 }
 
 const domain = isInvalid(process.env.SHOPIFY_STORE_DOMAIN)
   ? (isInvalid(process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN)
-      ? (process.env.NODE_ENV === 'production' ? '' : 'displaycellpros.myshopify.com')
+      ? 'displaycellpros.myshopify.com'
       : process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN)
   : process.env.SHOPIFY_STORE_DOMAIN
 

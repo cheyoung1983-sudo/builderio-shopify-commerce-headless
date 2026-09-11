@@ -1,19 +1,13 @@
-import nextConfig from 'eslint-config-next'
+import { defineConfig, globalIgnores } from 'eslint/config'
+import nextVitals from 'eslint-config-next/core-web-vitals'
 
-export default [
-  ...nextConfig,
-  {
-    rules: {
-      'react-hooks/set-state-in-effect': 'off',
-      'react-hooks/preserve-manual-memoization': 'off',
-      'react-hooks/refs': 'off',
-      'react-hooks/immutability': 'off',
-      'react-hooks/purity': 'off',
-      'react-hooks/incompatible-library': 'off',
-      'react-hooks/static-components': 'off',
-      'react-hooks/unsupported-syntax': 'off',
-      'react-hooks/globals': 'off',
-      'react-hooks/use-memo': 'off',
-    },
-  },
-]
+export default defineConfig([
+  ...nextVitals,
+  globalIgnores([
+    '.next/**',
+    'out/**',
+    'build/**',
+    'next-env.d.ts',
+    'node_modules/**',
+  ]),
+])

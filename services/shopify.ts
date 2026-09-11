@@ -1,5 +1,17 @@
 import ShopifyBuy from 'shopify-buy'
 import shopifyConfig from '../config/shopify.ts'
+import { getDemoProducts, getDemoProductByHandle } from '../lib/shopify/demo-catalog.ts'
+
+const isProductionBuild = process.env.NEXT_PHASE === 'phase-production-build'
+if (
+  process.env.NODE_ENV === 'production' &&
+  !isProductionBuild &&
+  !shopifyConfig.storefrontAccessToken
+) {
+  throw new Error(
+    'SHOPIFY_STOREFRONT_API_TOKEN is required in production. Set SHOPIFY_STOREFRONT_API_TOKEN or NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN.'
+  )
+}
 
 /**
  * Shopify Storefront API Configuration
@@ -721,6 +733,8 @@ export interface FetchAllAvailableProductsResult {
   totalCount: number
   ok: boolean
   errors?: StorefrontGraphQLError[]
+  isDemo?: boolean
+  notice?: string
 }
 
 export const PRODUCTS_QUERY = /* GraphQL */ `
@@ -1102,6 +1116,35 @@ export async function fetchAllAvailableProducts(
     next,
   } = options
 
+  // In browser environments, proxy through server-side /api/products
+  if (typeof window !== 'undefined') {
+    try {
+      const params = new URLSearchParams()
+      if (customQuery) params.set('query', customQuery)
+      if (sortKey) params.set('sortKey', sortKey)
+      if (reverse) params.set('reverse', 'true')
+      if (typeof maxProducts === 'number') params.set('limit', String(maxProducts))
+      else if (batchSize) params.set('limit', String(batchSize))
+      if (!onlyAvailable) params.set('onlyAvailable', 'false')
+
+      const apiRes = await fetch(`/api/products?${params.toString()}`)
+      if (apiRes.ok) {
+        const json = await apiRes.json()
+        if (json.ok && Array.isArray(json.products)) {
+          return {
+            products: json.products,
+            totalCount: json.totalCount ?? json.products.length,
+            ok: true,
+            isDemo: json.isDemo,
+            notice: json.notice,
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[Shopify] Browser /api/products request notice:', err)
+    }
+  }
+
   // Build the Storefront search filter:
   // If onlyAvailable is true, ensure available_for_sale:true is included
   let combinedQuery = customQuery ? customQuery.trim() : ''
@@ -1154,10 +1197,23 @@ export async function fetchAllAvailableProducts(
 
     if (!response.ok || !response.data?.products) {
       lastErrors = response.errors
-      console.error(
-        '[Shopify Storefront] Failed to fetch page of available products:',
-        JSON.stringify(response.errors)
+      const isExpectedAuthNotice = response.errors?.some(
+        (e) =>
+          e.message?.includes('credentials are missing') ||
+          e.message?.includes('ACCESS_DENIED') ||
+          (e as any).extensions?.code === 'ACCESS_DENIED'
       )
+
+      if (isExpectedAuthNotice) {
+        console.info(
+          '[Shopify Storefront] Storefront credentials not configured or returned ACCESS_DENIED. Serving preview catalog for displaycellpros.myshopify.com.'
+        )
+      } else {
+        console.error(
+          '[Shopify Storefront] Failed to fetch page of available products:',
+          JSON.stringify(response.errors)
+        )
+      }
       break
     }
 
@@ -1180,6 +1236,26 @@ export async function fetchAllAvailableProducts(
 
     hasNextPage = Boolean(pageInfo?.hasNextPage && pageInfo?.endCursor)
     cursor = pageInfo?.endCursor || undefined
+  }
+
+  // Gracefully fallback to preview catalog when unconfigured or unauthorized
+  if (allProducts.length === 0) {
+    const demo = getDemoProducts({
+      query: customQuery,
+      sortKey: typeof sortKey === 'string' ? sortKey : undefined,
+      reverse,
+      onlyAvailable,
+      limit: maxProducts,
+    })
+    return {
+      products: demo,
+      totalCount: demo.length,
+      ok: true,
+      errors: lastErrors,
+      isDemo: true,
+      notice:
+        'Shopify Storefront credentials are unconfigured or returned ACCESS_DENIED. Displaying preview catalog for displaycellpros.myshopify.com.',
+    }
   }
 
   return {
@@ -1250,10 +1326,51 @@ export async function fetchStorefrontProducts(options?: {
  * Fetches a single product by handle from the Shopify Storefront API
  */
 export async function fetchStorefrontProductByHandle(handle: string) {
-  return storefrontFetch<{ product: ShopifyProductDetailNode | null }>({
+  if (!handle) {
+    return {
+      ok: false,
+      status: 400,
+      errors: [{ message: 'Product handle is required' }],
+    }
+  }
+
+  // In browser environments, proxy through server-side /api/products?handle=...
+  if (typeof window !== 'undefined') {
+    try {
+      const apiRes = await fetch(`/api/products?handle=${encodeURIComponent(handle)}`)
+      if (apiRes.ok) {
+        const json = await apiRes.json()
+        if (json.ok && json.product) {
+          return {
+            ok: true,
+            status: 200,
+            data: { product: json.product as ShopifyProductDetailNode },
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[Shopify] Browser /api/products handle request notice:', err)
+    }
+  }
+
+  // Server-side or direct Storefront API fetch
+  const res = await storefrontFetch<{ product: ShopifyProductDetailNode | null }>({
     query: PRODUCT_BY_HANDLE_QUERY,
     variables: { handle },
   })
+
+  if (!res.ok || !res.data?.product) {
+    const demo = getDemoProductByHandle(handle)
+    if (demo) {
+      return {
+        ok: true,
+        status: 200,
+        data: { product: demo },
+      }
+    }
+  }
+
+  return res
 }
 
 /**

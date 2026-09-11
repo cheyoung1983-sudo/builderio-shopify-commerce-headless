@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, useCallback, useRef } from 'react'
+import React, { FC, useState, useEffect, useMemo, useRef } from 'react'
 import useSafeRouter from '@lib/hooks/useSafeRouter'
 import shopifyConfig from '@config/shopify'
 import { ProductGrid } from '@blocks/ProductGrid/ProductGrid'
@@ -20,11 +20,31 @@ const Searchbar: FC<Props> = () => {
   const { q } = router.query
   const [isOpen, setIsOpen] = useState(false)
   const buttonRef = useRef<HTMLDivElement>(null)
+  const [overlayTop, setOverlayTop] = useState(0)
 
   const pathWithoutQuery = router.asPath.split('?')[0]
-  useEffect(() => {
+  // Close the overlay when the route changes, without an effect: this is
+  // React's documented "adjusting state during render" pattern for
+  // resetting state in response to a prop/derived value change — it
+  // triggers an immediate re-render rather than an extra post-commit one.
+  const [prevPath, setPrevPath] = useState(pathWithoutQuery)
+  if (pathWithoutQuery !== prevPath) {
+    setPrevPath(pathWithoutQuery)
     setIsOpen(false)
-  }, [pathWithoutQuery])
+  }
+
+  useEffect(() => {
+    // Plain useEffect, not useLayoutEffect: useLayoutEffect warns on the
+    // server ("does nothing on the server") since this component renders
+    // during SSR, and it isn't needed here anyway — isOpen only ever
+    // becomes true from a client click handler, well after hydration, so
+    // there's no pre-paint flash to avoid.
+    if (isOpen) {
+      // Must measure the button's real layout position, which only exists
+      // post-render; there is no derivable value for this before then.
+      setOverlayTop((buttonRef.current?.getBoundingClientRect().bottom || 0) + 15)
+    }
+  }, [isOpen])
 
   return (
     <React.Fragment>
@@ -35,7 +55,7 @@ const Searchbar: FC<Props> = () => {
             left: '50%',
             transform: 'translateX(-50%)',
             overflow: 'auto',
-            top: (buttonRef.current?.getBoundingClientRect().bottom || 0) + 15,
+            top: overlayTop,
           },
         }}
         isOpen={isOpen}
@@ -108,6 +128,11 @@ const SearchModalContent = (props: {
   // calls setSearch, so including them would re-run this on every keystroke.
   useEffect(() => {
     if (search) {
+      // This is the sanctioned "fetch data on mount" pattern (an initial
+      // search term arrived via the URL); getProducts sets a loading flag
+      // before its await, same as the interactive/typing path below.
+       
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       getProducts(search)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -116,8 +141,10 @@ const SearchModalContent = (props: {
   // Throttled once for the component's lifetime so rapid typing is actually
   // throttled; recreating it per-render (to satisfy exhaustive-deps) would
   // reset the throttle window on every keystroke and defeat the throttling.
+  // useMemo (not useCallback) because we're memoizing the throttled
+  // function value itself, not a callback literal.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const throttleSearch = useCallback(throttle(getProducts), [])
+  const throttleSearch = useMemo(() => throttle(getProducts), [])
 
   return (
     <Box

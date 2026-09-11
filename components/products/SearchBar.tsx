@@ -88,7 +88,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const latestTermRef = useRef<string>(isControlled ? controlledValue : internalValue)
 
   const currentValue = isControlled ? controlledValue : internalValue
-  latestTermRef.current = currentValue
+  // Keep the ref in sync via an effect (not during render): executeQuery's
+  // async callbacks read this after the fact to detect whether the term
+  // changed while a request was in flight, so it only needs to be current
+  // by the time those callbacks run, not during render itself.
+  useEffect(() => {
+    latestTermRef.current = currentValue
+  }, [currentValue])
   const loading = controlledLoading ?? isQuerying
 
   // Execute Storefront API query for the given term
