@@ -1,228 +1,123 @@
-# Next.js + Shopify + Builder.io example
+# Next.js + Shopify + Builder.io Headless Commerce
 
-Demo live at: [headless.builders](https://headless.builders/)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/git/external?repository-url=https%3A%2F%2Fgithub.com%2Fbuilderio%2Fnextjs-shopify)
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/BuilderIO/nextjs-shopify)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Goals and Features
+A high-performance, SEO-optimized headless commerce starter kit. This template combines the power of **Next.js** for a fast frontend, **Shopify** for robust commerce logic, and **Builder.io** for a flexible Visual CMS.
 
-- Ultra high performance
-- SEO optimized
-- Themable
-- Personalizable (internationalization, a/b testing, etc)
-- Builder.io Visual CMS integrated
+**Demo Live at: [headless.builders](https://headless.builders/)**
 
-## Video walkthrough
+---
 
-Learn how to get started with this Builder + Next.js + Shopify example with this step by step video guide here:
+## 🚀 Key Features
+
+*   **Ultra High Performance**: Built on Next.js with optimized image loading, code splitting, and server-side rendering.
+*   **SEO Optimized**: Fully customizable metadata, automatic sitemap generation, and clean URL structures.
+*   **Visual CMS Integrated**: Drag-and-drop page building with Builder.io, allowing marketers to launch pages without developer intervention.
+*   **Personalizable**: Built-in support for internationalization, A/B testing, and dynamic content delivery.
+*   **Headless OAuth**: Secure customer account management using Shopify's Customer Account API with PKCE.
+
+---
+
+## 📺 Video Walkthrough
+
+Learn how to get started with this Builder + Next.js + Shopify example with this step-by-step video guide:
 
 <a href="https://www.youtube.com/watch?v=uIHqPu2t1O0">
-  <img width="400" src="https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2Fc161ccb26f6446869cba865d014c7caf" />  
+  <img width="600" src="https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2Fc161ccb26f6446869cba865d014c7caf" alt="Next.js Shopify Walkthrough Video" />
 </a>
 
-## Table of contents
+---
 
-<!-- markdown-toc start -->
+## 🛠️ Getting Started
 
-- [Getting Started](#getting-started)
-  - [1: Create an account for Builder.io](#1-create-an-account-for-builderio)
-  - [2: Your Builder.io private key](#2-your-builderio-private-key)
-  - [3: Clone this repository and initialize a Builder.io space](#3-clone-this-repository-and-initialize-a-builderio-space)
-  - [4. Shopify Custom App](#4-shopify-custom-app)
-  - [5. Connecting Builder to Shopify](#5-connecting-builder-to-shopify)
-  - [6. Configure the project to talk to Shopify](#6-configure-the-project-to-talk-to-shopify)
-  - [6.5 Shopify Web Bot Authentication](#65-shopify-web-bot-authentication-optional)
-  - [7. Up and Running!](#7-up-and-running)
-  - [8. Start building](#8-start-building)
-- [Deployment Options](#deployment-options)
+### Prerequisites
 
-<!-- markdown-toc end -->
+*   **Node.js**: `>=22.x` (See [`.nvmrc`](./.nvmrc))
+*   **NPM**: `>=8.x`
+*   **Shopify Account**: An active Shopify store and partner account.
+*   **Builder.io Account**: [Create one here](https://builder.io/signup).
 
-## Getting Started
+### 1. Initialize Builder.io
 
-**Pre-requisites**
+1.  **Get Private Key**: Visit [Organization Settings](https://builder.io/account/organization) and copy your private key.
+2.  **Run CLI**:
+    ```bash
+    # Install Builder CLI
+    npm install --global "@builder.io/cli"
 
-This guide will assume that you have the following software installed:
+    # Create your space
+    builder create --key "<private-key>" --name "<space-name>" --debug
+    ```
+    *Note: This will output a **Public API Key**. Copy it for step 3.*
 
-- nodejs (>=22.0.0)
-- npm
-- git
+### 2. Configure Shopify
 
-You should already have a [Shopify](https://www.shopify.com/online-store) account and store created before starting as well.
+1.  **Create Custom App**: In Shopify Admin > Settings > Apps and sales channels > Develop apps.
+2.  **Enable Storefront API**: Grant all permissions under `Storefront API` configuration.
+3.  **Customer Account API**: Enable headless OAuth 2.0 with PKCE in your Shopify Partner dashboard or Admin settings.
 
-**Introduction**
+### 3. Environment Setup
 
-After following this guide you will have
-
-- A Next.js app, ready to deploy to a hosting provider of your choice
-- Pulling live collection and product information from Shopify
-- Powered by the Builder.io visual CMS
-
-### 1: Create an account for Builder.io
-
-Before we start, head over to Builder.io and [create an account](https://builder.io/signup).
-
-### 2: Your Builder.io private key
-
-Head over to your [organization settings page](https://builder.io/account/organization?root=true) and create a
-private key, copy the key for the next step.
-
-- Visit the [organization settings page](https://builder.io/account/organization?root=true), or select
-  an organization from the list
-
-![organizations drop down list](./docs/images/builder-io-organizations.png)
-
-- Click "Account" from the left hand sidebar
-- Click the edit icon for the "Private keys" row
-- Copy the value of the auto-generated key, or create a new one with a name that's meaningful to you
-
-![Example of how to get your private key](./docs/images/private-key-flow.png)
-
-### 3: Clone this repository and initialize a Builder.io space
-
-Next, we'll create a copy of the starter project, and create a new
-[space](https://www.builder.io/c/docs/spaces) for its content to live
-in.
-
-In the example below, replace `<private-key>` with the key you copied
-in the previous step, and change `<space-name>` to something that's
-meaningful to you -- don't worry, you can change it later!
-
-```bash
-# If you haven't already, clone the repository
-git clone https://github.com/BuilderIO/nextjs-shopify.git
-cd nextjs-shopify
-
-# Install the Builder CLI
-npm install --global "@builder.io/cli"
-
-# Initialize your Builder.io space
-builder create --key "<private-key>" --name "<space-name>" --debug
-```
-
-Note:
-The starter content is already included in this repository. If you are only interested in using this starter for a landing page with Shopify, you can specify an alternative input for the `builder create` command if you have one, or use the default:
-
-```bash
-builder create --key "<private-key>" --name "<space-name>" --debug
-```
-
-If this was a success you should be greeted with a message that
-includes a public API key for your newly minted Builder.io space.
-
-_Note: This command will also publish some starter builder.io cms
-content from the ./builder directory to your new space when it's
-created._
-
-```bash
-  ____            _   _       _                     _                    _   _
-| __ )   _   _  (_) | |   __| |   ___   _ __      (_)   ___       ___  | | (_)
-|  _ \  | | | | | | | |  / _` |  / _ \ | '__|     | |  / _ \     / __| | | | |
-| |_) | | |_| | | | | | | (_| | |  __/ | |     _  | | | (_) |   | (__  | | | |
-|____/   \__,_| |_| |_|  \__,_|  \___| |_|    (_) |_|  \___/     \___| |_| |_|
-
-|████████████████████████████████████████| shopify-product | 0/0
-|████████████████████████████████████████| product-page: writing generic-template.json | 1/1
-|████████████████████████████████████████| shopify-collection | 0/0
-|████████████████████████████████████████| collection-page: writing generic-collection.json | 1/1
-|████████████████████████████████████████| page: writing homepage.json | 2/2
-
-
-Your new space "next.js shopify starter" public API Key: 012345abcdef0123456789abcdef0123
-```
-
-Copy the public API key ("012345abcdef0123456789abcdef0123" in the example above) for the next step.
-
-This starter project uses environment variables for configuration.
-Create a `.env.local` file by copying the provided [.env.example](./.env.example) and
-set the value of `BUILDER_PUBLIC_KEY` to the public key you just copied.
+Create a `.env.local` file by copying [`.env.example`](./.env.example):
 
 ```bash
 cp .env.example .env.local
 ```
 
-Open `.env.local` in your favorite text editor:
+Update the following variables in `.env.local`:
+*   `BUILDER_PUBLIC_KEY`: Your Builder Public API Key.
+*   `SHOPIFY_STORE_DOMAIN`: `your-store.myshopify.com`.
+*   `SHOPIFY_STOREFRONT_API_TOKEN`: Your Shopify Storefront Access Token.
+*   `SHOPIFY_CUSTOMER_ACCOUNT_API_CLIENT_ID`: Required for buyer authentication.
 
-```diff
-+ BUILDER_PUBLIC_KEY=012345abcdef0123456789abcdef0123
-- BUILDER_PUBLIC_KEY=
-SHOPIFY_STOREFRONT_API_TOKEN=
-SHOPIFY_STORE_DOMAIN=
-```
+---
 
-### 4. Shopify Custom App
-
-Create a [custom app](https://help.shopify.com/en/manual/apps/custom-apps) for your Shopify store. If you don't have a Shopify store already, you can create a [development store](https://help.shopify.com/en/partners/dashboard/managing-stores/development-stores).
-
-When creating the custom app you'll have to set a number of permissions so that builder can retrieve your Shopify inventory. For this press on `Storefront API` in the configuration tab and choose all the following permissions:
-
-![List of required permissions](https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F24ebad91e8774a7e814487432391f4c6)
-
-Then in the `API Credentials` tab, click `install`:
-
-![installing custom app](https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2Ffd00307e14ed40babe2d569d7a297e81)
-
-And copy the generated access token.
-
-### 5. Connecting Builder to Shopify
-
-Access your newly created space by selecting it from the [list of spaces](https://builder.io/spaces?root=true)
-in your organization.
-
-You should be greeted by a modal asking for your storefront Access token (from previous step) and your store domain, this will allow Builder.io to communicate with your store API:
-
-![Example of where the Shopify API keys map to Builder settings](https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F30b68ab3caf544ca92a06f073bb27b55)
-
-Fill in the required keys and press "Connect your Shopify Custom App"!
-
-### 6. Configure the project to talk to Shopify
-
-Open up [.env.local](./.env.local) again, and set the other two Shopify keys.
-
-```diff
-BUILDER_PUBLIC_KEY=012345abcdef0123456789abcdef0123
-+ SHOPIFY_STOREFRONT_API_TOKEN=c11b4053408085753bd76a45806f80dd
-- SHOPIFY_STOREFRONT_API_TOKEN=
-+ SHOPIFY_STORE_DOMAIN=your-store.myshopify.com
-- SHOPIFY_STORE_DOMAIN=
-```
-
-The Storefront access token must have unauthenticated checkout access enabled.
-The cart's **Secure Checkout** button takes customers to Shopify's hosted
-checkout, where Shopify calculates tax and shipping and processes payment.
-
-### 6.5 Shopify Web Bot Authentication (Optional)
-
-If you are seeing issues with Shopify blocking crawlers or for specific automated access, you may need to configure Web Bot Authentication. Below is an example configuration:
-
-- **Name**: `HTTP-Crawler-Access`
-- **Domain**: `your-store.myshopify.com`
-- **Signature**: `sig1=:...:`
-- **Signature-Input**: `sig1=("@authority" "signature-agent");keyid="...";nonce="...";tag="web-bot-auth";created=...;expires=...`
-- **Signature-Agent**: `"https://shopify.com"`
-- **Expires**: Nov 23, 2026
-
-### 7. Up and Running!
-
-The hard part is over, all you have to do is start up the project now.
+## 🏗️ Development
 
 ```bash
+# Install dependencies
 npm install
+
+# Start development server
 npm run dev
 ```
 
-This will start a server at `http://localhost:3000`.
+The app will be running at `http://localhost:3000`.
 
-### 8. Start building
+### Scripts
 
-Now that we have everything setup, start building and publishing pages on builder.io, for a demo on building something similar to the [demo homepage](https://headless.builders), follow the steps in this [short video](https://www.loom.com/share/9b947acbbf714ee3ac6c319c130cdb85)
+*   `npm run build`: Production build and health checks.
+*   `npm run lint`: Run ESLint checks.
+*   `npm run typecheck`: Run TypeScript compiler checks.
+*   `npm run check:project-health`: Run internal consistency and security audits.
 
-## Deployment Options
+---
 
-You can deploy this code anywhere you like - you can find many deployment options for Next.js [here](https://nextjs.org/docs/deployment). The following options support one click installs and are super easy to start with:
+## 📂 Project Structure
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/git/external?repository-url=https%3A%2F%2Fgithub.com%2Fbuilderio%2Fnextjs-shopify)
+```text
+├── components/     # React UI components (Cart, Modal, Product, etc.)
+├── pages/          # Next.js routes (Headless routes via [[...path]])
+├── services/       # API clients (Shopify Storefront, Admin, Customer Account)
+├── lib/            # Shared utilities and Shopify data hooks
+├── config/         # App configuration (SEO, Theme, Builder)
+└── public/         # Static assets
+```
 
-- Vercel: for more information check [Vercel docs on Next.js deployments](https://vercel.com/docs/next.js/overview) Or try the one click install by clicking the button above.
+---
 
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/BuilderIO/nextjs-shopify)
+## 🔒 Security & Best Practices
 
-- Netlify: For more information check [Netlify docs on Next.js deployments](https://www.netlify.com/blog/2020/11/30/how-to-deploy-next.js-sites-to-netlify/) Or try the one click install by clicking the button above.
+> [!IMPORTANT]
+> **Never commit your `.env` or `.env.local` files.** This project includes a [`.gitignore`](./.gitignore) that excludes them by default.
+
+*   **Secrets Check**: Run `npm run check:secrets` to scan for hardcoded credentials.
+*   **Web Bot Authentication**: If experiencing crawler blocks, configure the `HTTP-Crawler-Access` signature as detailed in your Shopify settings.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE.md](./LICENSE.md) file for details.
