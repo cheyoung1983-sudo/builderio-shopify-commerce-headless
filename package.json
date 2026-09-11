@@ -82,6 +82,7 @@
     "@radix-ui/react-dialog": "^1.0.2",
     "@reach/dialog": "^0.18.0",
     "@reach/portal": "0.14.0",
+    "@shopify/storefront-api-client": "^2.0.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@theme-ui/components": "0.15.5",
     "@theme-ui/match-media": "0.15.5",
