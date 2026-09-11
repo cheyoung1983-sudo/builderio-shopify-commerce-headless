@@ -60,4 +60,19 @@ describe('runtime configuration validation', () => {
 
     expect(output).toMatch(/SHOPIFY_STORE_DOMAIN|SHOPIFY_STOREFRONT_API_TOKEN/i)
   })
+
+  it('propagates the same production guard to the commerce runtime (services/shopify.ts)', () => {
+    const output = runConfigCheck(
+      'services/shopify.ts',
+      {
+        SHOPIFY_STORE_DOMAIN: '',
+        NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN: '',
+        SHOPIFY_STOREFRONT_API_TOKEN: '',
+        NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN: '',
+      },
+      /SHOPIFY_STORE_DOMAIN|SHOPIFY_STOREFRONT_API_TOKEN/i
+    )
+
+    expect(output).toMatch(/SHOPIFY_STORE_DOMAIN|SHOPIFY_STOREFRONT_API_TOKEN/i)
+  })
 })
