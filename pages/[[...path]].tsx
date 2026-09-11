@@ -3,10 +3,13 @@ import type {
   GetStaticPropsContext,
   InferGetStaticPropsType,
 } from 'next'
+import { useSafeRouter } from '@lib/hooks/useSafeRouter'
 import { BuilderComponent, builder, useIsPreviewing } from '@builder.io/react'
 import { resolveBuilderContent } from '@lib/resolve-builder-content'
 import { getLayoutProps } from '@lib/get-layout-props'
 import builderConfig from '@config/builder'
+import Head from 'next/head'
+import { useThemeUI } from '@theme-ui/core'
 
 if (builderConfig.apiKey) {
   builder.init(builderConfig.apiKey)
@@ -25,7 +28,7 @@ export async function getStaticProps({
   if (!page) {
     return {
       notFound: true,
-      revalidate: 5,
+      revalidate: 30,
     }
   }
 
@@ -34,7 +37,7 @@ export async function getStaticProps({
       page,
       ...(await getLayoutProps()),
     },
-    revalidate: 5,
+    revalidate: 30,
   }
 }
 
@@ -48,11 +51,32 @@ export async function getStaticPaths({ locales }: GetStaticPathsContext) {
 export default function Path({
   page,
 }: InferGetStaticPropsType<typeof getStaticProps>) {
+  const router = useSafeRouter()
   const isPreviewing = useIsPreviewing()
+  const isLive = !isPreviewing
+  const { theme } = useThemeUI()
 
-  if (!page && !isPreviewing) {
-    return <main>Page not found</main>
+  if (!page && isLive) {
+    return (
+      <>
+        <Head>
+          <meta name="robots" content="noindex" />
+          <meta name="title"></meta>
+        </Head>
+        <main>Page not found</main>
+      </>
+    )
   }
 
-  return <BuilderComponent model={builderModel} content={page} />
+  return router.isFallback && isLive ? (
+    <h1>Loading...</h1>
+  ) : (
+    <BuilderComponent
+      key={page?.id || 'page'}
+      options={{ enrich: true }}
+      model={builderModel}
+      data={{ theme }}
+      content={page}
+    />
+  )
 }
