@@ -22,7 +22,14 @@ const CollectionPreview: FC<Props> = ({
   const [collection, setCollection] = useState(initialCollection)
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => setCollection(initialCollection), [initialCollection])
+  // Reset local state when the `collection` prop changes, without an
+  // effect: React's documented "adjusting state during render" pattern —
+  // triggers an immediate re-render instead of an extra post-commit one.
+  const [prevInitialCollection, setPrevInitialCollection] = useState(initialCollection)
+  if (initialCollection !== prevInitialCollection) {
+    setPrevInitialCollection(initialCollection)
+    setCollection(initialCollection)
+  }
 
   useEffect(() => {
     const fetchCollection = async () => {

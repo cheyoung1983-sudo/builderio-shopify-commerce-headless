@@ -26,8 +26,10 @@ export const ScrollToTop: React.FC<ScrollToTopProps> = ({
   const [mounted, setMounted] = useState<boolean>(false)
   const [isVisible, setIsVisible] = useState<boolean>(false)
 
-  // Ensure hydration safety
+  // Ensure hydration safety: this must run once after the client-side
+  // render, not before, so there's no derived-state equivalent.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true)
   }, [])
 
@@ -64,7 +66,12 @@ export const ScrollToTop: React.FC<ScrollToTopProps> = ({
       }
     }
 
-    // Check position initially
+    // Check position initially. This can only run post-mount (guarded by
+    // the `!mounted` check above) since it measures real DOM layout;
+    // computing it earlier (e.g. a lazy useState initializer) would read
+    // different scroll/layout state on the server vs. the client and
+    // cause a hydration mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     checkScrollPosition()
 
     window.addEventListener('scroll', onScroll, { passive: true })

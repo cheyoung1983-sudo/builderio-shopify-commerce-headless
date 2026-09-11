@@ -30,6 +30,10 @@ export const ScrollProgressBar: React.FC<ScrollProgressBarProps> = ({
   const [isVisible, setIsVisible] = useState<boolean>(false)
 
   useEffect(() => {
+    // Intentional hydration-safe mount flag: this must run once after the
+    // client-side render to distinguish it from SSR output. There is no
+    // derived-state equivalent that preserves that distinction.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true)
   }, [])
 
@@ -40,6 +44,11 @@ export const ScrollProgressBar: React.FC<ScrollProgressBarProps> = ({
   // Determine if bar should be active
   const shouldBeActive = !onlyOnProductPages || isProductPage
 
+  // This project doesn't run the React Compiler (no babel-plugin-react-compiler
+  // configured) — the rule below is only a forward-looking advisory that the
+  // compiler couldn't verify this manual useCallback boundary, not a
+  // correctness bug in the callback itself.
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const calculateScrollProgress = useCallback(() => {
     if (typeof window === 'undefined') return
 
@@ -60,8 +69,11 @@ export const ScrollProgressBar: React.FC<ScrollProgressBarProps> = ({
   }, [isProductPage])
 
   useEffect(() => {
+    // No setIsVisible(false) here: the render gate below already returns
+    // null when !shouldBeActive, and calculateScrollProgress() re-derives
+    // isVisible from the actual scroll position as soon as shouldBeActive
+    // flips back to true, so no stale-state flash is possible.
     if (!shouldBeActive) {
-      setIsVisible(false)
       return
     }
 
@@ -77,7 +89,10 @@ export const ScrollProgressBar: React.FC<ScrollProgressBarProps> = ({
       }
     }
 
-    // Initial calculation on mount or route change
+    // Initial calculation on mount or route change — must measure real
+    // scroll/layout state, which only exists post-mount; same sanctioned
+    // pattern as ScrollToTop's checkScrollPosition().
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     calculateScrollProgress()
 
     window.addEventListener('scroll', handleScroll, { passive: true })

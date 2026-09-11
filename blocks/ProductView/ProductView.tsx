@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react'
+import React, { useMemo, useState } from 'react'
 import { jsx } from 'theme-ui'
 import { Grid, Button, Heading } from '@theme-ui/components'
 import OptionPicker from '@components/common/OptionPicker'
@@ -51,21 +51,20 @@ const ProductBox: React.FC<Props> = ({
 
   const { openSidebar } = useUI()
 
-  const [variant, setVariant] = useState(variants[0] || {})
-  const [color, setColor] = useState(variant?.color)
-  const [size, setSize] = useState(variant?.size)
+  const initialVariant = variants[0] || {}
+  const [color, setColor] = useState(initialVariant?.color)
+  const [size, setSize] = useState(initialVariant?.size)
 
-  useEffect(() => {
-    const newVariant = variants.find((variant) => {
-      return (
-        (variant.size === size || !size) && (variant.color === color || !color)
-      )
-    })
-
-    if (variant?.id !== newVariant?.id) {
-      setVariant(newVariant || {})
-    }
-  }, [size, color, variants, variant?.id])
+  // Derived directly from variants/size/color during render instead of via
+  // an effect + separate state — there's no external system involved, so
+  // this is a pure computation, not a synchronization.
+  const variant = useMemo(() => {
+    return (
+      variants.find((v) => (v.size === size || !size) && (v.color === color || !color)) ||
+      variants[0] ||
+      {}
+    )
+  }, [variants, size, color])
 
   const addToCart = async () => {
     if (!variant?.id) {
