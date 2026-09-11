@@ -1,5 +1,9 @@
 const isInvalid = (val?: string) => !val || val === 'undefined' || val.includes('[SENSITIVE]')
 
+function isPrivateToken(value?: string) {
+  return typeof value === 'string' && /^(shpat_|shpua_)/i.test(value)
+}
+
 function assertProductionShopifyConfig(domainValue?: string, tokenValue?: string) {
   const isProductionBuild = process.env.NEXT_PHASE === 'phase-production-build'
 
@@ -24,17 +28,24 @@ const domain = isInvalid(process.env.SHOPIFY_STORE_DOMAIN)
       : process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN)
   : process.env.SHOPIFY_STORE_DOMAIN
 
-const storefrontAccessToken = isInvalid(process.env.SHOPIFY_STOREFRONT_API_TOKEN)
-  ? (isInvalid(process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN)
-      ? ''
-      : process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN)
-  : process.env.SHOPIFY_STOREFRONT_API_TOKEN
+const serverStorefrontAccessToken = process.env.SHOPIFY_STOREFRONT_API_TOKEN
+const publicStorefrontAccessToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN
+
+if (isPrivateToken(publicStorefrontAccessToken)) {
+  throw new Error(
+    'NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN must contain a public Storefront API token, not a private Shopify token.'
+  )
+}
+
+const storefrontAccessToken = isInvalid(serverStorefrontAccessToken)
+  ? publicStorefrontAccessToken || ''
+  : serverStorefrontAccessToken
 
 assertProductionShopifyConfig(domain, storefrontAccessToken)
 
 if (!storefrontAccessToken && process.env.NODE_ENV !== 'production') {
   console.warn(
-    'SHOPIFY_STOREFRONT_API_TOKEN environment variable is missing or empty. Set SHOPIFY_STOREFRONT_API_TOKEN or NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN in .env.'
+    'SHOPIFY_STOREFRONT_API_TOKEN environment variable is missing or empty. Set SHOPIFY_STOREFRONT_API_TOKEN for server-side requests or NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN for browser-side requests.'
   )
 }
 
