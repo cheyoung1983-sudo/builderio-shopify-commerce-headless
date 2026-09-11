@@ -1,0 +1,9 @@
+#!/bin/sh
+# Blocks commits that introduce hardcoded secrets or hardcoded fallback
+# values for sensitive env vars. See scripts/check-hardcoded-secrets.js.
+#
+# Enabled automatically via `npm install` (the "prepare" script sets
+# core.hooksPath to this directory). To run manually:
+#   node scripts/check-hardcoded-secrets.js --staged
+
+node scripts/check-hardcoded-secrets.js --staged
