@@ -175,6 +175,7 @@ const Navbar: FC = () => {
                   src={activeLogo.image}
                   priority
                   unoptimized
+                  style={{ width: 'auto', height: 'auto' }}
                 />
               </Link>
             )}
