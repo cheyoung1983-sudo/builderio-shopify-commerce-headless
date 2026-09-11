@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import React, { FC, useState, useEffect, useMemo, useRef } from 'react'
 import useSafeRouter from '@lib/hooks/useSafeRouter'
 import shopifyConfig from '@config/shopify'
 import { ProductGrid } from '@blocks/ProductGrid/ProductGrid'
@@ -33,12 +33,15 @@ const Searchbar: FC<Props> = () => {
     setIsOpen(false)
   }
 
-  useLayoutEffect(() => {
+  useEffect(() => {
+    // Plain useEffect, not useLayoutEffect: useLayoutEffect warns on the
+    // server ("does nothing on the server") since this component renders
+    // during SSR, and it isn't needed here anyway — isOpen only ever
+    // becomes true from a client click handler, well after hydration, so
+    // there's no pre-paint flash to avoid.
     if (isOpen) {
       // Must measure the button's real layout position, which only exists
       // post-render; there is no derivable value for this before then.
-      // (useLayoutEffect runs synchronously before paint, so this doesn't
-      // trigger react-hooks/set-state-in-effect the way useEffect would.)
       setOverlayTop((buttonRef.current?.getBoundingClientRect().bottom || 0) + 15)
     }
   }, [isOpen])
