@@ -99,8 +99,12 @@ function extractDeploymentUrl(output) {
 function inspectDeployment(url) {
   log(`Inspecting deployment ${url}...`)
   const result = runCapture('vercel', ['inspect', url])
-  console.log(result.stdout || result.stderr)
-  const statusMatch = (result.stdout || '').match(/status\s+●\s+(\w+)/i)
+  // `vercel inspect` writes its report to stderr, not stdout (confirmed by
+  // inspecting both streams directly) — matching stdout only always
+  // returned 'Unknown' and reported every successful deploy as failed.
+  const output = (result.stdout || '') + (result.stderr || '')
+  console.log(output)
+  const statusMatch = output.match(/status\s+●\s+(\w+)/i)
   return statusMatch ? statusMatch[1] : 'Unknown'
 }
 
@@ -229,8 +233,36 @@ async function deployDev() {
   }
 }
 
+// Gates preview deploys on the local `vercel dev` server's health (see
+// scripts/check-dev-health.js) when one is actively being monitored in this
+// session. Intentionally NOT a hard dependency: when no local dev log
+// exists (e.g. a CI-triggered preview deploy with no local dev session),
+// this signal just isn't available, so it's skipped rather than failing —
+// production deploys never use this signal at all.
+function checkDevHealthGate() {
+  const os = require('node:os')
+  const devLogPath = path.join(os.tmpdir(), 'vercel-dev.log')
+
+  if (!fs.existsSync(devLogPath)) {
+    log('No local vercel dev log found — skipping dev-health gate (nothing to check).')
+    return
+  }
+
+  log('Checking local vercel dev server health (npm run check:dev-health)...')
+  const result = runCapture('node', ['scripts/check-dev-health.js'])
+  console.log(result.stdout || result.stderr)
+
+  if (result.status !== 0) {
+    fail(
+      'Local dev server is RED (see findings above). Fix the issue(s) in the running ' +
+        'vercel dev session before cutting a preview deploy from this code.'
+    )
+  }
+}
+
 function deployPreview() {
   preflight()
+  checkDevHealthGate()
 
   log('Deploying preview build (vercel deploy)...')
   const result = runCapture('vercel', ['deploy', '--yes'])

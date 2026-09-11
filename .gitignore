@@ -49,3 +49,4 @@ ai/
 commerce/
 swr/
 turborepo/
+.env*
