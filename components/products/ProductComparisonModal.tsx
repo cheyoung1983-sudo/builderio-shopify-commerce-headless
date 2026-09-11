@@ -259,7 +259,7 @@ export const ProductComparisonModal: React.FC<ProductComparisonModalProps> = ({
                     return (
                       <th
                         key={product.id}
-                        className="p-3 align-top font-normal border-l border-neutral-200 relative min-w-[200px] w-1/3"
+                        className="p-3 align-top font-normal border-l border-neutral-200 relative min-w-50 w-1/3"
                       >
                         <div className="flex flex-col gap-2">
                           {/* Remove button */}
@@ -372,7 +372,7 @@ export const ProductComparisonModal: React.FC<ProductComparisonModalProps> = ({
                   {Array.from({ length: emptySlotsCount }).map((_, i) => (
                     <th
                       key={`empty-slot-${i}`}
-                      className="p-3 align-top font-normal border-l border-dashed border-neutral-200 min-w-[200px] w-1/3 bg-neutral-50/40"
+                      className="p-3 align-top font-normal border-l border-dashed border-neutral-200 min-w-50 w-1/3 bg-neutral-50/40"
                     >
                       <div
                         onClick={() => {
