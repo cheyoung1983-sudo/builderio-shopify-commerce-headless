@@ -172,5 +172,3 @@ These use native debuggers (LLDB/GDB) with restrictions:
 | `set_variable` | Modify a variable at runtime | **Yes** |
 | `get_source_context` | Source code around a location | No |
 | `evaluate_expression` | Evaluate any expression | **Yes** |
-
-

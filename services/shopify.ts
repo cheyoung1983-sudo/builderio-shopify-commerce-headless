@@ -1,7 +1,12 @@
 import ShopifyBuy from 'shopify-buy'
 import { createStorefrontApiClient } from '@shopify/storefront-api-client'
 import shopifyConfig from '../config/shopify.ts'
-import { getDemoProducts, getDemoProductByHandle } from '../lib/shopify/demo-catalog'
+import { getDemoProducts, getDemoProductByHandle } from '../lib/shopify/demo-catalog.ts'
+
+if (process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE !== 'phase-production-build' && (!shopifyConfig.domain || !shopifyConfig.storefrontAccessToken)) {
+  throw new Error('SHOPIFY_STORE_DOMAIN and SHOPIFY_STOREFRONT_API_TOKEN are required in production.')
+}
+
 
 /**
  * Shopify Storefront API Configuration
