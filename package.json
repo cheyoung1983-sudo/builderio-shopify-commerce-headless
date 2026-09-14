@@ -28,6 +28,7 @@
     "check:ci-integrity": "node scripts/check-ci-integrity.js",
     "check:dev-health": "node scripts/check-dev-health.js",
     "check:stale-branches": "node scripts/check-stale-branches.js",
+    "diagnose:shopify": "node scripts/diagnose-shopify.js",
     "cleanup": "node scripts/cleanup-project.js",
     "deploy:dev": "node scripts/deploy.js dev",
     "deploy:preview": "node scripts/deploy.js preview",
