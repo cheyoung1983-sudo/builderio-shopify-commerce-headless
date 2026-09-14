@@ -27,8 +27,8 @@ export function getCustomerAccountClientId(): string {
   return required('SHOPIFY_CUSTOMER_ACCOUNT_API_CLIENT_ID')
 }
 
-function getShopId(): string {
-  return required('SHOPIFY_CUSTOMER_ACCOUNT_API_SHOP_ID')
+export function getShopId(): string {
+  return process.env.SHOPIFY_CUSTOMER_ACCOUNT_API_SHOP_ID || '102354289012'
 }
 
 function getApiVersion(): string {
@@ -37,22 +37,31 @@ function getApiVersion(): string {
 
 /** Resolves the site's own origin used to build the OAuth redirect_uri. */
 export function getSiteUrl(req?: { headers: Record<string, string | string[] | undefined> }): string {
+  if (req) {
+    const forwardedProto = req.headers['x-forwarded-proto']
+    const proto = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto) || 'https'
+    const forwardedHost = req.headers['x-forwarded-host']
+    const rawHost = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost) || req.headers.host
+    if (rawHost) {
+      const host = Array.isArray(rawHost) ? rawHost[0] : rawHost
+      return `${proto}://${host}`
+    }
+  }
   if (process.env.NEXT_PUBLIC_SITE_URL) {
     return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, '')
   }
-  if (req) {
-    const proto = (req.headers['x-forwarded-proto'] as string) || 'https'
-    const host = req.headers.host
-    if (host) return `${proto}://${host}`
-  }
-  throw new Error('Unable to resolve site URL; set NEXT_PUBLIC_SITE_URL')
+  return 'https://displaycellpros.com'
 }
 
 export function getCallbackUrl(req?: { headers: Record<string, string | string[] | undefined> }): string {
   return `${getSiteUrl(req)}/api/account/callback`
 }
 
-const AUTH_SCOPE = 'openid email customer-account-api:full'
+export const DEFAULT_AUTH_SCOPE = 'openid email customer-account-api:full'
+
+export function getAuthScope(): string {
+  return process.env.SHOPIFY_CUSTOMER_ACCOUNT_API_SCOPE || DEFAULT_AUTH_SCOPE
+}
 
 export function authorizeEndpoint(): string {
   return `https://shopify.com/authentication/${getShopId()}/oauth/authorize`
@@ -103,12 +112,13 @@ export function buildAuthorizeUrl(params: {
   state: string
   nonce: string
   codeChallenge: string
+  scope?: string
 }): string {
   const url = new URL(authorizeEndpoint())
   url.searchParams.set('client_id', getCustomerAccountClientId())
   url.searchParams.set('response_type', 'code')
   url.searchParams.set('redirect_uri', params.redirectUri)
-  url.searchParams.set('scope', AUTH_SCOPE)
+  url.searchParams.set('scope', params.scope || getAuthScope())
   url.searchParams.set('state', params.state)
   url.searchParams.set('nonce', params.nonce)
   url.searchParams.set('code_challenge', params.codeChallenge)

@@ -93,8 +93,16 @@ export async function getAllCollectionPaths(
     // interface need update
     const collections: any[] = (await client.collection.fetchAll(limit)) || []
     return collections.map((val) => val.handle)
-  } catch (e) {
-    console.warn('Shopify getAllCollectionPaths error:', e)
+  } catch (e: any) {
+    const isAccessDenied =
+      Array.isArray(e) && e.some((item) => item?.extensions?.code === 'ACCESS_DENIED')
+    if (isAccessDenied) {
+      console.warn(
+        'Shopify getAllCollectionPaths: ACCESS_DENIED (Storefront API token is invalid or lacks permissions). Continuing build with empty collection paths.'
+      )
+    } else {
+      console.warn('Shopify getAllCollectionPaths error:', e)
+    }
     return []
   }
 }

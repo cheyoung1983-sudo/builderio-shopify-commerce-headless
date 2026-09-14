@@ -1154,10 +1154,21 @@ export async function fetchAllAvailableProducts(
 
     if (!response.ok || !response.data?.products) {
       lastErrors = response.errors
-      console.error(
-        '[Shopify Storefront] Failed to fetch page of available products:',
-        JSON.stringify(response.errors)
+      const isAccessDenied = response.errors?.some(
+        (err) =>
+          err?.extensions?.code === 'ACCESS_DENIED' ||
+          err?.message === 'ACCESS_DENIED'
       )
+      if (isAccessDenied) {
+        console.warn(
+          '[Shopify Storefront] ACCESS_DENIED: The Storefront API token is invalid or lacks permissions. In Vercel Environment Variables, please configure SHOPIFY_STOREFRONT_API_TOKEN (and NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN) with a valid public Storefront Access Token for your Shopify store.'
+        )
+      } else {
+        console.error(
+          '[Shopify Storefront] Failed to fetch page of available products:',
+          JSON.stringify(response.errors)
+        )
+      }
       break
     }
 
