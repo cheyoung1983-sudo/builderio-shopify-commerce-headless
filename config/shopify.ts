@@ -24,11 +24,14 @@ function assertProductionShopifyConfig(domainValue?: string, tokenValue?: string
 
 const domain = isInvalid(process.env.SHOPIFY_STORE_DOMAIN)
   ? (isInvalid(process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN)
-      ? (process.env.NODE_ENV === 'production' ? '' : 'displaycellpros.myshopify.com')
+      ? (isInvalid(process.env.SHOPIFY_DOMAIN)
+          ? (process.env.NODE_ENV === 'production' ? '' : 'displaycellpros.myshopify.com')
+          : process.env.SHOPIFY_DOMAIN)
       : process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN)
   : process.env.SHOPIFY_STORE_DOMAIN
 
-const serverStorefrontAccessToken = process.env.SHOPIFY_STOREFRONT_API_TOKEN
+const serverStorefrontAccessToken =
+  process.env.SHOPIFY_STOREFRONT_API_TOKEN || process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN
 const publicStorefrontAccessToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN
 
 if (isPrivateToken(publicStorefrontAccessToken)) {
@@ -50,7 +53,7 @@ if (!storefrontAccessToken && process.env.NODE_ENV !== 'production') {
 }
 
 const shopifyConfig = {
-  domain: domain || 'displaycellpros.myshopify.com',
+  domain: domain || (process.env.NODE_ENV === 'production' ? '' : 'displaycellpros.myshopify.com'),
   storefrontAccessToken: storefrontAccessToken || '',
   apiVersion: process.env.SHOPIFY_STOREFRONT_API_VERSION || '2024-07',
   clientId: process.env.SHOPIFY_CLIENT_ID || '',

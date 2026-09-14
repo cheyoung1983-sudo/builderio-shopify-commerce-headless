@@ -147,25 +147,42 @@ export function normalizeShopifyDomain(rawDomain?: string): string {
 }
 
 /**
- * Reads credentials from the shared Shopify config (config/shopify.ts), which
- * is the single source of truth for env var resolution and enforces the
- * production guard (throws if credentials are missing outside of build time).
+ * Reads credentials from the shared Shopify config (config/shopify.ts) and live environment,
+ * ensuring dynamic runtime environment variables take precedence without module-caching lock.
  */
 export function getShopifyConfig(): ShopifyStorefrontConfig {
-  const domain = normalizeShopifyDomain(shopifyConfig.domain)
-  const apiVersion = normalizeShopifyApiVersion(shopifyConfig.apiVersion)
+  const rawDomain =
+    process.env.SHOPIFY_STORE_DOMAIN ||
+    process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN ||
+    process.env.SHOPIFY_DOMAIN ||
+    shopifyConfig.domain
+  const domain = normalizeShopifyDomain(rawDomain)
+
+  const rawApiVersion =
+    process.env.SHOPIFY_STOREFRONT_API_VERSION ||
+    shopifyConfig.apiVersion
+  const apiVersion = normalizeShopifyApiVersion(rawApiVersion)
+
+  const rawToken =
+    process.env.SHOPIFY_STOREFRONT_API_TOKEN ||
+    process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN ||
+    process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
+    shopifyConfig.storefrontAccessToken ||
+    ''
+  const storefrontAccessToken = rawToken.trim()
+
   const endpoint = domain
     ? `https://${domain}/api/${apiVersion}/graphql.json`
     : ''
 
   return {
     domain,
-    storefrontAccessToken: (shopifyConfig.storefrontAccessToken || '').trim(),
+    storefrontAccessToken,
     apiVersion,
     endpoint,
-    clientId: shopifyConfig.clientId,
-    clientSecret: shopifyConfig.clientSecret,
-    adminAccessToken: shopifyConfig.adminAccessToken,
+    clientId: process.env.SHOPIFY_CLIENT_ID || shopifyConfig.clientId,
+    clientSecret: process.env.SHOPIFY_CLIENT_SECRET || shopifyConfig.clientSecret,
+    adminAccessToken: process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || shopifyConfig.adminAccessToken,
   }
 }
 
