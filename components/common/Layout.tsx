@@ -18,6 +18,7 @@ import seoConfig from '@config/seo.json'
 import NoSSR from './NoSSR'
 import { ScrollProgressBar } from './ScrollProgressBar'
 import { ScrollToTop } from './ScrollToTop'
+import Footer from './Footer'
 
 const FeatureBar = dynamic(() => import('@components/common/FeatureBar'), {
   ssr: false,
@@ -120,6 +121,7 @@ const InnerLayout: React.FC<{
         >
           <main>{children}</main>
         </Box>
+        <Footer />
 
         <Sidebar
           open={

@@ -5,11 +5,11 @@
     "node": "24.x"
   },
   "resolutions": {
-    "isolated-vm": "7.0.1",
+    "isolated-vm": "6.2.0",
     "minimatch": "9.0.9"
   },
   "overrides": {
-    "isolated-vm": "7.0.1",
+    "isolated-vm": "6.2.0",
     "minimatch": "9.0.9",
     "detective-postcss": {
       "postcss": "^8.5.28"

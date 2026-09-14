@@ -1,12 +1,15 @@
+import { useState } from 'react'
 import { Heading, jsx } from 'theme-ui'
 import { Card, Text } from '@theme-ui/components'
 import Image from 'next/image'
 import { getPrice } from '@lib/shopify/storefront-data-hooks/src/utils/product'
 import Link from '@components/common/Link'
+export { ProductCardSkeleton } from '@components/products/ProductCardSkeleton'
 
 export interface ProductCardProps {
   className?: string
-  product: ShopifyBuy.Product
+  product?: ShopifyBuy.Product
+  loading?: boolean
   imgWidth: number
   imgHeight: number
   imgLayout?: 'fixed' | 'intrinsic' | 'responsive' | undefined
@@ -18,6 +21,7 @@ export interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({
   product,
+  loading = false,
   imgWidth,
   imgHeight,
   imgPriority,
@@ -25,8 +29,74 @@ const ProductCard: React.FC<ProductCardProps> = ({
   imgSizes,
   imgLayout = 'responsive',
 }) => {
+  const [imageLoaded, setImageLoaded] = useState(false)
+
+  if (loading || !product) {
+    return (
+      <Card
+        sx={{
+          maxWidth: [700, imgWidth || 540],
+          p: 3,
+          display: 'flex',
+          flexDirection: 'column',
+          bg: '#ffffff',
+          border: '1px solid #e7e5df',
+          borderRadius: 12,
+        }}
+        aria-hidden="true"
+      >
+        <div
+          sx={{
+            flexGrow: 1,
+            aspectRatio: `${imgWidth || 540} / ${imgHeight || 540}`,
+            bg: '#f3f1ea',
+            borderRadius: 8,
+            overflow: 'hidden',
+            position: 'relative',
+          }}
+        >
+          <div
+            className="animate-shimmer"
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+        </div>
+        <div sx={{ textAlign: 'center', pt: 3 }}>
+          <div
+            className="animate-pulse"
+            sx={{
+              height: 16,
+              width: '75%',
+              bg: '#e7e5df',
+              borderRadius: 4,
+              mx: 'auto',
+              mt: 1,
+              mb: 2,
+            }}
+          />
+          <div
+            className="animate-pulse"
+            sx={{
+              height: 14,
+              width: '35%',
+              bg: '#f0ede6',
+              borderRadius: 4,
+              mx: 'auto',
+              mb: 1,
+            }}
+          />
+        </div>
+      </Card>
+    )
+  }
+
   const handle = (product as any).handle
-  const productVariant: any = product.variants[0]
+  const productVariant: any = product.variants?.[0]
   const price =
     productVariant?.priceV2 != null
       ? getPrice(
@@ -68,20 +138,37 @@ const ProductCard: React.FC<ProductCardProps> = ({
             bg: '#f3f1ea',
             borderRadius: 8,
             overflow: 'hidden',
+            position: 'relative',
           }}
         >
           {image ? (
-            <Image
-              src={image.src}
-              alt={product.title}
-              width={imgWidth}
-              height={imgHeight}
-              layout={imgLayout}
-              objectFit="cover"
-              priority={imgPriority}
-              loading={imgPriority ? undefined : imgLoading}
-              sizes={imgSizes}
-            />
+            <>
+              {!imageLoaded && (
+                <div
+                  className="animate-shimmer"
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 1,
+                  }}
+                />
+              )}
+              <Image
+                src={image.src}
+                alt={product.title}
+                width={imgWidth}
+                height={imgHeight}
+                layout={imgLayout}
+                objectFit="cover"
+                priority={imgPriority}
+                loading={imgPriority ? undefined : imgLoading}
+                sizes={imgSizes}
+                onLoad={() => setImageLoaded(true)}
+              />
+            </>
           ) : (
             <div
               sx={{

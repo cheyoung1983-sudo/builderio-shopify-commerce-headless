@@ -7,22 +7,24 @@ function isPrivateToken(value?: string) {
 function assertProductionShopifyConfig(domainValue?: string, tokenValue?: string) {
   const isProductionBuild = process.env.NEXT_PHASE === 'phase-production-build'
 
-  if (process.env.NODE_ENV === 'production' && !isProductionBuild && (isInvalid(domainValue) || isInvalid(tokenValue))) {
-    throw new Error(
-      'SHOPIFY_STORE_DOMAIN and SHOPIFY_STOREFRONT_API_TOKEN are required in production.'
-    )
-  }
+  if (process.env.NODE_ENV === 'production' && !isProductionBuild) {
+    if (isInvalid(domainValue)) {
+      throw new Error(
+        'SHOPIFY_STORE_DOMAIN is required in production. Set SHOPIFY_STORE_DOMAIN or NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN.'
+      )
+    }
 
-  if (isInvalid(domainValue) || isInvalid(tokenValue)) {
-    console.warn(
-      '[Shopify Config] SHOPIFY_STOREFRONT_API_TOKEN is not configured. Running in preview catalog mode.'
-    )
+    if (isInvalid(tokenValue)) {
+      throw new Error(
+        'SHOPIFY_STOREFRONT_API_TOKEN is required in production. Set SHOPIFY_STOREFRONT_API_TOKEN or NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN.'
+      )
+    }
   }
 }
 
 const domain = isInvalid(process.env.SHOPIFY_STORE_DOMAIN)
   ? (isInvalid(process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN)
-      ? 'displaycellpros.myshopify.com'
+      ? (process.env.NODE_ENV === 'production' ? '' : 'displaycellpros.myshopify.com')
       : process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN)
   : process.env.SHOPIFY_STORE_DOMAIN
 

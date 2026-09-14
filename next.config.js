@@ -11,7 +11,6 @@ const nextConfig = {
       { protocol: 'https', hostname: 'cdn.shopify.com' },
       { protocol: 'https', hostname: 'cdn.builder.io' },
       { protocol: 'https', hostname: 'via.placeholder.com' },
-      { protocol: 'https', hostname: 'images.unsplash.com' },
     ],
   },
   async headers() {
@@ -31,7 +30,7 @@ const nextConfig = {
               // ws://localhost:* is for next dev's Fast Refresh websocket.
               "connect-src 'self' https://cdn.builder.io https://builder.io https://*.builder.io https://*.myshopify.com https://vercel.live wss://*.pusher.com https://vitals.vercel-insights.com ws://localhost:* https://*.run.app https://ai.studio",
               // img-src: mirrors the remotePatterns allowed by next/image above.
-              "img-src 'self' data: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://via.placeholder.com https://images.unsplash.com https://vercel.live",
+              "img-src 'self' data: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://via.placeholder.com https://vercel.live",
               "font-src 'self' data: https://vercel.live",
             ].join('; '),
           },
