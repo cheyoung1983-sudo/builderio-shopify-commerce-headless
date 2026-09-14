@@ -113,9 +113,9 @@ const InnerLayout: React.FC<{
         <Box
           sx={{
             margin: `0 auto`,
-            px: 20,
-            maxWidth: 1920,
-            minWidth: '60vw',
+            width: '100%',
+            maxWidth: '100%',
+            px: { xs: 4, sm: 6, lg: 8 },
             minHeight: 800,
           }}
         >

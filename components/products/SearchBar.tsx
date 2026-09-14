@@ -208,7 +208,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       {/* Search Bar Input Container */}
       <div className="relative flex items-center w-full">
         {/* Leading Search Icon / Loading Spinner */}
-        <div className="absolute left-3.5 flex items-center pointer-events-none text-neutral-400">
+        <div className="absolute left-3.5 flex items-center pointer-events-none text-neutral-600">
           {loading ? (
             <Loader2
               id={`${id}-spinner`}
@@ -232,7 +232,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           value={currentValue}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          className={`w-full pl-10 pr-20 py-2.5 text-sm bg-neutral-50/80 hover:bg-neutral-50 focus:bg-white border rounded-xl transition-all duration-200 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 ${
+          className={`w-full pl-10 pr-20 py-2.5 text-sm bg-neutral-50/80 hover:bg-neutral-50 focus:bg-white border rounded-xl transition-all duration-200 text-neutral-900 placeholder:text-neutral-500 focus:outline-none focus:ring-2 ${
             loading
               ? 'border-emerald-500 ring-2 ring-emerald-500/20'
               : 'border-neutral-300 focus:border-emerald-500 focus:ring-emerald-500/20'
@@ -247,7 +247,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               type="button"
               onClick={handleClear}
               aria-label="Clear search input"
-              className="p-1 rounded-md text-neutral-400 hover:text-neutral-700 hover:bg-neutral-200/60 transition-colors"
+              className="p-1 rounded-md text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60 transition-colors"
               title="Clear search (Esc)"
             >
               <X className="w-4 h-4" />
@@ -258,8 +258,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             id={`${id}-submit-btn`}
             type="button"
             onClick={() => executeQuery(currentValue)}
-            aria-label="Submit search"
-            className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 text-[11px] font-medium text-neutral-400 hover:text-neutral-700 bg-neutral-200/50 hover:bg-neutral-200 rounded transition-colors"
+            aria-label="Search"
+            className="hidden sm:inline-flex items-center justify-center gap-1 min-h-[24px] min-w-[24px] px-2 py-1 text-[11px] font-medium text-neutral-500 hover:text-neutral-800 bg-neutral-200/50 hover:bg-neutral-200 rounded transition-colors"
             title="Press Enter to search immediately"
           >
             <span>Search</span>
@@ -308,7 +308,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           id={`${id}-suggestions`}
           className="mt-2.5 flex items-center gap-1.5 flex-wrap text-xs"
         >
-          <span className="text-neutral-400 font-medium flex items-center gap-1 text-[11px] mr-0.5">
+          <span className="text-neutral-600 font-medium flex items-center gap-1 text-[11px] mr-0.5">
             <Sparkles className="w-3 h-3 text-emerald-600" />
             Quick search:
           </span>

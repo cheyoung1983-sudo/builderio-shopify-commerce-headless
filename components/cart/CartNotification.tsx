@@ -55,7 +55,7 @@ export const CartNotification: React.FC = () => {
                 type="button"
                 id={getId('dismiss-btn')}
                 onClick={dismissNotification}
-                className="text-neutral-400 hover:text-neutral-600 p-1 rounded-lg hover:bg-neutral-100 transition-colors"
+                className="text-neutral-600 hover:text-neutral-900 p-1 rounded-lg hover:bg-neutral-100 transition-colors"
                 aria-label="Dismiss notification"
               >
                 <X className="w-4 h-4" />
@@ -77,7 +77,7 @@ export const CartNotification: React.FC = () => {
                     />
                   </div>
                 ) : (
-                  <div className="w-12 h-12 rounded-lg bg-neutral-200 flex items-center justify-center text-neutral-400 flex-shrink-0">
+                  <div className="w-12 h-12 rounded-lg bg-neutral-200 flex items-center justify-center text-neutral-600 flex-shrink-0">
                     <ShoppingBag className="w-5 h-5" />
                   </div>
                 )}
@@ -106,7 +106,7 @@ export const CartNotification: React.FC = () => {
                 <div className="text-[11px] text-neutral-500">
                   <span>Bag total: </span>
                   <span className="font-bold text-neutral-900">{subtotalFormatted}</span>
-                  <span className="text-neutral-400"> ({totalQuantity})</span>
+                  <span className="text-neutral-600"> ({totalQuantity})</span>
                 </div>
 
                 <button

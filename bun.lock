@@ -12,7 +12,6 @@
         "@radix-ui/react-dialog": "^1.0.2",
         "@reach/dialog": "^0.18.0",
         "@reach/portal": "0.14.0",
-        "@shopify/storefront-api-client": "^2.0.0",
         "@tailwindcss/postcss": "^4.3.3",
         "@theme-ui/components": "0.15.5",
         "@theme-ui/match-media": "0.15.5",
@@ -459,10 +458,6 @@
     "@rtsao/scc": ["@rtsao/scc@1.1.0", "", {}, "sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g=="],
 
     "@shopify/ai-toolkit": ["@shopify/ai-toolkit@1.8.2", "", {}, "sha512-cVzpGO5e7pjUHhG9qIhUTINUG+voR92O7KMWZagDZOfP2ie9pyHYNFapHDqBn54TLB1MioyUXF6waP3GAqocCQ=="],
-
-    "@shopify/graphql-client": ["@shopify/graphql-client@2.0.0", "", {}, "sha512-SfIZa6J9Px4ZSMIVdPLNupeSyqznovV6pDVxwC1rmbi0JTVj2q/CCsOf9hLQvsMdBiyJDHVnoVHGpBzlhpwO2Q=="],
-
-    "@shopify/storefront-api-client": ["@shopify/storefront-api-client@2.0.0", "", { "dependencies": { "@shopify/graphql-client": "^2.0.0" } }, "sha512-rWmPqZ+ZqsxdePpH/4sPdd+jUWHiSUeEWolJNQpqb+1KLlx79khdfJO1M9z9HfG2H0aHkmS+fnx2jr46q7NCGQ=="],
 
     "@sinclair/typebox": ["@sinclair/typebox@0.27.12", "", {}, "sha512-hhyNJ+nbR6ZR7pToHvllEFun9TL0sbL+tk/ON75lo+Xas054uez98qRbsuNt7MBCyZKK4+8Yli/OAGZhmfBZ/g=="],
 

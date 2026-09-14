@@ -145,7 +145,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             )}
           </>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-neutral-400 gap-2">
+          <div className="w-full h-full flex flex-col items-center justify-center text-neutral-500 gap-2">
             <PackageOpen className="w-10 h-10 stroke-[1.5]" />
             <span className="text-xs">No image preview</span>
           </div>
@@ -174,12 +174,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className="absolute top-2.5 right-2.5 z-20">
           <button
             type="button"
-            id={`compare-toggle-btn-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
             onClick={handleCompareClick}
             aria-label={
               isCompared
-                ? `Remove ${product.title} from comparison`
-                : `Add ${product.title} to comparison`
+                ? `Comparing ${product.title}, click to remove`
+                : `Compare ${product.title}`
             }
             title={
               isCompared
@@ -227,7 +226,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <div className="p-4 flex flex-col flex-1">
         {/* Vendor / Brand */}
         {product.vendor && (
-          <div className="text-[11px] font-medium uppercase tracking-wider text-neutral-500 mb-1">
+          <div className="text-[11px] font-medium uppercase tracking-wider text-neutral-600 mb-1">
             {product.vendor}
           </div>
         )}
@@ -258,7 +257,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 {formatPrice(minPrice, currency)}
               </span>
               {isOnSale && (
-                <span className="text-xs text-neutral-400 line-through">
+                <span className="text-xs text-neutral-500 line-through">
                   {formatPrice(comparePrice, currency)}
                 </span>
               )}
@@ -273,7 +272,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              id={`quick-add-btn-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
               onClick={handleAddToCartClick}
               disabled={isAddingToCart}
               aria-label={`Add ${product.title} to shopping bag`}
@@ -301,7 +299,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
             <button
               type="button"
-              id={`quick-view-btn-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
               onClick={handleCardClick}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-neutral-100 hover:bg-neutral-900 hover:text-white text-neutral-800 transition-colors cursor-pointer"
             >

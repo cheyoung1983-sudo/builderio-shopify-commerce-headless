@@ -77,7 +77,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
                 <span
                   itemProp="name"
                   aria-current="page"
-                  className="text-neutral-900 font-semibold truncate max-w-[180px] sm:max-w-xs md:max-w-md"
+                  className="text-neutral-900 font-semibold truncate max-w-[200px] sm:max-w-sm md:max-w-lg"
                   title={item.label}
                 >
                   {item.label}
@@ -86,10 +86,10 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
                 <Link
                   href={item.href}
                   itemProp="item"
-                  className="inline-flex items-center gap-1 text-neutral-500 hover:text-primary-600 hover:underline transition-colors focus:outline-hidden focus:ring-1 focus:ring-primary-500 rounded-xs"
+                  className="group inline-flex items-center gap-1 text-neutral-500 hover:text-emerald-700 hover:underline transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded-sm"
                 >
                   {isFirst && showHomeIcon && (
-                    <Home className="w-3.5 h-3.5 text-neutral-400 group-hover:text-primary-600 shrink-0" />
+                    <Home className="w-3.5 h-3.5 text-neutral-400 group-hover:text-emerald-700 shrink-0 transition-colors" />
                   )}
                   <span itemProp="name">{item.label}</span>
                 </Link>

@@ -51,7 +51,8 @@ const Searchbar: FC<Props> = () => {
       <ExpandModal
         overlayProps={{
           style: {
-            maxWidth: 1920,
+            maxWidth: '100%',
+            width: '100%',
             left: '50%',
             transform: 'translateX(-50%)',
             overflow: 'auto',

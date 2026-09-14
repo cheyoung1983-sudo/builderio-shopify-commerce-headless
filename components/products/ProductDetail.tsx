@@ -50,6 +50,8 @@ export interface ProductDetailProps {
   productBaseUrl?: string
   /** Additional container class name */
   className?: string
+  /** Whether to show the top breadcrumb navigation (default: true) */
+  showBreadcrumbs?: boolean
 }
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
@@ -61,6 +63,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   onBackToGrid,
   productBaseUrl = '/product',
   className = '',
+  showBreadcrumbs = true,
 }) => {
   const [product, setProduct] = useState<ShopifyProductDetailNode | null>(initialProduct)
   const [loading, setLoading] = useState<boolean>(!initialProduct && Boolean(handle))
@@ -401,7 +404,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-neutral-400 gap-3">
+                <div className="w-full h-full flex flex-col items-center justify-center text-neutral-500 gap-3">
                   <PackageOpen className="w-16 h-16 stroke-[1.2]" />
                   <span className="text-sm font-medium">No Image Available</span>
                 </div>
@@ -586,7 +589,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 <span className="text-xs font-medium text-neutral-500">{currencyCode}</span>
               </span>
               {hasDiscount && (
-                <span className="text-base text-neutral-400 line-through">
+                <span className="text-base text-neutral-500 line-through">
                   ${parseFloat(compareAtPriceAmount!).toFixed(2)}
                 </span>
               )}
@@ -626,7 +629,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                             ? 'bg-neutral-900 text-white border-neutral-900 shadow-sm'
                             : variant.availableForSale
                             ? 'bg-white text-neutral-700 border-neutral-300 hover:border-neutral-400'
-                            : 'bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed line-through'
+                            : 'bg-neutral-100 text-neutral-500 border-neutral-200 cursor-not-allowed line-through'
                         }`}
                       >
                         <span>{variant.title}</span>
@@ -687,7 +690,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                       ? 'bg-emerald-600 text-white'
                       : isAvailable
                       ? 'bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white hover:shadow-lg focus:ring-2 focus:ring-primary-400 focus:ring-offset-2'
-                      : 'bg-neutral-200 text-neutral-400 cursor-not-allowed shadow-none'
+                      : 'bg-neutral-200 text-neutral-500 cursor-not-allowed shadow-none'
                   }`}
                 >
                   {isAddingToCart ? (
@@ -869,7 +872,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 Product Quick View
               </span>
               {product?.title && (
-                <span className="hidden sm:inline text-xs text-neutral-400 truncate max-w-sm">
+                <span className="hidden sm:inline text-xs text-neutral-600 truncate max-w-sm">
                   • {product.title}
                 </span>
               )}
@@ -911,32 +914,38 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   return (
     <div
       id="product-detail-inline-container"
-      className={`max-w-6xl mx-auto bg-white rounded-2xl border border-neutral-200/80 shadow-sm overflow-hidden ${className}`}
+      className={`w-full max-w-7xl mx-auto bg-white rounded-2xl border border-neutral-200/80 shadow-sm overflow-hidden ${className}`}
     >
       {/* Breadcrumb Navigation & Back Link Bar */}
-      <div className="px-6 py-3.5 border-b border-neutral-100 flex items-center justify-between gap-4 flex-wrap bg-neutral-50/50">
-        <Breadcrumbs
-          id="product-detail-inline-breadcrumbs"
-          items={[
-            { label: 'Home', href: '/' },
-            { label: 'Products', href: '/' },
-            ...(product?.productType
-              ? [{ label: product.productType, href: `/?category=${encodeURIComponent(product.productType)}` }]
-              : []),
-            { label: product?.title || 'Product Details', isCurrent: true },
-          ]}
-        />
-        {onBackToGrid && (
-          <button
-            id="product-detail-back-btn"
-            onClick={onBackToGrid}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-600 hover:text-neutral-900 transition-colors shrink-0"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Back to All Products
-          </button>
-        )}
-      </div>
+      {(showBreadcrumbs || onBackToGrid) && (
+        <div className="px-6 py-3.5 border-b border-neutral-100 flex items-center justify-between gap-4 flex-wrap bg-neutral-50/50">
+          {showBreadcrumbs ? (
+            <Breadcrumbs
+              id="product-detail-inline-breadcrumbs"
+              items={[
+                { label: 'Home', href: '/' },
+                { label: 'Products', href: '/products' },
+                ...(product?.productType
+                  ? [{ label: product.productType, href: `/products?category=${encodeURIComponent(product.productType)}` }]
+                  : []),
+                { label: product?.title || 'Product Details', isCurrent: true },
+              ]}
+            />
+          ) : (
+            <div />
+          )}
+          {onBackToGrid && (
+            <button
+              id="product-detail-back-btn"
+              onClick={onBackToGrid}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-600 hover:text-neutral-900 transition-colors shrink-0 cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Back to All Products
+            </button>
+          )}
+        </div>
+      )}
       {renderContent()}
     </div>
   )

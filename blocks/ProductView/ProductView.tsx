@@ -120,12 +120,12 @@ const ProductBox: React.FC<Props> = ({
           id="product-builder-breadcrumbs"
           items={[
             { label: 'Home', href: '/' },
-            { label: 'Products', href: '/' },
+            { label: 'Products', href: '/products' },
             ...((product as any)?.productType
               ? [
                   {
                     label: (product as any).productType,
-                    href: `/?category=${encodeURIComponent((product as any).productType)}`,
+                    href: `/products?category=${encodeURIComponent((product as any).productType)}`,
                   },
                 ]
               : []),

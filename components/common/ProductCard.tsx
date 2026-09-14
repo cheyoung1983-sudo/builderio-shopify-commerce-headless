@@ -201,7 +201,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             sx={{
               fontSize: 14,
               fontWeight: 700,
-              color: '#e05332',
+              color: '#059669',
               mb: 1,
               display: 'inline-block',
             }}

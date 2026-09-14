@@ -46,6 +46,8 @@ export interface ProductGridProps {
   showControls?: boolean
   /** Default search query filter to apply */
   initialQuery?: string
+  /** Optional category/tag filter to apply initially */
+  initialCategory?: string
   /** Maximum products to display / load */
   limit?: number
   /** Callback triggered when a product is clicked */
@@ -127,6 +129,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   subtitle = 'Browse genuine OEM and premium replacement parts and accessories directly from the live catalog.',
   showControls = true,
   initialQuery = '',
+  initialCategory = '',
   limit,
   onProductClick,
   enableModalQuickView = true,
@@ -142,7 +145,13 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   const [error, setError] = useState<string | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState<string>(initialQuery)
-  const [selectedTag, setSelectedTag] = useState<string>('ALL')
+  const [prevInitialCategory, setPrevInitialCategory] = useState<string>(initialCategory)
+  const [selectedTag, setSelectedTag] = useState<string>(initialCategory || 'ALL')
+
+  if (prevInitialCategory !== initialCategory) {
+    setPrevInitialCategory(initialCategory)
+    setSelectedTag(initialCategory || 'ALL')
+  }
   const [sortBy, setSortBy] = useState<ShopifySortOption>('relevance')
   const [addedItemHandle, setAddedItemHandle] = useState<string | null>(null)
   const [selectedProductHandle, setSelectedProductHandle] = useState<string | null>(null)
@@ -478,8 +487,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 
         {/* Total count badge */}
         {!loading && (
-          <div className="text-xs sm:text-sm font-medium text-neutral-500 bg-neutral-100 px-3 py-1.5 rounded-lg self-start md:self-auto flex items-center gap-1.5">
-            <Layers className="w-4 h-4 text-neutral-400" />
+          <div className="text-xs sm:text-sm font-medium text-neutral-600 bg-neutral-100 px-3 py-1.5 rounded-lg self-start md:self-auto flex items-center gap-1.5">
+            <Layers className="w-4 h-4 text-neutral-500" />
             <span>
               {filteredProducts.length}{' '}
               {filteredProducts.length === 1 ? 'item' : 'items'} available
@@ -548,7 +557,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                     <option value="title-asc">Alphabetical: A to Z</option>
                     <option value="title-desc">Alphabetical: Z to A</option>
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-neutral-400">
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-neutral-600">
                     {isSorting ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
                     ) : (
@@ -564,14 +573,14 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                 title={`Shopify Storefront API parameter: ${SHOPIFY_SORT_CONFIGS[sortBy].apiParamDescription}`}
                 className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono text-neutral-600 bg-neutral-100 border border-neutral-200/80 px-2.5 py-1 rounded-lg"
               >
-                <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-400">API</span>
-                <span className="text-neutral-400">•</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-600">API</span>
+                <span className="text-neutral-600">•</span>
                 <span className="font-semibold text-emerald-700">
                   sortKey: {SHOPIFY_SORT_CONFIGS[sortBy].sortKey}
                 </span>
                 {SHOPIFY_SORT_CONFIGS[sortBy].reverse && (
                   <>
-                    <span className="text-neutral-400">•</span>
+                    <span className="text-neutral-600">•</span>
                     <span className="text-amber-700 font-semibold bg-amber-50 px-1 py-0.5 rounded text-[10px]">
                       reverse: true
                     </span>
@@ -597,7 +606,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           {/* Quick Filter Tag Chips */}
           {filterTags.length > 1 && (
             <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs scrollbar-none pt-1">
-              <span className="text-neutral-400 font-medium whitespace-nowrap flex items-center gap-1 pl-0.5">
+              <span className="text-neutral-600 font-medium whitespace-nowrap flex items-center gap-1 pl-0.5">
                 <Tag className="w-3 h-3" />
                 Filter:
               </span>
@@ -606,7 +615,6 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                 return (
                   <button
                     key={tag}
-                    id={`filter-chip-${tag.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
                     onClick={() => setSelectedTag(tag)}
                     className={`px-3 py-1 rounded-full whitespace-nowrap font-medium transition-all ${
                       isActive

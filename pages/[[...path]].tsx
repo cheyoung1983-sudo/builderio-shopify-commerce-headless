@@ -104,8 +104,8 @@ export default function Path({
         />
       </Head>
       <main className="min-h-screen bg-neutral-50/50 py-10">
-        <section className="mx-auto max-w-6xl px-4 text-center sm:px-6 lg:px-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">
+        <section className="w-full max-w-7xl mx-auto px-4 text-center sm:px-6 lg:px-8">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
             DisplayCellPros
           </p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-neutral-900 sm:text-5xl">
@@ -116,12 +116,12 @@ export default function Path({
           </p>
           <Link
             href="/products"
-            className="mt-7 inline-flex rounded-md bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-700"
+            className="mt-7 inline-flex rounded-md bg-emerald-700 px-5 py-3 font-semibold text-white transition hover:bg-emerald-800"
           >
             Browse all products
           </Link>
         </section>
-        <section className="mx-auto mt-12 max-w-6xl px-4 sm:px-6 lg:px-8">
+        <section className="w-full max-w-7xl mx-auto mt-12 px-4 sm:px-6 lg:px-8">
           <ProductGrid
             initialProducts={fallbackProducts}
             title="Featured replacement parts"

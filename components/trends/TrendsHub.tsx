@@ -63,7 +63,7 @@ export const TRENDS_DATA: TrendItem[] = [
     name: 'Tactile Maximalism',
     badge: 'Trend 02 — High-Energy Expressive',
     badgeColor: 'bg-primary-50 text-primary-700 border-primary-300',
-    accentColor: '#e05332',
+    accentColor: '#059669',
     shortDesc:
       'Vibrant, overstimulating layouts combine asymmetrical elements, powerful colors, bold typography, and intense physical-world movement in neatly divided compartments.',
     bestPractice:

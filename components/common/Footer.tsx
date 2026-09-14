@@ -139,7 +139,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
             <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed max-w-sm">
               Your trusted source for OEM-grade mobile device displays, lithium replacement cells, and precision technician repair toolkits.
             </p>
-            <div className="text-xs text-neutral-500 space-y-1">
+            <div className="text-xs text-neutral-600 space-y-1">
               <p>Email: <span className="text-neutral-800 font-medium">support@displaycellpros.com</span></p>
               <p>Hours: Mon – Fri, 8:00 AM – 6:00 PM EST</p>
             </div>
@@ -265,11 +265,11 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
       {/* Bottom Bar: Copyright & Legal */}
       <div className="border-t border-border-subtle bg-white/50 py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-neutral-500 text-center sm:text-left">
+          <p className="text-xs text-neutral-600 text-center sm:text-left">
             © {currentYear} DisplayCellPros. All rights reserved.
           </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-neutral-500">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-neutral-600">
             <span className="hover:text-neutral-800 transition-colors cursor-pointer">
               Privacy Policy
             </span>
