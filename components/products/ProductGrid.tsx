@@ -33,6 +33,7 @@ import { ProductGridSkeleton } from './ProductGridSkeleton'
 import { ProductCard } from './ProductCard'
 import { ProductCardSkeleton } from './ProductCardSkeleton'
 import { SearchBar } from './SearchBar'
+import { ProductFilterSidebar, FilterState } from './ProductFilterSidebar'
 import { CartContext } from '../../context/CartContext'
 
 export interface ProductGridProps {
@@ -156,6 +157,13 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   const [addedItemHandle, setAddedItemHandle] = useState<string | null>(null)
   const [selectedProductHandle, setSelectedProductHandle] = useState<string | null>(null)
   const [quickAddingId, setQuickAddingId] = useState<string | null>(null)
+  const [filters, setFilters] = useState<FilterState>({
+    minPrice: '',
+    maxPrice: '',
+    selectedBrands: [],
+    inStockOnly: false,
+  })
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState<boolean>(false)
 
   // Comparison tool states (up to 3 products)
   const [compareProducts, setCompareProducts] = useState<ShopifyProductNode[]>([])
@@ -419,6 +427,39 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       )
     }
 
+    // Availability Filter
+    if (filters.inStockOnly) {
+      result = result.filter((p) => {
+        const available = p.availableForSale ?? p.variants?.edges?.[0]?.node?.availableForSale ?? true
+        return available
+      })
+    }
+
+    // Price Range Filter
+    if (filters.minPrice !== '') {
+      const min = parseFloat(filters.minPrice)
+      if (!isNaN(min)) {
+        result = result.filter((p) => {
+          const price = parseFloat(p.priceRange?.minVariantPrice?.amount || '0')
+          return price >= min
+        })
+      }
+    }
+    if (filters.maxPrice !== '') {
+      const max = parseFloat(filters.maxPrice)
+      if (!isNaN(max)) {
+        result = result.filter((p) => {
+          const price = parseFloat(p.priceRange?.minVariantPrice?.amount || '0')
+          return price <= max
+        })
+      }
+    }
+
+    // Brand Filter
+    if (filters.selectedBrands.length > 0) {
+      result = result.filter((p) => p.vendor && filters.selectedBrands.includes(p.vendor.trim()))
+    }
+
     // Sorting
     switch (sortBy) {
       case 'price-asc':
@@ -449,7 +490,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     }
 
     return result
-  }, [products, selectedTag, sortBy])
+  }, [products, selectedTag, sortBy, filters])
 
   // Format currency
   const formatPrice = (amount?: string, currencyCode: string = 'USD') => {
@@ -600,6 +641,19 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                   <span>Compare ({compareProducts.length}/3)</span>
                 </button>
               )}
+
+              {/* Mobile Filter Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setIsMobileFilterOpen(true)}
+                className="lg:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white border border-neutral-300 text-neutral-800 shadow-xs hover:bg-neutral-50 transition-colors cursor-pointer"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Filters</span>
+                {(filters.minPrice || filters.maxPrice || filters.selectedBrands.length > 0 || filters.inStockOnly) && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                )}
+              </button>
             </div>
           </div>
 
@@ -631,95 +685,113 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
         </div>
       )}
 
-      {/* Loading Skeleton Grid */}
-      {(loading || isSearching) && (
-        <ProductGridSkeleton
-          count={Math.min(limit || 8, 8)}
-          className="mt-8"
+      {/* Main Content Layout with Sidebar & Products Grid */}
+      <div className="mt-8 flex flex-col lg:flex-row gap-8 items-start">
+        {/* Filter Sidebar */}
+        <ProductFilterSidebar
+          products={baseProducts}
+          filters={filters}
+          onFilterChange={setFilters}
+          onResetFilters={() => setFilters({ minPrice: '', maxPrice: '', selectedBrands: [], inStockOnly: false })}
+          isOpen={isMobileFilterOpen}
+          onClose={() => setIsMobileFilterOpen(false)}
         />
-      )}
 
-      {/* Error State */}
-      {!loading && !isSearching && (error || searchError) && (
-        <div
-          id="storefront-products-error"
-          className="mt-8 p-6 rounded-xl border border-red-200 bg-red-50/70 text-red-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-        >
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-semibold text-sm sm:text-base text-red-900">
-                Shopify Storefront API Search Notice
-              </h4>
-              <p className="text-xs sm:text-sm text-red-700 mt-0.5">
-                {searchError || error}
-              </p>
-            </div>
-          </div>
-          <button
-            id="storefront-retry-fetch-btn"
-            onClick={handleResetSearch}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold transition-colors shadow-sm self-end sm:self-auto"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Reset Catalog
-          </button>
-        </div>
-      )}
+        {/* Main Products Area */}
+        <div className="flex-1 w-full min-w-0">
+          {/* Loading Skeleton Grid */}
+          {(loading || isSearching) && (
+            <ProductGridSkeleton
+              count={Math.min(limit || 8, 8)}
+            />
+          )}
 
-      {/* Empty State */}
-      {!loading && !isSearching && !error && !searchError && filteredProducts.length === 0 && (
-        <div
-          id="storefront-products-empty"
-          className="mt-12 py-16 px-4 text-center bg-neutral-50 border border-dashed border-neutral-300 rounded-2xl max-w-xl mx-auto"
-        >
-          <div className="w-14 h-14 bg-neutral-200/70 rounded-full flex items-center justify-center mx-auto mb-4 text-neutral-500">
-            <PackageOpen className="w-7 h-7" />
-          </div>
-          <h3 className="text-base sm:text-lg font-semibold text-neutral-900">
-            No matching products found
-          </h3>
-          <p className="text-xs sm:text-sm text-neutral-500 mt-1 max-w-sm mx-auto">
-            {searchQuery || selectedTag !== 'ALL'
-              ? `No products matched "${searchQuery || selectedTag}" in the live Shopify Storefront catalog. Try more general keywords (e.g. "OLED", "Galaxy") or reset your search.`
-              : 'There are currently no available products published on the Storefront.'}
-          </p>
-          {(searchQuery || selectedTag !== 'ALL') && (
-            <button
-              id="storefront-reset-filters-btn"
-              onClick={handleResetSearch}
-              className="mt-5 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg transition-colors"
+          {/* Error State */}
+          {!loading && !isSearching && (error || searchError) && (
+            <div
+              id="storefront-products-error"
+              className="p-6 rounded-xl border border-red-200 bg-red-50/70 text-red-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Reset Search & Catalog
-            </button>
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-sm sm:text-base text-red-900">
+                    Shopify Storefront API Search Notice
+                  </h4>
+                  <p className="text-xs sm:text-sm text-red-700 mt-0.5">
+                    {searchError || error}
+                  </p>
+                </div>
+              </div>
+              <button
+                id="storefront-retry-fetch-btn"
+                onClick={handleResetSearch}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold transition-colors shadow-sm self-end sm:self-auto"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reset Catalog
+              </button>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && !isSearching && !error && !searchError && filteredProducts.length === 0 && (
+            <div
+              id="storefront-products-empty"
+              className="py-16 px-4 text-center bg-neutral-50 border border-dashed border-neutral-300 rounded-2xl max-w-xl mx-auto"
+            >
+              <div className="w-14 h-14 bg-neutral-200/70 rounded-full flex items-center justify-center mx-auto mb-4 text-neutral-500">
+                <PackageOpen className="w-7 h-7" />
+              </div>
+              <h3 className="text-base sm:text-lg font-semibold text-neutral-900">
+                No matching products found
+              </h3>
+              <p className="text-xs sm:text-sm text-neutral-500 mt-1 max-w-sm mx-auto">
+                {searchQuery || selectedTag !== 'ALL' || filters.minPrice || filters.maxPrice || filters.selectedBrands.length > 0 || filters.inStockOnly
+                  ? `No products matched your selected filters in the live Shopify Storefront catalog. Try broadening your price range, clearing brand filters, or resetting search.`
+                  : 'There are currently no available products published on the Storefront.'}
+              </p>
+              {(searchQuery || selectedTag !== 'ALL' || filters.minPrice || filters.maxPrice || filters.selectedBrands.length > 0 || filters.inStockOnly) && (
+                <button
+                  id="storefront-reset-filters-btn"
+                  onClick={() => {
+                    handleResetSearch()
+                    setFilters({ minPrice: '', maxPrice: '', selectedBrands: [], inStockOnly: false })
+                  }}
+                  className="mt-5 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg transition-colors"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Reset All Filters & Search
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Responsive Products Grid */}
+          {!loading && !isSearching && !error && !searchError && filteredProducts.length > 0 && (
+            <div
+              id="storefront-products-grid"
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-6"
+            >
+              {filteredProducts.map((product, index) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  index={index}
+                  productBaseUrl={productBaseUrl}
+                  isCompared={compareProducts.some((p) => p.id === product.id)}
+                  isAddingToCart={quickAddingId === product.id}
+                  isAdded={addedItemHandle === product.handle}
+                  formatPrice={formatPrice}
+                  onProductClick={(p, e) => handleProductCardClick(p, e)}
+                  onToggleCompare={(p, e) => handleToggleCompare(p, e)}
+                  onQuickAddToCart={(p, e) => handleQuickAddToCart(p, e)}
+                />
+              ))}
+            </div>
           )}
         </div>
-      )}
-
-      {/* Responsive Products Grid */}
-      {!loading && !isSearching && !error && !searchError && filteredProducts.length > 0 && (
-        <div
-          id="storefront-products-grid"
-          className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
-        >
-          {filteredProducts.map((product, index) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              index={index}
-              productBaseUrl={productBaseUrl}
-              isCompared={compareProducts.some((p) => p.id === product.id)}
-              isAddingToCart={quickAddingId === product.id}
-              isAdded={addedItemHandle === product.handle}
-              formatPrice={formatPrice}
-              onProductClick={(p, e) => handleProductCardClick(p, e)}
-              onToggleCompare={(p, e) => handleToggleCompare(p, e)}
-              onQuickAddToCart={(p, e) => handleQuickAddToCart(p, e)}
-            />
-          ))}
-        </div>
-      )}
+      </div>
 
       {/* Product Detail Quick View Modal */}
       {selectedProductHandle && (

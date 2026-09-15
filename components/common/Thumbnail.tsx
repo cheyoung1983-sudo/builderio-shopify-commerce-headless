@@ -1,5 +1,6 @@
 import { jsx, AspectRatio } from 'theme-ui'
 import Image from 'next/image'
+import { PRODUCT_IMAGE_BLUR_DATA_URL } from '@lib/image'
 
 export interface ThumbnailProps {
   src: any // for now;
@@ -38,7 +39,10 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
         alt={name || 'Product thumbnail'}
         width={width}
         height={height}
-        loading="eager"
+        placeholder="blur"
+        blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+        sizes={`${width}px`}
+        loading="lazy"
       />
     </button>
   )

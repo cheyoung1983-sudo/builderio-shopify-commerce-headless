@@ -3,6 +3,7 @@ import React from 'react'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
 import UntilInteraction from '@components/common/UntilInteraction'
+import { PRODUCT_IMAGE_BLUR_DATA_URL } from '@lib/image'
 
 type props = import('./LazyImageCarousel').ImageCarouselProps
 
@@ -25,6 +26,8 @@ const ImageCarousel: React.FC<props> = ({
           <Image
             src={images[0].src}
             alt={alt || (images[0] as any).altText || 'Product image'}
+            placeholder="blur"
+            blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
             {...imageProps}
           />
         }

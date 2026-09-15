@@ -16,3 +16,4 @@ export type {
   CartContextValue,
   CartProviderProps,
 } from './CartContext'
+export { WishlistProvider, useWishlist } from './WishlistContext'

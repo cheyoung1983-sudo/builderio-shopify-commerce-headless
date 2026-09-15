@@ -19,6 +19,8 @@ import NoSSR from './NoSSR'
 import { ScrollProgressBar } from './ScrollProgressBar'
 import { ScrollToTop } from './ScrollToTop'
 import Footer from './Footer'
+import AnnouncerProvider from './Announcer'
+import { WishlistProvider } from '../../context'
 
 const FeatureBar = dynamic(() => import('@components/common/FeatureBar'), {
   ssr: false,
@@ -104,7 +106,9 @@ const InnerLayout: React.FC<{
   const { acceptedCookies, onAcceptCookies } = useAcceptCookies()
   return (
     <ThemeProvider theme={theme}>
-      <CartProvider onOpen={openSidebar} onClose={closeSidebar}>
+      <AnnouncerProvider>
+        <WishlistProvider>
+          <CartProvider onOpen={openSidebar} onClose={closeSidebar}>
         <NoSSR>
           <ScrollProgressBar />
           <ScrollToTop />
@@ -144,6 +148,8 @@ const InnerLayout: React.FC<{
           />
         </NoSSR>
       </CartProvider>
+        </WishlistProvider>
+      </AnnouncerProvider>
     </ThemeProvider>
   )
 }

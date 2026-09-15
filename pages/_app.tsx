@@ -1,50 +1,53 @@
-import { FC } from 'react'
+import { useEffect } from 'react'
 import type { AppProps } from 'next/app'
+import Router from 'next/router'
 import Layout from '@components/common/Layout'
-import { builder, Builder } from '@builder.io/react'
+import { builder } from '@builder.io/react'
 import builderConfig from '@config/builder'
+import { startLoading, stopLoading, forceStopLoading } from '../lib/progress'
+
 if (builderConfig.apiKey) {
   builder.init(builderConfig.apiKey)
 }
 
 import '@builder.io/widgets'
+import 'nprogress/nprogress.css'
 import '../styles/globals.css'
-import '../blocks/ProductGrid/ProductGrid.builder'
-import '../blocks/CollectionView/CollectionView.builder'
-import '../blocks/ProductView/ProductView.builder'
-import '../blocks/CloudinaryImage/CloudinaryImage.builder'
-
-Builder.register('insertMenu', {
-  name: 'Shopify Collections Components',
-  items: [
-    { name: 'CollectionBox', label: 'Collection stuff' },
-    { name: 'ProductCollectionGrid' },
-    { name: 'CollectionView' },
-  ],
-})
-
-Builder.register('insertMenu', {
-  name: 'Shopify Products Components',
-  items: [
-    { name: 'ProductGrid' },
-    { name: 'ProductBox' },
-    { name: 'ProductView' },
-  ],
-})
-
-Builder.register('insertMenu', {
-  name: 'Cloudinary Components',
-  items: [{ name: 'CloudinaryImage' }],
-})
-
-const Noop: FC<{ children: React.ReactNode }> = ({ children }) => (
-  <>{children}</>
-)
+import '../builder-registry'
 
 export default function MyApp({ Component, pageProps }: AppProps) {
+  useEffect(() => {
+    const handleStart = (_url: string, { shallow }: { shallow?: boolean } = {}) => {
+      if (!shallow) {
+        startLoading()
+      }
+    }
+
+    const handleComplete = (_url: string, { shallow }: { shallow?: boolean } = {}) => {
+      if (!shallow) {
+        stopLoading()
+      }
+    }
+
+    const handleError = () => {
+      forceStopLoading()
+    }
+
+    Router.events.on('routeChangeStart', handleStart)
+    Router.events.on('routeChangeComplete', handleComplete)
+    Router.events.on('routeChangeError', handleError)
+
+    return () => {
+      Router.events.off('routeChangeStart', handleStart)
+      Router.events.off('routeChangeComplete', handleComplete)
+      Router.events.off('routeChangeError', handleError)
+    }
+  }, [])
+
   return (
     <Layout pageProps={pageProps}>
       <Component {...pageProps} />
     </Layout>
   )
 }
+

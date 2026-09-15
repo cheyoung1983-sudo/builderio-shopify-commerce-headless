@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { CheckCircle2, ShoppingBag, X, ArrowRight, AlertCircle } from 'lucide-react'
 import { useCart } from '../../context/CartContext'
 import { useUniqueId } from '../../hooks/useUniqueId'
+import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
 
 export const CartNotification: React.FC = () => {
   const { notification, dismissNotification, openCart, totalQuantity, subtotalFormatted } =
@@ -71,8 +72,10 @@ export const CartNotification: React.FC = () => {
                       src={imageUrl}
                       alt={item.title}
                       fill
+                      placeholder="blur"
+                      blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
                       className="object-cover"
-                      sizes="48px"
+                      sizes={RESPONSIVE_IMAGE_SIZES.notificationThumb}
                       referrerPolicy="no-referrer"
                     />
                   </div>

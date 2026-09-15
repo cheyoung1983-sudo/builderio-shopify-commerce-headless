@@ -17,6 +17,8 @@ import { useThemeUI } from '@theme-ui/core'
 import { getLayoutProps } from '@lib/get-layout-props'
 import { Breadcrumbs } from '../../components/common/Breadcrumbs'
 import { ProductGrid } from '../../components/products/ProductGrid'
+import SEO from '../../components/common/SEO'
+import { generateCollectionSeo } from '../../lib/seo'
 
 if (builderConfig.apiKey) {
   builder.init(builderConfig.apiKey)
@@ -90,12 +92,7 @@ export default function Handle({
     </div>
   ) : (
     <div className="min-h-screen bg-neutral-50/50 py-6">
-      <Head>
-        <title>{collection?.title ? `${collection.title} | DisplayCellPros` : 'Collection | DisplayCellPros'}</title>
-        {collection?.description && (
-          <meta name="description" content={collection.description} />
-        )}
-      </Head>
+      <SEO {...generateCollectionSeo(collection)} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
         <Breadcrumbs
           id="collection-page-top-breadcrumbs"

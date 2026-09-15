@@ -1,6 +1,6 @@
 {
   "name": "Builder.io Shopify Headless Commerce",
-  "description": "Headless Shopify commerce storefront featuring structured breadcrumb navigation, side-by-side product comparison, and instant catalog search.",
+  "description": "Headless Shopify commerce storefront featuring responsive next/image optimization with blur-up placeholders, top loading progress indicator with NProgress, persistent local wishlist, side-by-side product comparison, and instant catalog search.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

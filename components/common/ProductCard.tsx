@@ -4,6 +4,7 @@ import { Card, Text } from '@theme-ui/components'
 import Image from 'next/image'
 import { getPrice } from '@lib/shopify/storefront-data-hooks/src/utils/product'
 import Link from '@components/common/Link'
+import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '@lib/image'
 export { ProductCardSkeleton } from '@components/products/ProductCardSkeleton'
 
 export interface ProductCardProps {
@@ -163,9 +164,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 height={imgHeight}
                 layout={imgLayout}
                 objectFit="cover"
+                placeholder="blur"
+                blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
                 priority={imgPriority}
                 loading={imgPriority ? undefined : imgLoading}
-                sizes={imgSizes}
+                sizes={imgSizes || RESPONSIVE_IMAGE_SIZES.productGrid}
                 onLoad={() => setImageLoaded(true)}
               />
             </>

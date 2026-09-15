@@ -18,6 +18,8 @@ import {
 import { ProductDetail } from '../../components/products/ProductDetail'
 import { ProductDetailSkeleton } from '../../components/products/ProductDetailSkeleton'
 import { Breadcrumbs } from '../../components/common/Breadcrumbs'
+import SEO from '../../components/common/SEO'
+import { generateProductSeo } from '../../lib/seo'
 
 if (builderConfig.apiKey) {
   builder.init(builderConfig.apiKey)
@@ -104,6 +106,7 @@ export default function Handle({
   if (page) {
     return (
       <div className="min-h-screen bg-neutral-50/50 py-8 px-4 sm:px-6 lg:px-8">
+        <SEO {...generateProductSeo(storefrontProduct)} />
         <div className="w-full max-w-7xl mx-auto mb-4">
           <Breadcrumbs
             id="product-builder-top-breadcrumbs"
@@ -138,22 +141,9 @@ export default function Handle({
     )
   }
 
-  const title = storefrontProduct?.title
-    ? `${storefrontProduct.title} | DisplayCellPros`
-    : 'Product Details | DisplayCellPros'
-  const description =
-    storefrontProduct?.description ||
-    'Shop replacement screens and repair parts with professional installation included.'
-
   return (
     <div className="min-h-screen bg-neutral-50/50 py-8 px-4 sm:px-6 lg:px-8">
-      <Head>
-        <title>{title}</title>
-        <meta name="description" content={description} />
-        {storefrontProduct?.featuredImage?.url && (
-          <meta property="og:image" content={storefrontProduct.featuredImage.url} />
-        )}
-      </Head>
+      <SEO {...generateProductSeo(storefrontProduct)} />
 
       {/* Breadcrumb Navigation above Product Details */}
       <div className="w-full max-w-7xl mx-auto mb-4">

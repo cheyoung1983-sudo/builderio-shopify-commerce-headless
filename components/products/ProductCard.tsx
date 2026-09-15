@@ -9,9 +9,12 @@ import {
   ExternalLink,
   Eye,
   Layers,
+  Heart,
 } from 'lucide-react'
 import { ShopifyProductNode } from '../../services/shopify'
 import { ProductCardSkeleton } from './ProductCardSkeleton'
+import { useWishlist } from '../../context'
+import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
 
 export interface ProductCardProps {
   /** The Shopify product data node */
@@ -55,6 +58,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   className = '',
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false)
+  const { isInWishlist, toggleWishlist } = useWishlist()
+  const isSaved = product ? isInWishlist(product.id) : false
 
   // If explicitly loading or product data is not yet provided, show skeleton
   if (loading || !product) {
@@ -87,6 +92,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     onToggleCompare?.(product, e)
   }
 
+  const handleWishlistClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    toggleWishlist(product)
+  }
+
   const handleAddToCartClick = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -106,52 +117,71 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           : 'border-surface-stone hover:border-neutral-300 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1'
       } ${className}`}
     >
-      {/* Image Container with Link & Image Shimmer Skeleton */}
-      <Link
-        href={`${productBaseUrl}/${product.handle}`}
-        onClick={handleCardClick}
-        className="block relative aspect-square w-full bg-neutral-100 overflow-hidden cursor-pointer"
-      >
-        {/* Shimmer skeleton active while Shopify CDN image is downloading */}
-        <div
-          className={`absolute inset-0 animate-shimmer transition-opacity duration-300 z-0 pointer-events-none ${
-            imageLoaded ? 'opacity-0' : 'opacity-100'
-          }`}
-          aria-hidden="true"
-        />
+      {/* Media Container */}
+      <div className="relative aspect-square w-full bg-neutral-100 overflow-hidden">
+        {/* Clickable Image Link */}
+        <Link
+          id={`product-card-image-link-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
+          href={`${productBaseUrl}/${product.handle}`}
+          onClick={handleCardClick}
+          className="block w-full h-full cursor-pointer relative"
+        >
+          {/* Shimmer skeleton active while Shopify CDN image is downloading */}
+          <div
+            className={`absolute inset-0 animate-shimmer transition-opacity duration-300 z-0 pointer-events-none ${
+              imageLoaded ? 'opacity-0' : 'opacity-100'
+            }`}
+            aria-hidden="true"
+          />
 
-        {primaryImage ? (
-          <>
-            <Image
-              src={primaryImage}
-              alt={imageAlt}
-              fill
-              sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className={`object-cover object-center transition-all duration-500 ease-out group-hover:scale-105 ${
-                secondaryImage ? 'group-hover:opacity-0' : ''
-              } ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-              onLoad={() => setImageLoaded(true)}
-              referrerPolicy="no-referrer"
-            />
-            {secondaryImage && (
+          {primaryImage ? (
+            <>
               <Image
-                src={secondaryImage}
-                alt={`${imageAlt} - Alternate view`}
+                src={primaryImage}
+                alt={imageAlt}
                 fill
-                sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                className="object-cover object-center transition-all duration-500 ease-out opacity-0 group-hover:opacity-100 group-hover:scale-105"
+                placeholder="blur"
+                blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+                sizes={RESPONSIVE_IMAGE_SIZES.productGrid}
+                priority={index < 4}
+                loading={index < 4 ? 'eager' : 'lazy'}
+                quality={85}
+                className={`object-cover object-center transition-all duration-500 ease-out group-hover:scale-105 ${
+                  secondaryImage ? 'group-hover:opacity-0' : ''
+                } ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                onLoad={() => setImageLoaded(true)}
                 referrerPolicy="no-referrer"
               />
-            )}
-          </>
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-neutral-500 gap-2">
-            <PackageOpen className="w-10 h-10 stroke-[1.5]" />
-            <span className="text-xs">No image preview</span>
-          </div>
-        )}
+              {secondaryImage && (
+                <Image
+                  src={secondaryImage}
+                  alt={`${imageAlt} - Alternate view`}
+                  fill
+                  placeholder="blur"
+                  blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+                  sizes={RESPONSIVE_IMAGE_SIZES.productGrid}
+                  loading="lazy"
+                  quality={85}
+                  className="object-cover object-center transition-all duration-500 ease-out opacity-0 group-hover:opacity-100 group-hover:scale-105"
+                  referrerPolicy="no-referrer"
+                />
+              )}
+            </>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-neutral-500 gap-2">
+              <PackageOpen className="w-10 h-10 stroke-[1.5]" />
+              <span className="text-xs">No image preview</span>
+            </div>
+          )}
 
-        {/* Badges Overlay (Left) */}
+          {/* Quick View Hover Hint */}
+          <div className="absolute inset-x-0 bottom-0 py-2 bg-neutral-950/70 backdrop-blur-xs text-white text-[11px] font-medium text-center opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 z-10">
+            <span>Click for Quick View</span>
+            <ExternalLink className="w-3 h-3" />
+          </div>
+        </Link>
+
+        {/* Badges Overlay (Top Left) */}
         <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10 pointer-events-none">
           {isOnSale && (
             <span className="bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded shadow-sm">
@@ -170,9 +200,28 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </span>
         </div>
 
-        {/* Compare Toggle Button (Top Right) */}
-        <div className="absolute top-2.5 right-2.5 z-20">
+        {/* Wishlist & Compare Floating Action Buttons (Top Right) */}
+        <div className="absolute top-2.5 right-2.5 z-20 flex flex-col gap-2 items-end">
+          {/* Wishlist Button */}
           <button
+            id={`product-card-wishlist-btn-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
+            type="button"
+            onClick={handleWishlistClick}
+            aria-label={isSaved ? `Remove ${product.title} from wishlist` : `Save ${product.title} to wishlist`}
+            aria-pressed={isSaved}
+            title={isSaved ? 'Remove from wishlist' : 'Save to wishlist'}
+            className={`p-2 rounded-full transition-all shadow-sm cursor-pointer ${
+              isSaved
+                ? 'bg-rose-500 text-white shadow-rose-500/30 ring-2 ring-rose-300 scale-105'
+                : 'bg-white/95 hover:bg-white text-neutral-600 hover:text-rose-500 border border-neutral-200 backdrop-blur-xs hover:scale-105 active:scale-95'
+            }`}
+          >
+            <Heart className={`w-4 h-4 transition-colors ${isSaved ? 'fill-current text-white' : ''}`} />
+          </button>
+
+          {/* Compare Button */}
+          <button
+            id={`product-card-compare-btn-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
             type="button"
             onClick={handleCompareClick}
             aria-label={
@@ -188,7 +237,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all shadow-xs cursor-pointer ${
               isCompared
                 ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-400/40'
-                : 'bg-white/95 hover:bg-white text-neutral-700 hover:text-neutral-950 border border-neutral-200/90 backdrop-blur-xs'
+                : 'bg-white/95 hover:bg-white text-neutral-700 hover:text-neutral-950 border border-neutral-200/90 backdrop-blur-xs hover:scale-105'
             }`}
           >
             {isCompared ? (
@@ -214,13 +263,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </span>
           </div>
         )}
-
-        {/* Quick View Hover Hint */}
-        <div className="absolute inset-x-0 bottom-0 py-2 bg-neutral-950/70 backdrop-blur-xs text-white text-[11px] font-medium text-center opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-          <span>Click for Quick View</span>
-          <ExternalLink className="w-3 h-3" />
-        </div>
-      </Link>
+      </div>
 
       {/* Card Body */}
       <div className="p-4 flex flex-col flex-1">
@@ -271,6 +314,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
           <div className="flex items-center gap-1.5">
             <button
+              id={`product-card-add-btn-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
               type="button"
               onClick={handleAddToCartClick}
               disabled={isAddingToCart}
@@ -298,6 +342,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </button>
 
             <button
+              id={`product-card-quick-view-btn-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
               type="button"
               onClick={handleCardClick}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-neutral-100 hover:bg-neutral-900 hover:text-white text-neutral-800 transition-colors cursor-pointer"

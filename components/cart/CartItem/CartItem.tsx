@@ -9,6 +9,7 @@ import {
 } from '@lib/shopify/storefront-data-hooks'
 import { useCart as useModernCart } from '../../../context/CartContext'
 import Link from '@components/common/Link'
+import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '@lib/image'
 const CartItem = ({
   item,
   currencyCode,
@@ -99,6 +100,10 @@ const CartItem = ({
             width={130}
             alt={altText}
             src={imgSrc}
+            placeholder="blur"
+            blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+            sizes={RESPONSIVE_IMAGE_SIZES.cartItem}
+            loading="lazy"
           />
         ) : (
           <div sx={{ fontSize: 1, color: 'gray' }}>No image</div>

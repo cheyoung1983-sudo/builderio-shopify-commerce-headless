@@ -1,5 +1,6 @@
 import ShopifyBuy from 'shopify-buy'
 import shopifyConfig from '../config/shopify.ts'
+import { startLoading, stopLoading } from '../lib/progress'
 
 /**
  * Shopify Storefront API Configuration
@@ -215,13 +216,18 @@ export function getStorefrontAuthHeaders(token: string): Record<string, string> 
  * Custom fetch adapter for ShopifyBuy SDK that routes private tokens correctly
  */
 function createStorefrontFetch(token: string) {
-  return (url: string, opts: any = {}) => {
-    const headers = { ...opts.headers }
-    if (token.startsWith('shpat_')) {
-      headers['Shopify-Storefront-Private-Token'] = token
-      delete headers['X-Shopify-Storefront-Access-Token']
+  return async (url: string, opts: any = {}) => {
+    startLoading()
+    try {
+      const headers = { ...opts.headers }
+      if (token.startsWith('shpat_')) {
+        headers['Shopify-Storefront-Private-Token'] = token
+        delete headers['X-Shopify-Storefront-Access-Token']
+      }
+      return await fetch(url, { ...opts, headers })
+    } finally {
+      stopLoading()
     }
-    return fetch(url, { ...opts, headers })
   }
 }
 
@@ -314,166 +320,171 @@ export async function storefrontFetch<TData = any, TVariables = Record<string, a
     }
   }
 
-  const authHeaders = getStorefrontAuthHeaders(token)
-  const requestHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...authHeaders,
-    ...customHeaders,
-  }
+  startLoading()
+  try {
+    const authHeaders = getStorefrontAuthHeaders(token)
+    const requestHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      ...authHeaders,
+      ...customHeaders,
+    }
 
-  const requestBody = JSON.stringify({
-    query,
-    variables,
-  })
+    const requestBody = JSON.stringify({
+      query,
+      variables,
+    })
 
-  let attempt = 0
-  let lastError: any = null
+    let attempt = 0
+    let lastError: any = null
 
-  while (attempt <= retries) {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+    while (attempt <= retries) {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: requestHeaders,
-        body: requestBody,
-        signal: controller.signal,
-        cache,
-        ...(next ? { next } : {}),
-      })
-
-      clearTimeout(timeoutId)
-
-      // Handle Rate Limiting (HTTP 429) or transient Server Errors (500, 502, 503, 504)
-      const shouldRetry =
-        (response.status === 429 || (response.status >= 500 && response.status < 600)) &&
-        attempt < retries
-
-      if (shouldRetry) {
-        attempt++
-        const backoff = retryDelayMs * Math.pow(2, attempt - 1)
-        console.warn(
-          `[Shopify Storefront] Received HTTP ${response.status}. Retrying in ${backoff}ms (attempt ${attempt}/${retries})...`
-        )
-        await sleep(backoff)
-        continue
-      }
-
-      let json: StorefrontGraphQLResponse<TData>
       try {
-        json = await response.json()
-      } catch (parseErr) {
-        const error = new ShopifyStorefrontError({
-          message: `Failed to parse response from Shopify Storefront API (HTTP ${response.status})`,
-          status: response.status,
-          responseBody: parseErr,
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: requestHeaders,
+          body: requestBody,
+          signal: controller.signal,
+          cache,
+          ...(next ? { next } : {}),
         })
-        if (throwOnError) throw error
-        return {
-          ok: false,
-          status: response.status,
-          errors: [{ message: error.message }],
-        }
-      }
 
-      // Check for non-2xx HTTP status
-      if (!response.ok) {
+        clearTimeout(timeoutId)
+
+        // Handle Rate Limiting (HTTP 429) or transient Server Errors (500, 502, 503, 504)
+        const shouldRetry =
+          (response.status === 429 || (response.status >= 500 && response.status < 600)) &&
+          attempt < retries
+
+        if (shouldRetry) {
+          attempt++
+          const backoff = retryDelayMs * Math.pow(2, attempt - 1)
+          console.warn(
+            `[Shopify Storefront] Received HTTP ${response.status}. Retrying in ${backoff}ms (attempt ${attempt}/${retries})...`
+          )
+          await sleep(backoff)
+          continue
+        }
+
+        let json: StorefrontGraphQLResponse<TData>
+        try {
+          json = await response.json()
+        } catch (parseErr) {
+          const error = new ShopifyStorefrontError({
+            message: `Failed to parse response from Shopify Storefront API (HTTP ${response.status})`,
+            status: response.status,
+            responseBody: parseErr,
+          })
+          if (throwOnError) throw error
+          return {
+            ok: false,
+            status: response.status,
+            errors: [{ message: error.message }],
+          }
+        }
+
+        // Check for non-2xx HTTP status
+        if (!response.ok) {
+          const errors = json.errors?.map((error) => ({
+            ...error,
+            message: error.message || error.extensions?.code || 'Shopify Storefront API request failed',
+          }))
+          const errorMsg =
+            errors?.[0]?.message ||
+            `Shopify Storefront API error: ${response.status} ${response.statusText}`
+          const error = new ShopifyStorefrontError({
+            message: errorMsg,
+            status: response.status,
+            graphQLErrors: errors,
+            responseBody: json,
+          })
+          if (throwOnError) throw error
+          return {
+            ok: false,
+            status: response.status,
+            data: json.data,
+            errors: errors || [{ message: errorMsg }],
+            extensions: json.extensions,
+          }
+        }
+
+        // Successful HTTP response; might still contain GraphQL query errors
         const errors = json.errors?.map((error) => ({
           ...error,
           message: error.message || error.extensions?.code || 'Shopify Storefront API request failed',
         }))
-        const errorMsg =
-          errors?.[0]?.message ||
-          `Shopify Storefront API error: ${response.status} ${response.statusText}`
-        const error = new ShopifyStorefrontError({
-          message: errorMsg,
+        const hasGraphQLErrors = Boolean(errors && errors.length > 0)
+        if (hasGraphQLErrors && throwOnError) {
+          throw new ShopifyStorefrontError({
+            message:
+              json.errors![0].message || 'GraphQL error returned by Shopify Storefront API',
+            status: response.status,
+            graphQLErrors: errors,
+            responseBody: json,
+          })
+        }
+
+        return {
+          ok: !hasGraphQLErrors,
           status: response.status,
-          graphQLErrors: errors,
-          responseBody: json,
+          data: json.data,
+          errors,
+          extensions: json.extensions,
+        }
+      } catch (err: any) {
+        clearTimeout(timeoutId)
+        lastError = err
+
+        // Check if aborted by timeout
+        const isTimeout = err?.name === 'AbortError'
+        const isNetworkErr = !err?.status
+
+        if ((isTimeout || isNetworkErr) && attempt < retries) {
+          attempt++
+          const backoff = retryDelayMs * Math.pow(2, attempt - 1)
+          console.warn(
+            `[Shopify Storefront] ${isTimeout ? 'Request timed out' : 'Network error'}. Retrying in ${backoff}ms (attempt ${attempt}/${retries})...`
+          )
+          await sleep(backoff)
+          continue
+        }
+
+        const errorMessage = isTimeout
+          ? `Shopify Storefront query timed out after ${timeoutMs}ms`
+          : err?.message || 'Unknown network error executing Shopify Storefront GraphQL query'
+
+        const error = new ShopifyStorefrontError({
+          message: errorMessage,
+          status: err?.status || 0,
+          graphQLErrors: err?.graphQLErrors,
+          responseBody: err,
         })
+
         if (throwOnError) throw error
         return {
           ok: false,
-          status: response.status,
-          data: json.data,
-          errors: errors || [{ message: errorMsg }],
-          extensions: json.extensions,
+          status: error.status,
+          errors: [{ message: error.message }],
         }
       }
-
-      // Successful HTTP response; might still contain GraphQL query errors
-      const errors = json.errors?.map((error) => ({
-        ...error,
-        message: error.message || error.extensions?.code || 'Shopify Storefront API request failed',
-      }))
-      const hasGraphQLErrors = Boolean(errors && errors.length > 0)
-      if (hasGraphQLErrors && throwOnError) {
-        throw new ShopifyStorefrontError({
-          message:
-            json.errors![0].message || 'GraphQL error returned by Shopify Storefront API',
-          status: response.status,
-          graphQLErrors: errors,
-          responseBody: json,
-        })
-      }
-
-      return {
-        ok: !hasGraphQLErrors,
-        status: response.status,
-        data: json.data,
-        errors,
-        extensions: json.extensions,
-      }
-    } catch (err: any) {
-      clearTimeout(timeoutId)
-      lastError = err
-
-      // Check if aborted by timeout
-      const isTimeout = err?.name === 'AbortError'
-      const isNetworkErr = !err?.status
-
-      if ((isTimeout || isNetworkErr) && attempt < retries) {
-        attempt++
-        const backoff = retryDelayMs * Math.pow(2, attempt - 1)
-        console.warn(
-          `[Shopify Storefront] ${isTimeout ? 'Request timed out' : 'Network error'}. Retrying in ${backoff}ms (attempt ${attempt}/${retries})...`
-        )
-        await sleep(backoff)
-        continue
-      }
-
-      const errorMessage = isTimeout
-        ? `Shopify Storefront query timed out after ${timeoutMs}ms`
-        : err?.message || 'Unknown network error executing Shopify Storefront GraphQL query'
-
-      const error = new ShopifyStorefrontError({
-        message: errorMessage,
-        status: err?.status || 0,
-        graphQLErrors: err?.graphQLErrors,
-        responseBody: err,
-      })
-
-      if (throwOnError) throw error
-      return {
-        ok: false,
-        status: error.status,
-        errors: [{ message: error.message }],
-      }
     }
-  }
 
-  const finalError = new ShopifyStorefrontError({
-    message: lastError?.message || 'Shopify Storefront request failed after maximum retries',
-    status: lastError?.status || 0,
-    responseBody: lastError,
-  })
-  if (throwOnError) throw finalError
-  return {
-    ok: false,
-    status: finalError.status,
-    errors: [{ message: finalError.message }],
+    const finalError = new ShopifyStorefrontError({
+      message: lastError?.message || 'Shopify Storefront request failed after maximum retries',
+      status: lastError?.status || 0,
+      responseBody: lastError,
+    })
+    if (throwOnError) throw finalError
+    return {
+      ok: false,
+      status: finalError.status,
+      errors: [{ message: finalError.message }],
+    }
+  } finally {
+    stopLoading()
   }
 }
 

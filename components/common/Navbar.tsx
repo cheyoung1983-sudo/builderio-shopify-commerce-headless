@@ -9,7 +9,8 @@ import Image from 'next/image'
 import Searchbar from './Searchbar'
 import Link from '@components/common/Link'
 import { Bag } from '@components/icons'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, Heart } from 'lucide-react'
+import { useWishlist } from '../../context'
 
 const Navbar: FC = () => {
   const [announcement, setAnnouncement] = useState<any>()
@@ -34,6 +35,7 @@ const Navbar: FC = () => {
           (total: number, item: any) => total + (item.quantity || 1),
           0
         )
+  const { totalItems: wishlistCount, isLoaded } = useWishlist()
 
   const itemHandles = (cart?.lineItems || [])
     .map((item: any) => item?.variant?.product?.handle)
@@ -246,6 +248,47 @@ const Navbar: FC = () => {
           >
             Account
           </Link>
+          <Link
+            id="navbar-wishlist-link"
+            href="/wishlist"
+            aria-label={`Wishlist (${isLoaded ? wishlistCount : 0} items)`}
+            sx={{
+              position: 'relative',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '6px 8px',
+              color: 'inherit',
+              textDecoration: 'none',
+            }}
+          >
+            <Heart className="w-5 h-5 text-rose-500 hover:scale-110 transition-transform" />
+            {isLoaded && wishlistCount > 0 && (
+              <span
+                id="navbar-wishlist-count-badge"
+                sx={{
+                  position: 'absolute',
+                  top: '0px',
+                  right: '0px',
+                  bg: '#e11d48',
+                  color: '#ffffff',
+                  borderRadius: '9999px',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  minWidth: '18px',
+                  height: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  px: '3px',
+                  lineHeight: 1,
+                  border: '2px solid white',
+                }}
+              >
+                {wishlistCount}
+              </span>
+            )}
+          </Link>
           <Button
             id="navbar-bag-button"
             onClick={openSidebar}
@@ -356,6 +399,42 @@ const Navbar: FC = () => {
               Styles & Trends
             </Link>
             <Link
+              id="mobile-drawer-wishlist-link"
+              href="/wishlist"
+              onClick={() => setMobileMenuOpen(false)}
+              sx={{
+                py: 2,
+                fontSize: '15px',
+                fontWeight: 600,
+                color: '#171717',
+                borderBottom: '1px solid #f5f5f5',
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Heart className="w-4 h-4 text-rose-500" />
+                <span>My Wishlist</span>
+              </span>
+              {isLoaded && wishlistCount > 0 && (
+                <span
+                  style={{
+                    backgroundColor: '#ffe4e6',
+                    color: '#be123c',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                  }}
+                >
+                  {wishlistCount}
+                </span>
+              )}
+            </Link>
+            <Link
+              id="mobile-drawer-account-link"
               href="/account"
               onClick={() => setMobileMenuOpen(false)}
               sx={{ py: 2, fontSize: '15px', fontWeight: 600, color: '#171717', textDecoration: 'none' }}

@@ -6,6 +6,10 @@ const nextConfig = {
   // directory (e.g. a stray package-lock.json in the user's home dir).
   turbopack: { root: __dirname },
   images: {
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [360, 480, 640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 24, 32, 40, 48, 64, 80, 96, 128, 256, 384],
+    minimumCacheTTL: 86400,
     remotePatterns: [
       { protocol: 'https', hostname: 'res.cloudinary.com' },
       { protocol: 'https', hostname: 'cdn.shopify.com' },

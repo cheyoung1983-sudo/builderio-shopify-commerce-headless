@@ -21,6 +21,7 @@ import {
   PackageOpen,
   AlertCircle,
   HelpCircle,
+  Heart,
 } from 'lucide-react'
 import {
   fetchStorefrontProductByHandle,
@@ -28,10 +29,13 @@ import {
   ShopifyVariantNode,
 } from '../../services/shopify'
 import { useUI } from '../common/context'
+import { useAnnouncer } from '../common/Announcer'
 import { useAddItemToCart } from '../../lib/shopify/storefront-data-hooks/src/hooks/useAddItemToCart'
 import { CartContext } from '../../context/CartContext'
+import { useWishlist } from '../../context'
 import { ProductDetailSkeleton } from './ProductDetailSkeleton'
 import { Breadcrumbs } from '../common/Breadcrumbs'
+import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
 
 export interface ProductDetailProps {
   /** The Shopify product handle to fetch and display */
@@ -100,8 +104,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
   // Context & Hooks
   const { openSidebar } = useUI()
+  const { announce } = useAnnouncer()
   const addItemToCart = useAddItemToCart()
   const cart = useContext(CartContext)
+  const { isInWishlist, toggleWishlist } = useWishlist()
+  const isSaved = product ? isInWishlist(product.id) : false
 
   // Fetch product data whenever handle changes
   const loadProduct = useCallback(async (productHandle: string) => {
@@ -269,6 +276,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       }
 
       setAddSuccess(true)
+      announce(`Product added to cart: ${product.title}`)
       setTimeout(() => {
         setAddSuccess(false)
         if (typeof openSidebar === 'function') {
@@ -399,7 +407,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   alt={currentImage.altText || product.title}
                   fill
                   priority
-                  sizes="(max-width: 1024px) 100vw, 55vw"
+                  placeholder="blur"
+                  blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+                  sizes={RESPONSIVE_IMAGE_SIZES.productDetail}
+                  quality={90}
                   className="object-contain p-4 transition-transform duration-300 group-hover:scale-105"
                   referrerPolicy="no-referrer"
                 />
@@ -505,7 +516,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                         src={img.url}
                         alt={img.altText || `${product.title} thumbnail ${idx + 1}`}
                         fill
-                        sizes="80px"
+                        placeholder="blur"
+                        blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+                        sizes={RESPONSIVE_IMAGE_SIZES.thumbnail}
+                        loading="lazy"
                         className="object-contain p-1.5"
                         referrerPolicy="no-referrer"
                       />
@@ -708,6 +722,27 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   ) : (
                     <span>Sold Out</span>
                   )}
+                </button>
+
+                {/* Wishlist Toggle Button */}
+                <button
+                  id="product-detail-wishlist-btn"
+                  type="button"
+                  onClick={() => {
+                    if (product) {
+                      toggleWishlist(product)
+                    }
+                  }}
+                  aria-label={isSaved ? `Remove ${product?.title || 'product'} from wishlist` : `Save ${product?.title || 'product'} to wishlist`}
+                  aria-pressed={isSaved}
+                  title={isSaved ? 'In Wishlist' : 'Add to Wishlist'}
+                  className={`p-3 rounded-xl border transition-all flex items-center justify-center cursor-pointer shadow-xs ${
+                    isSaved
+                      ? 'bg-rose-50 border-rose-300 text-rose-600 ring-2 ring-rose-200 scale-105'
+                      : 'bg-white border-neutral-300 text-neutral-600 hover:text-rose-600 hover:border-rose-200 active:scale-95'
+                  }`}
+                >
+                  <Heart className={`w-5 h-5 transition-colors ${isSaved ? 'fill-current text-rose-600' : ''}`} />
                 </button>
               </div>
             </div>

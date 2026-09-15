@@ -5,6 +5,7 @@ import { getPrice } from '@lib/shopify/storefront-data-hooks/src/utils/product'
 import { useState } from 'react'
 import NoSSR from './NoSSR'
 import Link from '@components/common/Link'
+import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '@lib/image'
 
 export interface ProductCardProps {
   className?: string
@@ -60,10 +61,12 @@ const ProductCardDemo: React.FC<ProductCardProps> = ({
                   src={alternateImage}
                   alt={product.title}
                   width={Number(imgWidth || 540)}
-                  sizes={imgSizes}
+                  placeholder="blur"
+                  blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+                  sizes={imgSizes || RESPONSIVE_IMAGE_SIZES.productGrid}
                   height={Number(imgHeight || 540)}
                   onLoad={() => setCanToggle(true)}
-                  loading="eager"
+                  loading="lazy"
                 />
               </NoSSR>
             </div>
@@ -79,7 +82,9 @@ const ProductCardDemo: React.FC<ProductCardProps> = ({
               src={src}
               alt={product.title}
               width={imgWidth || 540}
-              sizes={imgSizes}
+              placeholder="blur"
+              blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+              sizes={imgSizes || RESPONSIVE_IMAGE_SIZES.productGrid}
               height={imgHeight || 540}
               layout={imgLayout}
               loading={imgLoading}
