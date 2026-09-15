@@ -21,10 +21,10 @@ const Navbar: FC = () => {
     logo && (logo.image || logo.text)
       ? logo
       : {
-          image: '/assets/logo.svg',
+          image: '/assets/logo-new.png',
           text: 'Display Cell Pros',
-          width: 190,
-          height: 40,
+          width: 48,
+          height: 48,
         }
   const cart = useCart()
   const modernCart = useModernCart()

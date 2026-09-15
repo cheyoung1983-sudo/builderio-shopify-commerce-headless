@@ -129,9 +129,13 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
               className="inline-flex items-center gap-2 group"
               id="footer-brand-logo"
             >
-              <div className="w-8 h-8 rounded-lg bg-neutral-900 text-white flex items-center justify-center font-bold text-sm shadow-xs">
-                D
-              </div>
+              <Image
+                src="/assets/logo-new.png"
+                alt="DisplayCellPros"
+                width={32}
+                height={32}
+                className="rounded-lg shadow-xs"
+              />
               <span className="text-lg font-bold tracking-tight text-neutral-900 group-hover:text-neutral-700 transition-colors">
                 DisplayCellPros
               </span>
@@ -216,7 +220,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
               </li>
               <li>
                 <Link
-                  href="/search"
+                  href="/products"
                   className="text-neutral-600 hover:text-neutral-950 transition-colors inline-flex items-center gap-1"
                 >
                   <ChevronRight className="w-3 h-3 text-neutral-400" />
