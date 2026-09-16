@@ -15,6 +15,7 @@ import { ShopifyProductNode } from '../../services/shopify'
 import { ProductCardSkeleton } from './ProductCardSkeleton'
 import { useWishlist } from '../../context'
 import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
+import { useIntersectionObserver } from '../../lib/hooks/useIntersectionObserver'
 
 export interface ProductCardProps {
   /** The Shopify product data node */
@@ -60,6 +61,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [imageLoaded, setImageLoaded] = useState(false)
   const { isInWishlist, toggleWishlist } = useWishlist()
   const isSaved = product ? isInWishlist(product.id) : false
+
+  // Determine if card is initially above the fold (e.g. top 4 products get eager/priority loading)
+  const isAboveTheFold = index < 4
+
+  // Intersection observer lazily mounts off-screen product images when approaching viewport (250px margin)
+  const { ref: imageObserverRef, isIntersecting: isImageVisible } = useIntersectionObserver<HTMLDivElement>({
+    rootMargin: '250px 0px',
+    triggerOnce: true,
+    initialIsIntersecting: isAboveTheFold,
+    enabled: !isAboveTheFold,
+  })
+
+  const shouldRenderImages = isAboveTheFold || isImageVisible
 
   // If explicitly loading or product data is not yet provided, show skeleton
   if (loading || !product) {
@@ -118,7 +132,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       } ${className}`}
     >
       {/* Media Container */}
-      <div className="relative aspect-square w-full bg-neutral-100 overflow-hidden">
+      <div
+        ref={imageObserverRef}
+        className="relative aspect-square w-full bg-neutral-100 overflow-hidden"
+      >
         {/* Clickable Image Link */}
         <Link
           id={`product-card-image-link-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
@@ -135,38 +152,49 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           />
 
           {primaryImage ? (
-            <>
-              <Image
-                src={primaryImage}
-                alt={imageAlt}
-                fill
-                placeholder="blur"
-                blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
-                sizes={RESPONSIVE_IMAGE_SIZES.productGrid}
-                priority={index < 4}
-                loading={index < 4 ? 'eager' : 'lazy'}
-                quality={85}
-                className={`object-cover object-center transition-all duration-500 ease-out group-hover:scale-105 ${
-                  secondaryImage ? 'group-hover:opacity-0' : ''
-                } ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-                onLoad={() => setImageLoaded(true)}
-                referrerPolicy="no-referrer"
-              />
-              {secondaryImage && (
+            shouldRenderImages ? (
+              <>
                 <Image
-                  src={secondaryImage}
-                  alt={`${imageAlt} - Alternate view`}
+                  src={primaryImage}
+                  alt={imageAlt}
                   fill
                   placeholder="blur"
                   blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
                   sizes={RESPONSIVE_IMAGE_SIZES.productGrid}
-                  loading="lazy"
+                  priority={isAboveTheFold}
+                  loading={isAboveTheFold ? 'eager' : 'lazy'}
                   quality={85}
-                  className="object-cover object-center transition-all duration-500 ease-out opacity-0 group-hover:opacity-100 group-hover:scale-105"
+                  className={`object-cover object-center transition-all duration-500 ease-out group-hover:scale-105 ${
+                    secondaryImage ? 'group-hover:opacity-0' : ''
+                  } ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                  onLoad={() => setImageLoaded(true)}
                   referrerPolicy="no-referrer"
                 />
-              )}
-            </>
+                {secondaryImage && (
+                  <Image
+                    src={secondaryImage}
+                    alt={`${imageAlt} - Alternate view`}
+                    fill
+                    placeholder="blur"
+                    blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+                    sizes={RESPONSIVE_IMAGE_SIZES.productGrid}
+                    loading="lazy"
+                    quality={85}
+                    className="object-cover object-center transition-all duration-500 ease-out opacity-0 group-hover:opacity-100 group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+              </>
+            ) : (
+              /* Lightweight off-screen blur placeholder holding layout without network requests */
+              <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{
+                  backgroundImage: `url("${PRODUCT_IMAGE_BLUR_DATA_URL}")`,
+                }}
+                aria-hidden="true"
+              />
+            )
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-neutral-500 gap-2">
               <PackageOpen className="w-10 h-10 stroke-[1.5]" />

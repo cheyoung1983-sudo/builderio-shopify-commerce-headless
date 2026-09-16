@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { getPrice } from '@lib/shopify/storefront-data-hooks/src/utils/product'
 import Link from '@components/common/Link'
 import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '@lib/image'
+import { useIntersectionObserver } from '@lib/hooks/useIntersectionObserver'
 export { ProductCardSkeleton } from '@components/products/ProductCardSkeleton'
 
 export interface ProductCardProps {
@@ -31,6 +32,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
   imgLayout = 'responsive',
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false)
+  const isPriority = Boolean(imgPriority)
+
+  const { ref: imageObserverRef, isIntersecting } = useIntersectionObserver<HTMLDivElement>({
+    rootMargin: '250px 0px',
+    triggerOnce: true,
+    initialIsIntersecting: isPriority,
+    enabled: !isPriority,
+  })
+
+  const shouldRenderImage = isPriority || isIntersecting
 
   if (loading || !product) {
     return (
@@ -133,6 +144,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         }}
       >
         <div
+          ref={imageObserverRef}
           sx={{
             flexGrow: 1,
             aspectRatio: `${imgWidth} / ${imgHeight}`,
@@ -143,35 +155,51 @@ const ProductCard: React.FC<ProductCardProps> = ({
           }}
         >
           {image ? (
-            <>
-              {!imageLoaded && (
-                <div
-                  className="animate-shimmer"
-                  sx={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    zIndex: 1,
-                  }}
+            shouldRenderImage ? (
+              <>
+                {!imageLoaded && (
+                  <div
+                    className="animate-shimmer"
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      zIndex: 1,
+                    }}
+                  />
+                )}
+                <Image
+                  src={image.src}
+                  alt={product.title}
+                  width={imgWidth}
+                  height={imgHeight}
+                  layout={imgLayout}
+                  objectFit="cover"
+                  placeholder="blur"
+                  blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+                  priority={imgPriority}
+                  loading={imgPriority ? undefined : imgLoading}
+                  sizes={imgSizes || RESPONSIVE_IMAGE_SIZES.productGrid}
+                  onLoad={() => setImageLoaded(true)}
                 />
-              )}
-              <Image
-                src={image.src}
-                alt={product.title}
-                width={imgWidth}
-                height={imgHeight}
-                layout={imgLayout}
-                objectFit="cover"
-                placeholder="blur"
-                blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
-                priority={imgPriority}
-                loading={imgPriority ? undefined : imgLoading}
-                sizes={imgSizes || RESPONSIVE_IMAGE_SIZES.productGrid}
-                onLoad={() => setImageLoaded(true)}
+              </>
+            ) : (
+              <div
+                className="animate-shimmer"
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundImage: `url("${PRODUCT_IMAGE_BLUR_DATA_URL}")`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
               />
-            </>
+            )
           ) : (
             <div
               sx={{
