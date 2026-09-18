@@ -29,6 +29,8 @@
     "check:dependency-health": "node scripts/check-dependency-health.js",
     "check:dev-health": "node scripts/check-dev-health.js",
     "check:stale-branches": "node scripts/check-stale-branches.js",
+    "check:shopify-catalog-health": "node scripts/check-shopify-catalog-health.js",
+    "fix:shopify-catalog-health": "node scripts/check-shopify-catalog-health.js --fix",
     "diagnose:shopify": "node scripts/diagnose-shopify.js",
     "cleanup": "node scripts/cleanup-project.js",
     "deploy:dev": "node scripts/deploy.js dev",
