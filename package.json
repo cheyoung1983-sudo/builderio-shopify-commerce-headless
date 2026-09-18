@@ -130,5 +130,10 @@
     "stylelint-config-standard": "^30.0.1",
     "typescript": "^5.9.3"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "allowScripts": {
+    "preact": true,
+    "isolated-vm": true,
+    "unrs-resolver": true
+  }
 }

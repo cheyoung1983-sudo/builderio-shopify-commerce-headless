@@ -56,3 +56,4 @@ turborepo/
 # agent artifacts
 .artifacts/
 .env*
+!.env.example
