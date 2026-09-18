@@ -13,7 +13,9 @@
  *   2. getSiteUrl()'s no-request fallback hardcoded a stale domain
  *      (`https://displaycellpros.com`) that didn't match the live domain
  *      documented in CLAUDE.md (`headless.builders`), and would go stale
- *      again silently if the domain ever changes.
+ *      again silently if the domain ever changes. The same pattern turned
+ *      up again in lib/seo.ts's getBaseUrl() — not login-specific, so that
+ *      check scans the whole repo, not just the login-flow files.
  *   3. login.ts and logout.ts each had their own copy-pasted
  *      `sanitizeReturnTo()` open-redirect guard, and neither rejected the
  *      backslash trick (`/\evil.com`) some browsers normalize into a
@@ -21,11 +23,11 @@
  *
  * This script re-derives each of those checks from source instead of
  * hardcoding the "correct" answer, so it keeps working as the code evolves:
- *   - identity env vars (shop/client id) must use a throwing `required()`
- *     pattern, never a hardcoded literal fallback;
- *   - any hardcoded domain fallback must match the live domain CLAUDE.md
- *     declares ("Live at `<domain>`"), so a future domain change updates
- *     both in lockstep or this fails;
+ *   - identity env vars (shop/client id) in the login flow must use a
+ *     throwing `required()` pattern, never a hardcoded literal fallback;
+ *   - anywhere in the repo, a hardcoded domain fallback must match the live
+ *     domain CLAUDE.md declares ("Live at `<domain>`"), so a future domain
+ *     change updates both in lockstep or this fails;
  *   - a redirect/return-to sanitizer must exist in exactly one place and
  *     must reject both `//` and `\` open-redirect tricks.
  *
@@ -123,18 +125,28 @@ function getCanonicalDomain() {
   return match ? match[1] : null
 }
 
+// Repo-wide (not just the login flow) — the same stale-domain-fallback
+// pattern showed up in lib/seo.ts's getBaseUrl() too, so this isn't a
+// login-specific risk.
 function checkStaleDomainFallbacks() {
   const canonicalDomain = getCanonicalDomain()
   if (!canonicalDomain) {
     return { findings: [], skipped: 'could not find "Live at `<domain>`" in CLAUDE.md' }
   }
 
+  // Deliberately matches a *bare origin* only (scheme://host with no path),
+  // e.g. the `getSiteUrl()`/`getBaseUrl()` pattern this check exists for.
+  // A URL with a path (CDN asset, external API endpoint, etc.) is a
+  // legitimate hardcoded reference, not a stand-in for "this site's own
+  // domain", so it's intentionally not matched here.
   const URL_FALLBACK_PATTERN =
-    /(?:return\s+|(?:\|\||\?\?)\s*)['"](https?:\/\/([a-zA-Z0-9.-]+)[^'"]*)['"]/g
+    /(?:return\s+|(?:\|\||\?\?)\s*)['"](https?:\/\/([a-zA-Z0-9.-]+)\/?)['"]/g
   const findings = []
+  const files = SCAN_DIRS.flatMap((dir) => walkFiles(path.join(REPO_ROOT, dir)))
 
-  for (const file of LOGIN_FLOW_FILES) {
-    const content = read(file)
+  for (const absPath of files) {
+    const file = relPath(absPath)
+    const content = fs.readFileSync(absPath, 'utf8')
     for (const match of content.matchAll(URL_FALLBACK_PATTERN)) {
       const [, url, host] = match
       if (host === canonicalDomain || host === 'localhost') continue
