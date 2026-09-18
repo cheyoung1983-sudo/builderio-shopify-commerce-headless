@@ -33,6 +33,8 @@ jobs:
         run: npm run check:secrets
       - name: Check Customer Account API login flow health
         run: npm run check:customer-account-auth-health
+      - name: Check XSS hardening (CSP, JSON-LD, sanitized HTML)
+        run: npm run check:xss-hardening
       - name: Run accessibility lint
         run: npm run lint:a11y
       - name: Run accessibility tests (axe)
