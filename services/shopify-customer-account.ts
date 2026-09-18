@@ -28,7 +28,7 @@ export function getCustomerAccountClientId(): string {
 }
 
 export function getShopId(): string {
-  return process.env.SHOPIFY_CUSTOMER_ACCOUNT_API_SHOP_ID || '102354289012'
+  return required('SHOPIFY_CUSTOMER_ACCOUNT_API_SHOP_ID')
 }
 
 function getApiVersion(): string {
@@ -50,7 +50,24 @@ export function getSiteUrl(req?: { headers: Record<string, string | string[] | u
   if (process.env.NEXT_PUBLIC_SITE_URL) {
     return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, '')
   }
-  return 'https://displaycellpros.com'
+  return 'https://headless.builders'
+}
+
+/**
+ * Guards against open redirects: only same-site, root-relative paths are allowed.
+ * Rejects protocol-relative URLs (`//evil.com`) and backslash tricks (`/\evil.com`)
+ * that some browsers normalize into a protocol-relative URL.
+ */
+export function sanitizeReturnTo(value: unknown, fallback: string): string {
+  if (
+    typeof value !== 'string' ||
+    !value.startsWith('/') ||
+    value.startsWith('//') ||
+    value.includes('\\')
+  ) {
+    return fallback
+  }
+  return value
 }
 
 export function getCallbackUrl(req?: { headers: Record<string, string | string[] | undefined> }): string {

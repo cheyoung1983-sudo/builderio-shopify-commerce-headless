@@ -6,17 +6,11 @@ import {
   generateNonce,
   generateState,
   getCallbackUrl,
+  sanitizeReturnTo,
 } from '../../../services/shopify-customer-account'
 import { appendCookie, COOKIE, isHttpsRequest } from '../../../lib/shopify/customer-account/cookies'
 
 const PKCE_COOKIE_MAX_AGE = 600 // 10 minutes: just long enough to complete the redirect round trip
-
-function sanitizeReturnTo(value: unknown): string {
-  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) {
-    return '/account'
-  }
-  return value
-}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -24,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const challenge = generateCodeChallenge(verifier)
     const state = generateState()
     const nonce = generateNonce()
-    const returnTo = sanitizeReturnTo(req.query.returnTo)
+    const returnTo = sanitizeReturnTo(req.query.returnTo, '/account')
     const secure = isHttpsRequest(req)
 
     appendCookie(res, COOKIE.verifier, verifier, { maxAge: PKCE_COOKIE_MAX_AGE, secure })
