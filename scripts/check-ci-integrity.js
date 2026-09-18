@@ -37,6 +37,7 @@ const REQUIRED_CI_STEPS = [
   { name: 'lint (full)', pattern: /npm run lint\b(?!:)/ },
   { name: 'check:secrets', pattern: /npm run check:secrets\b/ },
   { name: 'check:customer-account-auth-health', pattern: /npm run check:customer-account-auth-health\b/ },
+  { name: 'check:xss-hardening', pattern: /npm run check:xss-hardening\b/ },
   { name: 'lint:a11y', pattern: /npm run lint:a11y\b/ },
   { name: 'test:a11y', pattern: /npm run test:a11y\b/ },
   { name: 'build', pattern: /npm run build\b/ },

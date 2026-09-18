@@ -78,13 +78,16 @@ export const SEO: React.FC<SEOProps> = ({
             <script
               key={index}
               type="application/ld+json"
-              dangerouslySetInnerHTML={{ __html: JSON.stringify(item) }}
+              // Escape "<" so a title/description containing "</script>" can't
+              // break out of this script tag (standard JSON-LD injection
+              // mitigation — matches Breadcrumbs.tsx's jsonLd script).
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(item).replace(/</g, '\\u003c') }}
             />
           ))
         ) : (
           <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
           />
         )
       )}

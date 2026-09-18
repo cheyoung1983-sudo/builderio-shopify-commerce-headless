@@ -26,6 +26,39 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               'frame-ancestors *',
+              // default-src is the fallback for any resource type not given its
+              // own directive below (e.g. worker-src, manifest-src) — this repo
+              // doesn't use any of those, so 'self' is a safe backstop.
+              "default-src 'self'",
+              // script-src: without this, script-src falls back to default-src,
+              // but a *missing* script-src previously meant NO restriction on
+              // script execution at all — the CSP did nothing to contain an XSS
+              // payload. 'self' covers Next.js's own bundled/hydration scripts
+              // (all served from /_next/static, no inline script needed for
+              // that). cdn.builder.io/builder.io/*.builder.io covers the visual
+              // editor's embed bridge script; vercel.live covers the Toolbar/
+              // Live feedback widget on preview deployments.
+              "script-src 'self' https://cdn.builder.io https://builder.io https://*.builder.io https://vercel.live",
+              // style-src: 'unsafe-inline' is required because this app uses
+              // Emotion/theme-ui (CSS-in-JS), which injects <style> tags at
+              // runtime with computed class names — there's no static nonce to
+              // pin here without a much larger Emotion-cache/nonce migration.
+              // This is a much smaller risk than the missing script-src above:
+              // inline styles can't execute arbitrary JS.
+              "style-src 'self' 'unsafe-inline'",
+              // object-src 'none': blocks <object>/<embed>/<applet> entirely —
+              // there's no legitimate use of any of them in this app, and they
+              // were an unrestricted vector under the old policy.
+              "object-src 'none'",
+              // base-uri 'self': stops an injected <base href> tag from
+              // silently rewriting where every relative URL on the page
+              // (including script/link src) resolves to.
+              "base-uri 'self'",
+              // frame-src: the Vercel Live feedback widget on preview
+              // deployments renders its UI in an iframe from vercel.live —
+              // without this, adding default-src 'self' above would silently
+              // break it (it was unrestricted before this change).
+              "frame-src 'self' https://vercel.live",
               // connect-src: covers client-side fetches — Builder.io content API
               // (builder.get() calls from the browser, e.g. Navbar's announcement
               // bar), the shopify-buy SDK talking to the Storefront API directly
