@@ -32,6 +32,7 @@ const REQUIRED_CI_STEPS = [
   { name: 'check:node-version', pattern: /npm run check:node-version\b/ },
   { name: 'check:project-health', pattern: /npm run check:project-health\b/ },
   { name: 'check:ci-integrity', pattern: /npm run check:ci-integrity\b/ },
+  { name: 'check:dependency-health', pattern: /npm run check:dependency-health\b/ },
   { name: 'typecheck', pattern: /npm run typecheck\b/ },
   { name: 'lint (full)', pattern: /npm run lint\b(?!:)/ },
   { name: 'check:secrets', pattern: /npm run check:secrets\b/ },
