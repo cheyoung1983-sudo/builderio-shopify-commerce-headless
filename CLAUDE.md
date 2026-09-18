@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A headless commerce storefront: **Next.js (Pages Router, v16)** for rendering, **Shopify Storefront API** for product/cart/checkout data, and **Builder.io** as the visual CMS driving page content. Live at `headless.builders`; this instance is configured for the `displaycellpros.myshopify.com` store.
+A headless commerce storefront: **Next.js (Pages Router, v16)** for rendering, **Shopify Storefront API** for product/cart/checkout data, and **Builder.io** as the visual CMS driving page content. Live at `www.displaycellpros.com` (verified against this repo's connected Vercel project's domain configuration — `displaycellpros.com` apex 308-redirects there); this instance is configured for the `displaycellpros.myshopify.com` store.
 
 Read `node_modules/next/dist/docs/` before writing Next.js code — this is Next 16 and APIs may differ from training data (see `AGENTS.md`).
 

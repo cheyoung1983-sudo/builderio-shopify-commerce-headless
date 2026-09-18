@@ -12,10 +12,14 @@
  *      OAuth server rather than erroring.
  *   2. getSiteUrl()'s no-request fallback hardcoded a stale domain
  *      (`https://displaycellpros.com`) that didn't match the live domain
- *      documented in CLAUDE.md (`headless.builders`), and would go stale
- *      again silently if the domain ever changes. The same pattern turned
- *      up again in lib/seo.ts's getBaseUrl() — not login-specific, so that
- *      check scans the whole repo, not just the login-flow files.
+ *      CLAUDE.md documented at the time (`headless.builders`), and would go
+ *      stale again silently if the domain ever changes. The same pattern
+ *      turned up again in lib/seo.ts's getBaseUrl() — not login-specific,
+ *      so that check scans the whole repo, not just the login-flow files.
+ *      (CLAUDE.md's own claim was itself stale — cross-checked against this
+ *      repo's connected Vercel project's actual domain configuration and
+ *      corrected to `www.displaycellpros.com`. This check trusts CLAUDE.md
+ *      as its source of truth, so keep the two in sync going forward.)
  *   3. login.ts and logout.ts each had their own copy-pasted
  *      `sanitizeReturnTo()` open-redirect guard, and neither rejected the
  *      backslash trick (`/\evil.com`) some browsers normalize into a
