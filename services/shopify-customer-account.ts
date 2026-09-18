@@ -50,7 +50,7 @@ export function getSiteUrl(req?: { headers: Record<string, string | string[] | u
   if (process.env.NEXT_PUBLIC_SITE_URL) {
     return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, '')
   }
-  return 'https://headless.builders'
+  return 'https://www.displaycellpros.com'
 }
 
 /**
