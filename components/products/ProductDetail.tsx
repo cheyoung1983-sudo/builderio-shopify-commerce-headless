@@ -36,6 +36,7 @@ import { useWishlist } from '../../context'
 import { ProductDetailSkeleton } from './ProductDetailSkeleton'
 import { Breadcrumbs } from '../common/Breadcrumbs'
 import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
+import { sanitizeRichText } from '../../lib/sanitize-html'
 
 export interface ProductDetailProps {
   /** The Shopify product handle to fetch and display */
@@ -792,7 +793,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   {product.descriptionHtml ? (
                     <div
                       className="prose prose-sm prose-neutral max-w-none text-xs text-neutral-600 [&>h2]:text-sm [&>h2]:font-bold [&>h2]:text-neutral-900 [&>h2]:mb-1.5 [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ul]:mb-2 [&>li]:mb-1 [&>strong]:text-neutral-900"
-                      dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeRichText(product.descriptionHtml) }}
                     />
                   ) : product.description ? (
                     <p>{product.description}</p>

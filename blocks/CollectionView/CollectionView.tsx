@@ -5,6 +5,7 @@ import { Box, Heading } from '@theme-ui/components'
 import shopifyConfig from '@config/shopify'
 import { ProductGrid, ProductGridProps } from '../ProductGrid/ProductGrid'
 import { getCollection } from '@lib/shopify/storefront-data-hooks/src/api/operations'
+import { sanitizeRichText } from '@lib/sanitize-html'
 
 interface Props {
   className?: string
@@ -70,7 +71,7 @@ const CollectionPreview: FC<Props> = ({
         <span sx={{ mt: 0, mb: 2 }}>
           <Heading>{collection.title}</Heading>
         </span>
-        <div dangerouslySetInnerHTML={{ __html: collection.description! }} />
+        <div dangerouslySetInnerHTML={{ __html: sanitizeRichText(collection.description!) }} />
       </div>
       <Box sx={{ p: 5 }}>
         <ProductGrid {...productGridOptions} products={products} />
