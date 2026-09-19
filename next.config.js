@@ -112,6 +112,18 @@ const nextConfig = {
     // a non-locale prefixed path e.g. `/hello`
     defaultLocale: 'en-US',
   },
+  async rewrites() {
+    return [
+      {
+        source: '/search/suggest',
+        destination: '/api/search/suggest',
+      },
+      {
+        source: '/:locale/search/suggest',
+        destination: '/api/search/suggest',
+      },
+    ]
+  },
 }
 
 module.exports = process.env.BUNDLE_ANALYZE

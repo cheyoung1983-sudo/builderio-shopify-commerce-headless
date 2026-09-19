@@ -174,10 +174,10 @@ const SearchModalContent = (props: {
               Search Results for &quot;<strong>{search}</strong>&quot; ({products.length} found)
             </Label>
             <Link
-              href={`/products?q=${encodeURIComponent(search || '')}`}
+              href={`/search?q=${encodeURIComponent(search || '')}`}
               style={{ fontSize: 13, color: '#059669', textDecoration: 'none', fontWeight: 600 }}
             >
-              View in catalog &rarr;
+              View full search results &rarr;
             </Link>
           </div>
           <ProductGrid

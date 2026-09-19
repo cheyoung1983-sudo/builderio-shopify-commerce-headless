@@ -25,6 +25,16 @@ const LazyScrollToTop = dynamic(
   { ssr: false }
 )
 
+const LazyBreadcrumbs = dynamic(
+  () => import('./components/common/Breadcrumbs'),
+  { ssr: true }
+)
+
+const LazyPredictiveSearch = dynamic(
+  () => import('./components/search/PredictiveSearch').then((mod) => mod.PredictiveSearch),
+  { ssr: true }
+)
+
 const productCardFields: Input[] = [
   { name: 'imgWidth', type: 'number', defaultValue: 540 },
   { name: 'imgHeight', type: 'number', defaultValue: 540 },
@@ -259,10 +269,76 @@ Builder.registerComponent(LazyScrollToTop, {
   ],
 })
 
+// 10. Breadcrumbs (Structured Navigation Trail)
+Builder.registerComponent(LazyBreadcrumbs, {
+  name: 'Breadcrumbs',
+  image: 'https://unpkg.com/css.gg@2.0.0/icons/svg/chevron-right.svg',
+  description: 'Breadcrumb navigation component above product listing and collection pages for SEO and navigation flow',
+  inputs: [
+    {
+      name: 'items',
+      type: 'list',
+      defaultValue: [
+        { label: 'Home', href: '/' },
+        { label: 'Products', href: '/products', isCurrent: true },
+      ],
+      subFields: [
+        { name: 'label', type: 'string', required: true },
+        { name: 'href', type: 'string' },
+        { name: 'isCurrent', type: 'boolean', defaultValue: false },
+        { name: 'count', type: 'number' },
+      ],
+    },
+    {
+      name: 'variant',
+      type: 'enum',
+      enum: ['contained', 'minimal', 'card'],
+      defaultValue: 'contained',
+      description: 'Visual presentation style for the breadcrumb bar',
+    },
+    {
+      name: 'showHomeIcon',
+      type: 'boolean',
+      defaultValue: true,
+      description: 'Display an icon for the first Home link',
+    },
+    {
+      name: 'showBackOnMobile',
+      type: 'boolean',
+      defaultValue: true,
+      description: 'Display a quick back button on narrow mobile screens',
+    },
+  ],
+})
+
+Builder.registerComponent(LazyPredictiveSearch, {
+  name: 'PredictiveSearch',
+  inputs: [
+    {
+      name: 'placeholder',
+      type: 'string',
+      defaultValue: 'Search products, brands, or syntax (e.g. vendor:Samsung, price:>50)...',
+    },
+    {
+      name: 'showSyntaxTips',
+      type: 'boolean',
+      defaultValue: true,
+      description: 'Display quick Shopify search syntax guide chips and helper',
+    },
+    {
+      name: 'compact',
+      type: 'boolean',
+      defaultValue: false,
+    },
+  ],
+})
+
 // Register insert menus
 Builder.register('insertMenu', {
   name: 'Shopify Collections Components',
   items: [
+    { name: 'Breadcrumbs' },
+    { name: 'PredictiveSearch' },
     { name: 'CollectionBox', label: 'Collection stuff' },
     { name: 'ProductCollectionGrid' },
     { name: 'CollectionView' },
@@ -272,6 +348,8 @@ Builder.register('insertMenu', {
 Builder.register('insertMenu', {
   name: 'Shopify Products Components',
   items: [
+    { name: 'Breadcrumbs' },
+    { name: 'PredictiveSearch' },
     { name: 'ProductGrid' },
     { name: 'ProductBox' },
     { name: 'ProductView' },

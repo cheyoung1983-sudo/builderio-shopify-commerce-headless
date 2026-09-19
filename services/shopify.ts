@@ -1,6 +1,7 @@
 import ShopifyBuy from 'shopify-buy'
 import shopifyConfig from '../config/shopify.ts'
 import { startLoading, stopLoading } from '../lib/progress'
+import { formatForShopifyGraphQL } from '../lib/shopify-search-syntax'
 
 /**
  * Shopify Storefront API Configuration
@@ -1230,29 +1231,60 @@ export async function fetchAllAvailableProducts(
 }
 
 /**
- * Sanitizes search terms for safe Storefront API GraphQL querying
+ * Sanitizes and formats search terms for Shopify Storefront API GraphQL querying
+ * while preserving valid Shopify search syntax (e.g. title:..., vendor:..., price:>..., AND, OR, NOT, quotes)
  */
 export function sanitizeShopifySearchTerm(term: string): string {
   if (!term) return ''
-  return term.replace(/[":\\]/g, ' ').trim()
+  const trimmed = term.trim()
+  if (!trimmed) return ''
+  return formatForShopifyGraphQL(trimmed)
 }
 
 /**
- * Searches available products via Shopify Storefront API based on user input
+ * Searches available products via Shopify Storefront API based on user input,
+ * supporting Shopify search query grammar, prefix matching, and availability filters.
  */
 export async function searchStorefrontProducts(
   searchTerm: string,
-  options: Omit<FetchAllAvailableProductsOptions, 'query'> = {}
+  options: Omit<FetchAllAvailableProductsOptions, 'query'> & {
+    prefix?: 'last' | 'none'
+    unavailable_products?: 'show' | 'hide' | 'last'
+  } = {}
 ): Promise<FetchAllAvailableProductsResult> {
   const sanitized = sanitizeShopifySearchTerm(searchTerm)
   if (!sanitized) {
     return fetchAllAvailableProducts(options)
   }
 
+  // Handle prefix: last (Shopify default: perform partial word match on last search term)
+  let effectiveQuery = sanitized
+  if (options.prefix === 'last' || options.prefix === undefined) {
+    const tokens = sanitized.split(/\s+/)
+    const lastToken = tokens[tokens.length - 1]
+    if (
+      lastToken &&
+      !lastToken.includes('*') &&
+      !lastToken.includes('"') &&
+      !lastToken.includes(':') &&
+      !['AND', 'OR', 'NOT'].includes(lastToken.toUpperCase())
+    ) {
+      tokens[tokens.length - 1] = `${lastToken}*`
+      effectiveQuery = tokens.join(' ')
+    }
+  }
+
+  const onlyAvailable =
+    options.unavailable_products === 'hide'
+      ? true
+      : options.unavailable_products === 'show'
+      ? false
+      : (options.onlyAvailable ?? true)
+
   return fetchAllAvailableProducts({
     ...options,
-    query: sanitized,
-    onlyAvailable: options.onlyAvailable ?? true,
+    query: effectiveQuery,
+    onlyAvailable,
     sortKey: options.sortKey ?? 'RELEVANCE',
     reverse: options.reverse ?? false,
   })

@@ -69,7 +69,13 @@ export default function ProductsPage({
           { label: 'Products', href: '/products' },
           { label: `Search: "${qParam}"`, isCurrent: true },
         ]
-      : [{ label: 'All Products', isCurrent: true }]),
+      : [
+          {
+            label: 'All Products',
+            isCurrent: true,
+            count: initialProducts?.length,
+          },
+        ]),
   ]
 
   const pageTitle = categoryParam
@@ -94,10 +100,13 @@ export default function ProductsPage({
 
       <main className="min-h-screen bg-neutral-50/50 py-6">
         {/* Breadcrumb Navigation above product listing */}
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-2">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
           <Breadcrumbs
             id="products-page-breadcrumbs"
             items={breadcrumbItems}
+            variant="contained"
+            showHomeIcon={true}
+            showBackOnMobile={true}
           />
         </div>
 

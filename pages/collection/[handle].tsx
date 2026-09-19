@@ -80,6 +80,8 @@ export default function Handle({
       <div className="max-w-7xl mx-auto mb-4">
         <Breadcrumbs
           id="collection-fallback-breadcrumbs"
+          variant="contained"
+          showHomeIcon={true}
           items={[
             { label: 'Home', href: '/' },
             { label: 'Products', href: '/products' },
@@ -95,10 +97,17 @@ export default function Handle({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
         <Breadcrumbs
           id="collection-page-top-breadcrumbs"
+          variant="contained"
+          showHomeIcon={true}
+          showBackOnMobile={true}
           items={[
             { label: 'Home', href: '/' },
             { label: 'Products', href: '/products' },
-            { label: collection?.title || 'Collection', isCurrent: true },
+            {
+              label: collection?.title || 'Collection',
+              isCurrent: true,
+              count: collection?.products?.length,
+            },
           ]}
         />
       </div>

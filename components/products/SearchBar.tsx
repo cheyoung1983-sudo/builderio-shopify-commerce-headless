@@ -11,6 +11,7 @@ import {
   ShopifyProductNode,
   StorefrontGraphQLError,
 } from '../../services/shopify'
+import { parseShopifySearchQuery } from '../../lib/shopify-search-syntax'
 
 export interface SearchBarProps {
   /** Placeholder text in the search input */
@@ -55,7 +56,13 @@ export interface SearchBarProps {
   reverse?: boolean
 }
 
-const DEFAULT_SUGGESTIONS = ['Galaxy S22', 'OLED', 'LCD', 'Ultra', 'Samsung']
+const DEFAULT_SUGGESTIONS = [
+  'Galaxy S22',
+  'vendor:Samsung',
+  'price:>50',
+  'tag:oled',
+  'Ultra',
+]
 
 export const SearchBar: React.FC<SearchBarProps> = ({
   placeholder = 'Search screen replacements, parts, models...',
@@ -267,6 +274,18 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Syntax Diagnostics warning banner (if malformed syntax or unclosed quotes) */}
+      {currentValue.trim() && (() => {
+        const check = parseShopifySearchQuery(currentValue)
+        if (check.warnings.length === 0) return null
+        return (
+          <div className="mt-1.5 px-3 py-1.5 text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-lg flex items-center gap-2">
+            <span className="font-semibold text-amber-900">Syntax notice:</span>
+            <span className="truncate">{check.warnings[0].message}</span>
+          </div>
+        )
+      })()}
 
       {/* Query Status / Results Indicator */}
       {activeQuery && (

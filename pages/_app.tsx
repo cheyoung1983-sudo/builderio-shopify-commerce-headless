@@ -7,6 +7,7 @@ import { builder } from '@builder.io/react'
 import builderConfig from '@config/builder'
 import { startLoading, stopLoading, forceStopLoading } from '../lib/progress'
 import { useScrollRestoration } from '../lib/scroll-restoration'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 if (builderConfig.apiKey) {
   builder.init(builderConfig.apiKey)
@@ -53,6 +54,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       <Layout pageProps={pageProps}>
         <Component {...pageProps} />
       </Layout>
+      <SpeedInsights />
     </ErrorBoundary>
   )
 }

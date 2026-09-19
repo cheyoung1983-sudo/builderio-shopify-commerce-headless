@@ -35,6 +35,7 @@ import { ProductCardSkeleton } from './ProductCardSkeleton'
 import { SearchBar } from './SearchBar'
 import { ProductFilterSidebar, FilterState } from './ProductFilterSidebar'
 import { CartContext } from '../../context/CartContext'
+import { Breadcrumbs, BreadcrumbItem } from '../common/Breadcrumbs'
 
 export interface ProductGridProps {
   /** Optional pre-fetched products (e.g. from getStaticProps / getServerSideProps) */
@@ -61,6 +62,10 @@ export interface ProductGridProps {
   productBaseUrl?: string
   /** Optional callback fired when search query changes */
   onSearchChange?: (query: string) => void
+  /** Optional custom breadcrumbs array, or auto-generated if showBreadcrumbs is true */
+  breadcrumbs?: BreadcrumbItem[]
+  /** Whether to render breadcrumb navigation above the section */
+  showBreadcrumbs?: boolean
 }
 
 export type ShopifySortOption =
@@ -137,6 +142,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   className = '',
   productBaseUrl = '/product',
   onSearchChange,
+  breadcrumbs,
+  showBreadcrumbs = false,
 }) => {
   const [baseProducts, setBaseProducts] = useState<ShopifyProductNode[]>(initialProducts || [])
   const [products, setProducts] = useState<ShopifyProductNode[]>(initialProducts || [])
@@ -508,6 +515,38 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       id="shopify-storefront-products-section"
       className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${className}`}
     >
+      {/* Breadcrumb Navigation above catalog header */}
+      {(showBreadcrumbs || breadcrumbs) && (
+        <div className="mb-6">
+          <Breadcrumbs
+            id="storefront-product-grid-breadcrumbs"
+            variant="contained"
+            showHomeIcon={true}
+            showBackOnMobile={true}
+            items={
+              breadcrumbs || [
+                { label: 'Home', href: '/' },
+                {
+                  label: 'Products',
+                  href: '/products',
+                  isCurrent:
+                    !title ||
+                    title === 'Products' ||
+                    title === 'Catalog & Screen Replacements' ||
+                    title === 'Available Products',
+                },
+                ...(title &&
+                title !== 'Products' &&
+                title !== 'Catalog & Screen Replacements' &&
+                title !== 'Available Products'
+                  ? [{ label: title, isCurrent: true, count: filteredProducts.length }]
+                  : []),
+              ]
+            }
+          />
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-neutral-200">
         <div>
