@@ -3,7 +3,7 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "regions": ["iad1", "sfo1"],
+  "regions": ["iad1"],
   "functions": {
     "pages/api/**/*.ts": {
       "memory": 1024,
