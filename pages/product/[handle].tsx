@@ -174,7 +174,13 @@ export default function Handle({
         initialProduct={storefrontProduct}
         asModal={false}
         showBreadcrumbs={false}
-        onBackToGrid={() => router.push('/products')}
+        onBackToGrid={() => {
+          if (typeof window !== 'undefined' && window.history.length > 1) {
+            router.back()
+          } else {
+            router.push('/products')
+          }
+        }}
         className="shadow-md"
       />
     </div>

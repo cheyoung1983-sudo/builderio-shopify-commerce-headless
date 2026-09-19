@@ -6,6 +6,7 @@ import ErrorBoundary from '@components/ErrorBoundary'
 import { builder } from '@builder.io/react'
 import builderConfig from '@config/builder'
 import { startLoading, stopLoading, forceStopLoading } from '../lib/progress'
+import { useScrollRestoration } from '../lib/scroll-restoration'
 
 if (builderConfig.apiKey) {
   builder.init(builderConfig.apiKey)
@@ -17,6 +18,8 @@ import '../styles/globals.css'
 import '../builder-registry'
 
 export default function MyApp({ Component, pageProps }: AppProps) {
+  useScrollRestoration()
+
   useEffect(() => {
     const handleStart = (_url: string, { shallow }: { shallow?: boolean } = {}) => {
       if (!shallow) {

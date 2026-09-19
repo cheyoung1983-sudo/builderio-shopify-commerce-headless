@@ -20,6 +20,11 @@ const LazyFAQAccordion = dynamic(
   { ssr: true }
 )
 
+const LazyScrollToTop = dynamic(
+  () => import('./components/common/ScrollToTop'),
+  { ssr: false }
+)
+
 const productCardFields: Input[] = [
   { name: 'imgWidth', type: 'number', defaultValue: 540 },
   { name: 'imgHeight', type: 'number', defaultValue: 540 },
@@ -229,6 +234,27 @@ Builder.registerComponent(LazyFAQAccordion, {
       type: 'boolean',
       defaultValue: true,
       description: 'Inject Schema.org FAQPage structured data for SEO rich snippets',
+    },
+  ],
+})
+
+// 9. ScrollToTop (Floating Back to Top Button)
+Builder.registerComponent(LazyScrollToTop, {
+  name: 'ScrollToTop',
+  image: 'https://unpkg.com/css.gg@2.0.0/icons/svg/arrow-up.svg',
+  description: 'Floating button that appears after scrolling past a threshold to smoothly return to page top',
+  inputs: [
+    {
+      name: 'fallbackThreshold',
+      type: 'number',
+      defaultValue: 350,
+      description: 'Scroll threshold distance in pixels before button appears',
+    },
+    {
+      name: 'heroElementId',
+      type: 'string',
+      defaultValue: 'hero-banner',
+      description: 'DOM element ID of the hero section to track (optional)',
     },
   ],
 })
