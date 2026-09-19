@@ -1,28 +1,40 @@
-# Next.js + Shopify + Builder.io Headless Commerce
+# DisplayCellPros Storefront
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/git/external?repository-url=https%3A%2F%2Fgithub.com%2Fbuilderio%2Fnextjs-shopify)
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/BuilderIO/nextjs-shopify)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+A headless commerce storefront for **DisplayCellPros** — **Next.js (Pages Router, v16)** for rendering, the **Shopify Storefront API** for product/cart/checkout data, and **Builder.io** as the visual CMS driving page content.
 
-A high-performance, SEO-optimized headless commerce starter kit. This template combines the power of **Next.js** for a fast frontend, **Shopify** for robust commerce logic, and **Builder.io** for a flexible Visual CMS.
+**Live at:** [www.displaycellpros.com](https://www.displaycellpros.com) — verified against this repo's connected Vercel project (`www.displaycellpros.com` canonical; `displaycellpros.com` apex 308-redirects there)
+**Shopify store:** `displaycellpros.myshopify.com`
+**Repository:** [cheyoung1983-sudo/builderio-shopify-commerce-headless](https://github.com/cheyoung1983-sudo/builderio-shopify-commerce-headless)
 
-**Demo Live at: [headless.builders](https://headless.builders/)**
+Built from Builder.io's open-source [Next.js + Shopify headless commerce template](https://github.com/BuilderIO/nextjs-shopify) ([MIT-licensed](https://github.com/BuilderIO/nextjs-shopify/blob/main/LICENSE.md)) and since customized for this store — see `CLAUDE.md` for what's changed from the upstream template.
+
+---
+
+## 📚 Documentation map
+
+This README is the short front door. The detailed, load-bearing docs live in these files — read them before making non-trivial changes:
+
+| File | What it covers |
+|---|---|
+| [`CLAUDE.md`](./CLAUDE.md) | Architecture, the two Shopify data-client layers, routing (Builder-driven catch-all vs. native pages), CSP/env-var conventions, health-check scripts |
+| [`AGENTS.md`](./AGENTS.md) | Next.js 16 breaking-change notes — read before writing Next.js code |
+| [`AGENT_WORKFLOW.md`](./AGENT_WORKFLOW.md) | Full multi-agent development protocol: worktree isolation, dependency-bump rules, merge-conflict handling, PR policy |
+| [`CONTRIBUTING.md`](./CONTRIBUTING.md) | Maintainer/agent responsibilities, PR review policy |
 
 ---
 
 ## 🚀 Key Features
 
-*   **Ultra High Performance**: Built on Next.js with optimized image loading, code splitting, and server-side rendering.
-*   **SEO Optimized**: Fully customizable metadata, automatic sitemap generation, and clean URL structures.
-*   **Visual CMS Integrated**: Drag-and-drop page building with Builder.io, allowing marketers to launch pages without developer intervention.
-*   **Personalizable**: Built-in support for internationalization, A/B testing, and dynamic content delivery.
-*   **Headless OAuth**: Secure customer account management using Shopify's Customer Account API with PKCE.
+*   **Ultra High Performance**: Next.js with optimized image loading, code splitting, and server-side rendering.
+*   **SEO Optimized**: Customizable metadata, automatic sitemap generation, clean URL structures.
+*   **Visual CMS Integrated**: Drag-and-drop page building with Builder.io — most marketing pages don't need a code change to edit.
+*   **Headless customer accounts**: Buyer authentication via Shopify's Customer Account API (OAuth 2.0 + PKCE) — see `services/shopify-customer-account.ts`.
 
 ---
 
-## 📺 Video Walkthrough
+## 📺 Background: the underlying stack
 
-Learn how to get started with this Builder + Next.js + Shopify example with this step-by-step video guide:
+This store is built on Builder.io's Next.js + Shopify starter pattern. If you're unfamiliar with how the three pieces (Next.js / Shopify / Builder.io) fit together, this walkthrough of the upstream template covers the same architecture this repo extends:
 
 <a href="https://www.youtube.com/watch?v=uIHqPu2t1O0">
   <img width="600" src="https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2Fc161ccb26f6446869cba865d014c7caf" alt="Next.js Shopify Walkthrough Video" />
@@ -34,64 +46,40 @@ Learn how to get started with this Builder + Next.js + Shopify example with this
 
 ### Prerequisites
 
-*   **Node.js**: `>=22.x` (See [`.nvmrc`](./.nvmrc))
+*   **Node.js**: `24.x` (see [`.nvmrc`](./.nvmrc) — must match `package.json`'s `engines.node` and CI, enforced by `npm run check:node-version`)
 *   **NPM**: `>=8.x`
-*   **Shopify Account**: An active Shopify store and partner account.
-*   **Builder.io Account**: [Create one here](https://builder.io/signup).
+*   Access to the **`displaycellpros.myshopify.com`** Shopify Partner/Admin account (for the Storefront API token and Customer Account API client credentials)
+*   Access to the Builder.io organization backing this space
 
-### 1. Initialize Builder.io
-
-1.  **Get Private Key**: Visit [Organization Settings](https://builder.io/account/organization) and copy your private key.
-2.  **Run CLI**:
-    ```bash
-    # Install Builder CLI
-    npm install --global "@builder.io/cli"
-
-    # Create your space
-    builder create --key "<private-key>" --name "<space-name>" --debug
-    ```
-    *Note: This will output a **Public API Key**. Copy it for step 3.*
-
-### 2. Configure Shopify
-
-1.  **Create Custom App**: In Shopify Admin > Settings > Apps and sales channels > Develop apps.
-2.  **Enable Storefront API**: Grant all permissions under `Storefront API` configuration.
-3.  **Customer Account API**: Enable headless OAuth 2.0 with PKCE in your Shopify Partner dashboard or Admin settings.
-
-### 3. Environment Setup
-
-Create a `.env.local` file by copying [`.env.example`](./.env.example):
+### 1. Environment setup
 
 ```bash
 cp .env.example .env.local
 ```
 
-Update the following variables in `.env.local`:
-*   `BUILDER_PUBLIC_KEY`: Your Builder Public API Key.
-*   `SHOPIFY_STORE_DOMAIN`: `your-store.myshopify.com`.
-*   `SHOPIFY_STOREFRONT_API_TOKEN`: Your Shopify Storefront Access Token.
-*   `SHOPIFY_CUSTOMER_ACCOUNT_API_CLIENT_ID`: Required for buyer authentication.
+`.env.example` already documents every variable and, where safe, pre-fills this store's own non-secret identifiers (`SHOPIFY_STORE_DOMAIN`, `SHOPIFY_CUSTOMER_ACCOUNT_API_SHOP_ID`). You still need to fill in, at minimum:
 
----
+*   `BUILDER_PUBLIC_KEY` / `NEXT_PUBLIC_BUILDER_PUBLIC_KEY` — from this store's Builder.io space.
+*   `SHOPIFY_STOREFRONT_API_TOKEN` (server-side) and/or `NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN` (public, browser-exposed — never a private `shpat_`/`shpua_` token here).
+*   `SHOPIFY_CUSTOMER_ACCOUNT_API_CLIENT_ID` — required for buyer sign-in; `getShopId()`/`getCustomerAccountClientId()` throw loudly if either this or the shop ID is missing, by design.
+*   `NEXT_PUBLIC_SITE_URL` — for local dev, `http://localhost:3000`; in production this should be `https://www.displaycellpros.com` (the OAuth redirect URI and SEO base URL fall back to that domain automatically if unset — see `services/shopify-customer-account.ts#getSiteUrl` and `lib/seo.ts#getBaseUrl`).
 
-## 🏗️ Development
+### 2. Install and run
 
 ```bash
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
-The app will be running at `http://localhost:3000`.
+The app runs at `http://localhost:3000`.
 
 ### Scripts
 
-*   `npm run build`: Production build and health checks.
-*   `npm run lint`: Run ESLint checks.
-*   `npm run typecheck`: Run TypeScript compiler checks.
-*   `npm run check:project-health`: Run internal consistency and security audits.
+See `CLAUDE.md`'s "Commands" section for the full list (typecheck, lint, a11y tests, the Shopify-catalog health check, etc.). The essentials:
+
+*   `npm run dev` — local dev server
+*   `npm run build` — runs `precheck` (node-version, CI-integrity, dependency-health, typecheck, lint, secret scan, customer-account-auth-health), then `next build`
+*   `npm run precheck && npm run test:a11y && npm run build` — the full suite to run before opening a PR (see `AGENT_WORKFLOW.md` → Validation)
 
 ---
 
@@ -99,25 +87,39 @@ The app will be running at `http://localhost:3000`.
 
 ```text
 ├── components/     # React UI components (Cart, Modal, Product, etc.)
-├── pages/          # Next.js routes (Headless routes via [[...path]])
+├── pages/          # Next.js routes — Builder-driven catch-all ([[...path]].tsx) + native pages
+│   └── api/account/   # Customer Account API OAuth flow (login/callback/logout)
 ├── services/       # API clients (Shopify Storefront, Admin, Customer Account)
-├── lib/            # Shared utilities and Shopify data hooks
-├── config/         # App configuration (SEO, Theme, Builder)
+├── lib/            # Shared utilities and the older Shopify data-hooks layer
+├── config/         # App configuration (SEO, Theme, Builder, Shopify env resolution)
+├── scripts/        # Health-check scripts backing `npm run check:*` and CI
 └── public/         # Static assets
 ```
+
+---
+
+## 🤝 Multi-agent development
+
+This repo is developed by multiple isolated agents working in separate branches, integrated via pull request by the maintainer. Before starting work, read `AGENT_WORKFLOW.md` in full — key rules:
+
+*   Check for other branches already touching the same files before starting.
+*   Never push to a branch after its PR has merged — open a new branch instead.
+*   Don't self-merge agent-authored PRs.
+*   Fix the cause of a failing check; don't weaken or remove the check.
 
 ---
 
 ## 🔒 Security & Best Practices
 
 > [!IMPORTANT]
-> **Never commit your `.env` or `.env.local` files.** This project includes a [`.gitignore`](./.gitignore) that excludes them by default.
+> **Never commit your `.env` or `.env.local` files.** [`.gitignore`](./.gitignore) excludes them by default.
 
-*   **Secrets Check**: Run `npm run check:secrets` to scan for hardcoded credentials.
-*   **Web Bot Authentication**: If experiencing crawler blocks, configure the `HTTP-Crawler-Access` signature as detailed in your Shopify settings.
+*   **Secrets check**: `npm run check:secrets` scans for hardcoded credentials and fallback literals baked in for sensitive env vars.
+*   **Customer Account API login flow check**: `npm run check:customer-account-auth-health` guards the OAuth/PKCE login flow specifically (identity-env fallbacks, domain drift, open-redirect sanitizer completeness).
+*   **Web Bot Authentication**: if you see crawler blocks, configure the `HTTP-Crawler-Access` signature as detailed in Shopify's settings.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE.md](./LICENSE.md) file for details.
+This repository was forked from an MIT-licensed template, but **no `LICENSE` file exists in this repo** and its actual terms for this specific store's code haven't been established. Don't assume MIT applies here — confirm the intended license with the repository owner before reusing or redistributing this code, or add a `LICENSE` file to make it explicit.

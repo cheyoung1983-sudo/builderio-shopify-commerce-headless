@@ -148,7 +148,7 @@ export const ScrollProgressBar: React.FC<ScrollProgressBarProps> = ({
         >
           {/* Luminous Glow Dot at the leading tip */}
           {scrollProgress > 0 && scrollProgress < 100 && (
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary-400 opacity-80 blur-[2px] shadow-[0_0_8px_#e05332]" />
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary-400 opacity-80 blur-[2px] shadow-[0_0_8px_#059669]" />
           )}
         </div>
       </div>

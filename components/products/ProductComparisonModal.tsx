@@ -18,6 +18,7 @@ import {
 import { ShopifyProductNode } from '../../services/shopify'
 import { CartContext } from '../../context/CartContext'
 import { useUniqueId } from '../../hooks/useUniqueId'
+import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
 
 export interface ProductComparisonModalProps {
   products: ShopifyProductNode[]
@@ -287,7 +288,11 @@ export const ProductComparisonModal: React.FC<ProductComparisonModalProps> = ({
                                 src={currentImg}
                                 alt={product.title}
                                 fill
-                                sizes="(max-width: 768px) 33vw, 25vw"
+                                placeholder="blur"
+                                blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+                                sizes={RESPONSIVE_IMAGE_SIZES.comparisonSlot}
+                                loading="lazy"
+                                quality={85}
                                 className="object-cover object-center group-hover:scale-105 transition-transform duration-300"
                                 referrerPolicy="no-referrer"
                               />
@@ -322,6 +327,9 @@ export const ProductComparisonModal: React.FC<ProductComparisonModalProps> = ({
                                       alt=""
                                       width={24}
                                       height={24}
+                                      placeholder="blur"
+                                      blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+                                      sizes="24px"
                                       className="object-cover w-full h-full"
                                       referrerPolicy="no-referrer"
                                     />

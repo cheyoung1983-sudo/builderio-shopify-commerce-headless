@@ -1,6 +1,6 @@
 import React from 'react'
 import type { GetStaticPropsContext, InferGetStaticPropsType } from 'next'
-import Head from 'next/head'
+import { DynamicSEO } from '../components/common/DynamicSEO'
 import { getLayoutProps } from '../lib/get-layout-props'
 import { TrendsHub } from '../components/trends/TrendsHub'
 import { Breadcrumbs } from '../components/common/Breadcrumbs'
@@ -19,32 +19,24 @@ export async function getStaticProps(context: GetStaticPropsContext) {
 export default function TrendsPage(
   props: InferGetStaticPropsType<typeof getStaticProps>
 ) {
+  const breadcrumbItems = [
+    { label: 'Home', href: '/' },
+    { label: 'Design Trends 2026', isCurrent: true },
+  ]
+
   return (
     <>
-      <Head>
-        <title>Modern Web Development Styles & Trends 2026 | DisplayCellPros</title>
-        <meta
-          name="description"
-          content="Explore five defining web development styles and trends: Barely There UI, Tactile Maximalism, Nature Distilled, Agentic AI Interfaces, and Immersive 3D Glassmorphism 2.0 with Figma and Wix research insights."
-        />
-        <meta
-          property="og:title"
-          content="Modern Web Development Styles & Trends 2026"
-        />
-        <meta
-          property="og:description"
-          content="Explore cutting-edge styles blending high-performance engineering with human-centric design."
-        />
-      </Head>
+      <DynamicSEO
+        title="Modern Web Development Styles & Trends 2026 | DisplayCellPros"
+        description="Explore five defining web development styles and trends: Barely There UI, Tactile Maximalism, Nature Distilled, Agentic AI Interfaces, and Immersive 3D Glassmorphism 2.0."
+        breadcrumbs={breadcrumbItems}
+      />
 
       <div className="min-h-screen bg-canvas py-4 sm:py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
           <Breadcrumbs
             id="trends-page-breadcrumbs"
-            items={[
-              { label: 'Home', href: '/' },
-              { label: 'Design Styles & Trends', isCurrent: true },
-            ]}
+            items={breadcrumbItems}
           />
         </div>
 

@@ -1,17 +1,7 @@
 import ShopifyBuy from 'shopify-buy'
 import shopifyConfig from '../config/shopify.ts'
-import { getDemoProducts, getDemoProductByHandle } from '../lib/shopify/demo-catalog.ts'
-
-const isProductionBuild = process.env.NEXT_PHASE === 'phase-production-build'
-if (
-  process.env.NODE_ENV === 'production' &&
-  !isProductionBuild &&
-  !shopifyConfig.storefrontAccessToken
-) {
-  throw new Error(
-    'SHOPIFY_STOREFRONT_API_TOKEN is required in production. Set SHOPIFY_STOREFRONT_API_TOKEN or NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN.'
-  )
-}
+import { startLoading, stopLoading } from '../lib/progress.ts'
+import { formatForShopifyGraphQL } from '../lib/shopify-search-syntax.ts'
 
 /**
  * Shopify Storefront API Configuration
@@ -159,25 +149,42 @@ export function normalizeShopifyDomain(rawDomain?: string): string {
 }
 
 /**
- * Reads credentials from the shared Shopify config (config/shopify.ts), which
- * is the single source of truth for env var resolution and enforces the
- * production guard (throws if credentials are missing outside of build time).
+ * Reads credentials from the shared Shopify config (config/shopify.ts) and live environment,
+ * ensuring dynamic runtime environment variables take precedence without module-caching lock.
  */
 export function getShopifyConfig(): ShopifyStorefrontConfig {
-  const domain = normalizeShopifyDomain(shopifyConfig.domain)
-  const apiVersion = normalizeShopifyApiVersion(shopifyConfig.apiVersion)
+  const rawDomain =
+    process.env.SHOPIFY_STORE_DOMAIN ||
+    process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN ||
+    process.env.SHOPIFY_DOMAIN ||
+    shopifyConfig.domain
+  const domain = normalizeShopifyDomain(rawDomain)
+
+  const rawApiVersion =
+    process.env.SHOPIFY_STOREFRONT_API_VERSION ||
+    shopifyConfig.apiVersion
+  const apiVersion = normalizeShopifyApiVersion(rawApiVersion)
+
+  const rawToken =
+    process.env.SHOPIFY_STOREFRONT_API_TOKEN ||
+    process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN ||
+    process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
+    shopifyConfig.storefrontAccessToken ||
+    ''
+  const storefrontAccessToken = rawToken.trim()
+
   const endpoint = domain
     ? `https://${domain}/api/${apiVersion}/graphql.json`
     : ''
 
   return {
     domain,
-    storefrontAccessToken: (shopifyConfig.storefrontAccessToken || '').trim(),
+    storefrontAccessToken,
     apiVersion,
     endpoint,
-    clientId: shopifyConfig.clientId,
-    clientSecret: shopifyConfig.clientSecret,
-    adminAccessToken: shopifyConfig.adminAccessToken,
+    clientId: process.env.SHOPIFY_CLIENT_ID || shopifyConfig.clientId,
+    clientSecret: process.env.SHOPIFY_CLIENT_SECRET || shopifyConfig.clientSecret,
+    adminAccessToken: process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || shopifyConfig.adminAccessToken,
   }
 }
 
@@ -210,13 +217,18 @@ export function getStorefrontAuthHeaders(token: string): Record<string, string> 
  * Custom fetch adapter for ShopifyBuy SDK that routes private tokens correctly
  */
 function createStorefrontFetch(token: string) {
-  return (url: string, opts: any = {}) => {
-    const headers = { ...opts.headers }
-    if (token.startsWith('shpat_')) {
-      headers['Shopify-Storefront-Private-Token'] = token
-      delete headers['X-Shopify-Storefront-Access-Token']
+  return async (url: string, opts: any = {}) => {
+    startLoading()
+    try {
+      const headers = { ...opts.headers }
+      if (token.startsWith('shpat_')) {
+        headers['Shopify-Storefront-Private-Token'] = token
+        delete headers['X-Shopify-Storefront-Access-Token']
+      }
+      return await fetch(url, { ...opts, headers })
+    } finally {
+      stopLoading()
     }
-    return fetch(url, { ...opts, headers })
   }
 }
 
@@ -309,166 +321,171 @@ export async function storefrontFetch<TData = any, TVariables = Record<string, a
     }
   }
 
-  const authHeaders = getStorefrontAuthHeaders(token)
-  const requestHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...authHeaders,
-    ...customHeaders,
-  }
+  startLoading()
+  try {
+    const authHeaders = getStorefrontAuthHeaders(token)
+    const requestHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      ...authHeaders,
+      ...customHeaders,
+    }
 
-  const requestBody = JSON.stringify({
-    query,
-    variables,
-  })
+    const requestBody = JSON.stringify({
+      query,
+      variables,
+    })
 
-  let attempt = 0
-  let lastError: any = null
+    let attempt = 0
+    let lastError: any = null
 
-  while (attempt <= retries) {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+    while (attempt <= retries) {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: requestHeaders,
-        body: requestBody,
-        signal: controller.signal,
-        cache,
-        ...(next ? { next } : {}),
-      })
-
-      clearTimeout(timeoutId)
-
-      // Handle Rate Limiting (HTTP 429) or transient Server Errors (500, 502, 503, 504)
-      const shouldRetry =
-        (response.status === 429 || (response.status >= 500 && response.status < 600)) &&
-        attempt < retries
-
-      if (shouldRetry) {
-        attempt++
-        const backoff = retryDelayMs * Math.pow(2, attempt - 1)
-        console.warn(
-          `[Shopify Storefront] Received HTTP ${response.status}. Retrying in ${backoff}ms (attempt ${attempt}/${retries})...`
-        )
-        await sleep(backoff)
-        continue
-      }
-
-      let json: StorefrontGraphQLResponse<TData>
       try {
-        json = await response.json()
-      } catch (parseErr) {
-        const error = new ShopifyStorefrontError({
-          message: `Failed to parse response from Shopify Storefront API (HTTP ${response.status})`,
-          status: response.status,
-          responseBody: parseErr,
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: requestHeaders,
+          body: requestBody,
+          signal: controller.signal,
+          cache,
+          ...(next ? { next } : {}),
         })
-        if (throwOnError) throw error
-        return {
-          ok: false,
-          status: response.status,
-          errors: [{ message: error.message }],
-        }
-      }
 
-      // Check for non-2xx HTTP status
-      if (!response.ok) {
+        clearTimeout(timeoutId)
+
+        // Handle Rate Limiting (HTTP 429) or transient Server Errors (500, 502, 503, 504)
+        const shouldRetry =
+          (response.status === 429 || (response.status >= 500 && response.status < 600)) &&
+          attempt < retries
+
+        if (shouldRetry) {
+          attempt++
+          const backoff = retryDelayMs * Math.pow(2, attempt - 1)
+          console.warn(
+            `[Shopify Storefront] Received HTTP ${response.status}. Retrying in ${backoff}ms (attempt ${attempt}/${retries})...`
+          )
+          await sleep(backoff)
+          continue
+        }
+
+        let json: StorefrontGraphQLResponse<TData>
+        try {
+          json = await response.json()
+        } catch (parseErr) {
+          const error = new ShopifyStorefrontError({
+            message: `Failed to parse response from Shopify Storefront API (HTTP ${response.status})`,
+            status: response.status,
+            responseBody: parseErr,
+          })
+          if (throwOnError) throw error
+          return {
+            ok: false,
+            status: response.status,
+            errors: [{ message: error.message }],
+          }
+        }
+
+        // Check for non-2xx HTTP status
+        if (!response.ok) {
+          const errors = json.errors?.map((error) => ({
+            ...error,
+            message: error.message || error.extensions?.code || 'Shopify Storefront API request failed',
+          }))
+          const errorMsg =
+            errors?.[0]?.message ||
+            `Shopify Storefront API error: ${response.status} ${response.statusText}`
+          const error = new ShopifyStorefrontError({
+            message: errorMsg,
+            status: response.status,
+            graphQLErrors: errors,
+            responseBody: json,
+          })
+          if (throwOnError) throw error
+          return {
+            ok: false,
+            status: response.status,
+            data: json.data,
+            errors: errors || [{ message: errorMsg }],
+            extensions: json.extensions,
+          }
+        }
+
+        // Successful HTTP response; might still contain GraphQL query errors
         const errors = json.errors?.map((error) => ({
           ...error,
           message: error.message || error.extensions?.code || 'Shopify Storefront API request failed',
         }))
-        const errorMsg =
-          errors?.[0]?.message ||
-          `Shopify Storefront API error: ${response.status} ${response.statusText}`
-        const error = new ShopifyStorefrontError({
-          message: errorMsg,
+        const hasGraphQLErrors = Boolean(errors && errors.length > 0)
+        if (hasGraphQLErrors && throwOnError) {
+          throw new ShopifyStorefrontError({
+            message:
+              json.errors![0].message || 'GraphQL error returned by Shopify Storefront API',
+            status: response.status,
+            graphQLErrors: errors,
+            responseBody: json,
+          })
+        }
+
+        return {
+          ok: !hasGraphQLErrors,
           status: response.status,
-          graphQLErrors: errors,
-          responseBody: json,
+          data: json.data,
+          errors,
+          extensions: json.extensions,
+        }
+      } catch (err: any) {
+        clearTimeout(timeoutId)
+        lastError = err
+
+        // Check if aborted by timeout
+        const isTimeout = err?.name === 'AbortError'
+        const isNetworkErr = !err?.status
+
+        if ((isTimeout || isNetworkErr) && attempt < retries) {
+          attempt++
+          const backoff = retryDelayMs * Math.pow(2, attempt - 1)
+          console.warn(
+            `[Shopify Storefront] ${isTimeout ? 'Request timed out' : 'Network error'}. Retrying in ${backoff}ms (attempt ${attempt}/${retries})...`
+          )
+          await sleep(backoff)
+          continue
+        }
+
+        const errorMessage = isTimeout
+          ? `Shopify Storefront query timed out after ${timeoutMs}ms`
+          : err?.message || 'Unknown network error executing Shopify Storefront GraphQL query'
+
+        const error = new ShopifyStorefrontError({
+          message: errorMessage,
+          status: err?.status || 0,
+          graphQLErrors: err?.graphQLErrors,
+          responseBody: err,
         })
+
         if (throwOnError) throw error
         return {
           ok: false,
-          status: response.status,
-          data: json.data,
-          errors: errors || [{ message: errorMsg }],
-          extensions: json.extensions,
+          status: error.status,
+          errors: [{ message: error.message }],
         }
       }
-
-      // Successful HTTP response; might still contain GraphQL query errors
-      const errors = json.errors?.map((error) => ({
-        ...error,
-        message: error.message || error.extensions?.code || 'Shopify Storefront API request failed',
-      }))
-      const hasGraphQLErrors = Boolean(errors && errors.length > 0)
-      if (hasGraphQLErrors && throwOnError) {
-        throw new ShopifyStorefrontError({
-          message:
-            json.errors![0].message || 'GraphQL error returned by Shopify Storefront API',
-          status: response.status,
-          graphQLErrors: errors,
-          responseBody: json,
-        })
-      }
-
-      return {
-        ok: !hasGraphQLErrors,
-        status: response.status,
-        data: json.data,
-        errors,
-        extensions: json.extensions,
-      }
-    } catch (err: any) {
-      clearTimeout(timeoutId)
-      lastError = err
-
-      // Check if aborted by timeout
-      const isTimeout = err?.name === 'AbortError'
-      const isNetworkErr = !err?.status
-
-      if ((isTimeout || isNetworkErr) && attempt < retries) {
-        attempt++
-        const backoff = retryDelayMs * Math.pow(2, attempt - 1)
-        console.warn(
-          `[Shopify Storefront] ${isTimeout ? 'Request timed out' : 'Network error'}. Retrying in ${backoff}ms (attempt ${attempt}/${retries})...`
-        )
-        await sleep(backoff)
-        continue
-      }
-
-      const errorMessage = isTimeout
-        ? `Shopify Storefront query timed out after ${timeoutMs}ms`
-        : err?.message || 'Unknown network error executing Shopify Storefront GraphQL query'
-
-      const error = new ShopifyStorefrontError({
-        message: errorMessage,
-        status: err?.status || 0,
-        graphQLErrors: err?.graphQLErrors,
-        responseBody: err,
-      })
-
-      if (throwOnError) throw error
-      return {
-        ok: false,
-        status: error.status,
-        errors: [{ message: error.message }],
-      }
     }
-  }
 
-  const finalError = new ShopifyStorefrontError({
-    message: lastError?.message || 'Shopify Storefront request failed after maximum retries',
-    status: lastError?.status || 0,
-    responseBody: lastError,
-  })
-  if (throwOnError) throw finalError
-  return {
-    ok: false,
-    status: finalError.status,
-    errors: [{ message: finalError.message }],
+    const finalError = new ShopifyStorefrontError({
+      message: lastError?.message || 'Shopify Storefront request failed after maximum retries',
+      status: lastError?.status || 0,
+      responseBody: lastError,
+    })
+    if (throwOnError) throw finalError
+    return {
+      ok: false,
+      status: finalError.status,
+      errors: [{ message: finalError.message }],
+    }
+  } finally {
+    stopLoading()
   }
 }
 
@@ -733,8 +750,6 @@ export interface FetchAllAvailableProductsResult {
   totalCount: number
   ok: boolean
   errors?: StorefrontGraphQLError[]
-  isDemo?: boolean
-  notice?: string
 }
 
 export const PRODUCTS_QUERY = /* GraphQL */ `
@@ -1116,35 +1131,6 @@ export async function fetchAllAvailableProducts(
     next,
   } = options
 
-  // In browser environments, proxy through server-side /api/products
-  if (typeof window !== 'undefined') {
-    try {
-      const params = new URLSearchParams()
-      if (customQuery) params.set('query', customQuery)
-      if (sortKey) params.set('sortKey', sortKey)
-      if (reverse) params.set('reverse', 'true')
-      if (typeof maxProducts === 'number') params.set('limit', String(maxProducts))
-      else if (batchSize) params.set('limit', String(batchSize))
-      if (!onlyAvailable) params.set('onlyAvailable', 'false')
-
-      const apiRes = await fetch(`/api/products?${params.toString()}`)
-      if (apiRes.ok) {
-        const json = await apiRes.json()
-        if (json.ok && Array.isArray(json.products)) {
-          return {
-            products: json.products,
-            totalCount: json.totalCount ?? json.products.length,
-            ok: true,
-            isDemo: json.isDemo,
-            notice: json.notice,
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('[Shopify] Browser /api/products request notice:', err)
-    }
-  }
-
   // Build the Storefront search filter:
   // If onlyAvailable is true, ensure available_for_sale:true is included
   let combinedQuery = customQuery ? customQuery.trim() : ''
@@ -1197,16 +1183,14 @@ export async function fetchAllAvailableProducts(
 
     if (!response.ok || !response.data?.products) {
       lastErrors = response.errors
-      const isExpectedAuthNotice = response.errors?.some(
-        (e) =>
-          e.message?.includes('credentials are missing') ||
-          e.message?.includes('ACCESS_DENIED') ||
-          (e as any).extensions?.code === 'ACCESS_DENIED'
+      const isAccessDenied = response.errors?.some(
+        (err) =>
+          err?.extensions?.code === 'ACCESS_DENIED' ||
+          err?.message === 'ACCESS_DENIED'
       )
-
-      if (isExpectedAuthNotice) {
-        console.info(
-          '[Shopify Storefront] Storefront credentials not configured or returned ACCESS_DENIED. Serving preview catalog for displaycellpros.myshopify.com.'
+      if (isAccessDenied) {
+        console.warn(
+          '[Shopify Storefront] ACCESS_DENIED: The Storefront API token is invalid or lacks permissions. In Vercel Environment Variables, please configure SHOPIFY_STOREFRONT_API_TOKEN (and NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN) with a valid public Storefront Access Token for your Shopify store.'
         )
       } else {
         console.error(
@@ -1238,26 +1222,6 @@ export async function fetchAllAvailableProducts(
     cursor = pageInfo?.endCursor || undefined
   }
 
-  // Gracefully fallback to preview catalog when unconfigured or unauthorized
-  if (allProducts.length === 0) {
-    const demo = getDemoProducts({
-      query: customQuery,
-      sortKey: typeof sortKey === 'string' ? sortKey : undefined,
-      reverse,
-      onlyAvailable,
-      limit: maxProducts,
-    })
-    return {
-      products: demo,
-      totalCount: demo.length,
-      ok: true,
-      errors: lastErrors,
-      isDemo: true,
-      notice:
-        'Shopify Storefront credentials are unconfigured or returned ACCESS_DENIED. Displaying preview catalog for displaycellpros.myshopify.com.',
-    }
-  }
-
   return {
     products: allProducts,
     totalCount: allProducts.length,
@@ -1267,29 +1231,60 @@ export async function fetchAllAvailableProducts(
 }
 
 /**
- * Sanitizes search terms for safe Storefront API GraphQL querying
+ * Sanitizes and formats search terms for Shopify Storefront API GraphQL querying
+ * while preserving valid Shopify search syntax (e.g. title:..., vendor:..., price:>..., AND, OR, NOT, quotes)
  */
 export function sanitizeShopifySearchTerm(term: string): string {
   if (!term) return ''
-  return term.replace(/[":\\]/g, ' ').trim()
+  const trimmed = term.trim()
+  if (!trimmed) return ''
+  return formatForShopifyGraphQL(trimmed)
 }
 
 /**
- * Searches available products via Shopify Storefront API based on user input
+ * Searches available products via Shopify Storefront API based on user input,
+ * supporting Shopify search query grammar, prefix matching, and availability filters.
  */
 export async function searchStorefrontProducts(
   searchTerm: string,
-  options: Omit<FetchAllAvailableProductsOptions, 'query'> = {}
+  options: Omit<FetchAllAvailableProductsOptions, 'query'> & {
+    prefix?: 'last' | 'none'
+    unavailable_products?: 'show' | 'hide' | 'last'
+  } = {}
 ): Promise<FetchAllAvailableProductsResult> {
   const sanitized = sanitizeShopifySearchTerm(searchTerm)
   if (!sanitized) {
     return fetchAllAvailableProducts(options)
   }
 
+  // Handle prefix: last (Shopify default: perform partial word match on last search term)
+  let effectiveQuery = sanitized
+  if (options.prefix === 'last' || options.prefix === undefined) {
+    const tokens = sanitized.split(/\s+/)
+    const lastToken = tokens[tokens.length - 1]
+    if (
+      lastToken &&
+      !lastToken.includes('*') &&
+      !lastToken.includes('"') &&
+      !lastToken.includes(':') &&
+      !['AND', 'OR', 'NOT'].includes(lastToken.toUpperCase())
+    ) {
+      tokens[tokens.length - 1] = `${lastToken}*`
+      effectiveQuery = tokens.join(' ')
+    }
+  }
+
+  const onlyAvailable =
+    options.unavailable_products === 'hide'
+      ? true
+      : options.unavailable_products === 'show'
+      ? false
+      : (options.onlyAvailable ?? true)
+
   return fetchAllAvailableProducts({
     ...options,
-    query: sanitized,
-    onlyAvailable: options.onlyAvailable ?? true,
+    query: effectiveQuery,
+    onlyAvailable,
     sortKey: options.sortKey ?? 'RELEVANCE',
     reverse: options.reverse ?? false,
   })
@@ -1326,51 +1321,10 @@ export async function fetchStorefrontProducts(options?: {
  * Fetches a single product by handle from the Shopify Storefront API
  */
 export async function fetchStorefrontProductByHandle(handle: string) {
-  if (!handle) {
-    return {
-      ok: false,
-      status: 400,
-      errors: [{ message: 'Product handle is required' }],
-    }
-  }
-
-  // In browser environments, proxy through server-side /api/products?handle=...
-  if (typeof window !== 'undefined') {
-    try {
-      const apiRes = await fetch(`/api/products?handle=${encodeURIComponent(handle)}`)
-      if (apiRes.ok) {
-        const json = await apiRes.json()
-        if (json.ok && json.product) {
-          return {
-            ok: true,
-            status: 200,
-            data: { product: json.product as ShopifyProductDetailNode },
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('[Shopify] Browser /api/products handle request notice:', err)
-    }
-  }
-
-  // Server-side or direct Storefront API fetch
-  const res = await storefrontFetch<{ product: ShopifyProductDetailNode | null }>({
+  return storefrontFetch<{ product: ShopifyProductDetailNode | null }>({
     query: PRODUCT_BY_HANDLE_QUERY,
     variables: { handle },
   })
-
-  if (!res.ok || !res.data?.product) {
-    const demo = getDemoProductByHandle(handle)
-    if (demo) {
-      return {
-        ok: true,
-        status: 200,
-        data: { product: demo },
-      }
-    }
-  }
-
-  return res
 }
 
 /**

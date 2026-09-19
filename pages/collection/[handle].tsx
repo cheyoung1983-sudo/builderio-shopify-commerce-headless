@@ -15,6 +15,9 @@ import {
 import Head from 'next/head'
 import { useThemeUI } from '@theme-ui/core'
 import { getLayoutProps } from '@lib/get-layout-props'
+import { Breadcrumbs } from '../../components/common/Breadcrumbs'
+import { ProductGrid } from '../../components/products/ProductGrid'
+import DynamicSEO from '../../components/DynamicSEO'
 
 if (builderConfig.apiKey) {
   builder.init(builderConfig.apiKey)
@@ -73,14 +76,57 @@ export default function Handle({
   }
 
   return router.isFallback && isLive ? (
-    <h1>Loading...</h1>
+    <div className="min-h-screen bg-neutral-50/50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto mb-4">
+        <Breadcrumbs
+          id="collection-fallback-breadcrumbs"
+          variant="contained"
+          showHomeIcon={true}
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Products', href: '/products' },
+            { label: 'Loading collection...', isCurrent: true },
+          ]}
+        />
+      </div>
+      <h1 className="text-xl font-semibold text-neutral-600">Loading collection...</h1>
+    </div>
   ) : (
-    <BuilderComponent
-      key={collection?.id || 'collection'}
-      options={{ enrich: true }}
-      model={builderModel}
-      data={{ collection, theme }}
-      content={page}
-    />
+    <div className="min-h-screen bg-neutral-50/50 py-6">
+      <DynamicSEO collection={collection} />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+        <Breadcrumbs
+          id="collection-page-top-breadcrumbs"
+          variant="contained"
+          showHomeIcon={true}
+          showBackOnMobile={true}
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Products', href: '/products' },
+            {
+              label: collection?.title || 'Collection',
+              isCurrent: true,
+              count: collection?.products?.length,
+            },
+          ]}
+        />
+      </div>
+      {page ? (
+        <BuilderComponent
+          key={collection?.id || 'collection'}
+          options={{ enrich: true }}
+          model={builderModel}
+          data={{ collection, theme }}
+          content={page}
+        />
+      ) : (
+        <ProductGrid
+          initialProducts={collection?.products || []}
+          title={collection?.title || 'Collection Products'}
+          subtitle={collection?.description || `Browse items in ${collection?.title || 'this collection'}.`}
+          showControls={true}
+        />
+      )}
+    </div>
   )
 }

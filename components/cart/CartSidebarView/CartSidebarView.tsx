@@ -165,14 +165,14 @@ const CartSidebarView: FC = () => {
                 m: 2,
                 p: 3,
                 textAlign: 'center',
-                bg: '#e05332',
+                bg: '#059669',
                 color: '#ffffff',
                 fontWeight: 700,
                 borderRadius: 8,
                 textDecoration: 'none',
                 transition: 'background-color 0.15s ease',
                 '&:hover': {
-                  bg: '#c84223',
+                  bg: '#047857',
                   color: '#ffffff',
                 },
               }}

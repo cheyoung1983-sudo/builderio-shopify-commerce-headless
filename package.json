@@ -2,14 +2,14 @@
   "name": "nextjs-shopify",
   "version": "1.0.0",
   "engines": {
-    "node": "22.x"
+    "node": "24.x"
   },
   "resolutions": {
-    "isolated-vm": "7.0.1",
+    "isolated-vm": "6.2.0",
     "minimatch": "9.0.9"
   },
   "overrides": {
-    "isolated-vm": "7.0.1",
+    "isolated-vm": "6.2.0",
     "minimatch": "9.0.9",
     "detective-postcss": {
       "postcss": "^8.5.28"
@@ -17,22 +17,31 @@
   },
   "scripts": {
     "dev": "next dev -p 3000 -H 0.0.0.0",
-    "build": "npm run precheck && NODE_ENV=production next build",
+    "build": "node scripts/build.js",
     "start": "next start",
     "lint": "eslint blocks components config context lib pages services",
     "typecheck": "tsc --noEmit",
     "check:secrets": "node scripts/check-hardcoded-secrets.js",
+    "check:customer-account-auth-health": "node scripts/check-customer-account-auth-health.js",
+    "check:xss-hardening": "node scripts/check-xss-hardening.js",
+    "fix:xss-hardening": "node scripts/check-xss-hardening.js --fix",
     "check:node-version": "node scripts/check-node-version-consistency.js",
     "check:builder-content": "node scripts/check-builder-content-health.js",
     "check:project-health": "node scripts/check-project-health.js",
+    "health": "node scripts/project-health.js",
+    "health:fix": "node scripts/project-health.js --fix",
     "check:ci-integrity": "node scripts/check-ci-integrity.js",
+    "check:dependency-health": "node scripts/check-dependency-health.js",
     "check:dev-health": "node scripts/check-dev-health.js",
     "check:stale-branches": "node scripts/check-stale-branches.js",
+    "check:shopify-catalog-health": "node scripts/check-shopify-catalog-health.js",
+    "fix:shopify-catalog-health": "node scripts/check-shopify-catalog-health.js --fix",
+    "diagnose:shopify": "node scripts/diagnose-shopify.js",
     "cleanup": "node scripts/cleanup-project.js",
     "deploy:dev": "node scripts/deploy.js dev",
     "deploy:preview": "node scripts/deploy.js preview",
     "deploy:production": "node scripts/deploy.js production",
-    "precheck": "npm run check:node-version && npm run check:ci-integrity && npm run typecheck && npm run lint && npm run check:secrets",
+    "precheck": "npm run check:node-version && npm run check:ci-integrity && npm run check:dependency-health && npm run typecheck && npm run lint && npm run check:secrets && npm run check:customer-account-auth-health && npm run check:xss-hardening",
     "prepare": "node scripts/setup-git-hooks.js",
     "analyze": "BUNDLE_ANALYZE=both npm run build",
     "find:unused": "next-unused",
@@ -82,6 +91,7 @@
     "@radix-ui/react-dialog": "^1.0.2",
     "@reach/dialog": "^0.18.0",
     "@reach/portal": "0.14.0",
+    "@shopify/storefront-api-client": "^2.0.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@theme-ui/components": "0.15.5",
     "@theme-ui/match-media": "0.15.5",
@@ -89,17 +99,24 @@
     "@theme-ui/presets": "0.15.5",
     "@types/shopify-buy": "2.10.3",
     "@types/traverse": "0.6.32",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
+    "@vercel/toolbar": "^0.2.7",
     "autoprefixer": "^10.5.5",
     "cheerio": "1.0.0-rc.12",
+    "framer-motion": "^13.4.0",
     "js-cookie": "3.0.7",
     "lucide-react": "^1.43.0",
+    "motion": "^13.4.0",
     "next": "16.3.4",
     "next-seo": "5.15.0",
+    "nprogress": "^0.2.0",
     "postcss": "^8.5.28",
     "pure-react-carousel": "^1.30.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-spring": "^9.6.1",
+    "sanitize-html": "^2.17.7",
     "shopify-buy": "^2.16.1",
     "tailwindcss": "^4.3.3",
     "theme-ui": "0.15.5",
@@ -110,7 +127,9 @@
     "@shopify/ai-toolkit": "^1.8.0",
     "@types/js-cookie": "3.0.3",
     "@types/node": "18.14.0",
+    "@types/nprogress": "^0.2.3",
     "@types/react": "18.0.28",
+    "@types/sanitize-html": "^2.16.1",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.4",
     "eslint-plugin-jsx-a11y": "^6.10.2",
@@ -125,5 +144,10 @@
     "stylelint-config-standard": "^30.0.1",
     "typescript": "^5.9.3"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "allowScripts": {
+    "preact": true,
+    "isolated-vm": true,
+    "unrs-resolver": true
+  }
 }

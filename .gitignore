@@ -52,3 +52,7 @@ ai/
 commerce/
 swr/
 turborepo/
+
+# agent artifacts
+.artifacts/
+.env*

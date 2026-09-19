@@ -34,11 +34,17 @@ export const ScrollToTop: React.FC<ScrollToTopProps> = ({
     setMounted(true)
   }, [])
 
-  // Calculate if user has scrolled past the hero section
+  // Calculate if user has scrolled past the hero or listing controls threshold
   const checkScrollPosition = useCallback(() => {
     if (typeof window === 'undefined') return
 
     const heroEl = document.getElementById(heroElementId)
+    const productGridEl =
+      document.getElementById('shopify-storefront-products-section') ||
+      document.getElementById('storefront-products-grid') ||
+      document.getElementById('product-grid-section') ||
+      document.getElementById('collection-products-grid')
+
     let threshold = fallbackThreshold
 
     if (heroEl) {
@@ -47,10 +53,16 @@ export const ScrollToTop: React.FC<ScrollToTopProps> = ({
       const heroBottomDoc = rect.bottom + window.scrollY
       // Trigger once user passes the hero section
       threshold = Math.max(heroBottomDoc - 80, 150)
+    } else if (productGridEl) {
+      // For dedicated product pages without a hero banner, trigger after scrolling
+      // past the top filters/header of the product grid
+      const rect = productGridEl.getBoundingClientRect()
+      const gridTopDoc = rect.top + window.scrollY
+      threshold = Math.max(gridTopDoc + 200, fallbackThreshold)
     }
 
-    const pastHero = window.scrollY > threshold
-    setIsVisible(pastHero)
+    const pastThreshold = window.scrollY > threshold
+    setIsVisible(pastThreshold)
   }, [heroElementId, fallbackThreshold])
 
   useEffect(() => {

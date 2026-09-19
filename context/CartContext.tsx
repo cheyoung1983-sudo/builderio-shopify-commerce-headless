@@ -17,6 +17,7 @@ import {
   updateStorefrontCartLines,
   removeStorefrontCartLines,
 } from '../services/shopify'
+import { useToast } from './ToastContext'
 
 // ---------------------------------------------------------------------------
 // Types & Interfaces
@@ -217,6 +218,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({
   const [error, setError] = useState<string | null>(null)
   const [notification, setNotification] = useState<CartNotification | null>(null)
   const [isInitialized, setIsInitialized] = useState<boolean>(false)
+  const { showCartToast, showError } = useToast()
 
   const isLoadedRef = useRef<boolean>(false)
   const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -237,8 +239,30 @@ export const CartProvider: React.FC<CartProviderProps> = ({
       notificationTimeoutRef.current = setTimeout(() => {
         setNotification(null)
       }, 4500)
+
+      // Synchronize with global toast system
+      if (notif.type === 'add' && notif.item) {
+        const it = notif.item
+        showCartToast({
+          title: it.title,
+          image: it.image?.url || it.image?.src || null,
+          price: it.price?.amount ? `$${it.price.amount}` : null,
+          quantity: it.quantity || 1,
+          variantTitle:
+            it.variantTitle && it.variantTitle !== 'Default Title' ? it.variantTitle : null,
+          onViewBag: () => {
+            if (typeof onOpen === 'function') {
+              onOpen()
+            } else {
+              setIsOpen(true)
+            }
+          },
+        })
+      } else if (notif.type === 'error') {
+        showError(notif.title || 'Error', notif.message)
+      }
     },
-    []
+    [showCartToast, showError, onOpen]
   )
 
   const dismissNotification = useCallback(() => {

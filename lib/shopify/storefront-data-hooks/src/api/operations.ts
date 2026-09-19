@@ -1,4 +1,5 @@
 import { buildClient } from 'shopify-buy'
+import { startLoading, stopLoading } from '../../../../progress'
 
 const fastClone = (obj: any) => obj ? JSON.parse(JSON.stringify(obj)) : null
 
@@ -7,16 +8,21 @@ function getSafeClient(config: ShopifyBuy.Config) {
     return null
   }
   try {
-    const customFetch = (url: string, opts: any = {}) => {
+    const customFetch = async (url: string, opts: any = {}) => {
       if (!url || url.includes('undefined') || url.includes('//api/')) {
         throw new Error(`Invalid Shopify URL: ${url}`)
       }
-      const headers = { ...opts.headers }
-      if (config.storefrontAccessToken.startsWith('shpat_')) {
-        headers['Shopify-Storefront-Private-Token'] = config.storefrontAccessToken
-        delete headers['X-Shopify-Storefront-Access-Token']
+      startLoading()
+      try {
+        const headers = { ...opts.headers }
+        if (config.storefrontAccessToken.startsWith('shpat_')) {
+          headers['Shopify-Storefront-Private-Token'] = config.storefrontAccessToken
+          delete headers['X-Shopify-Storefront-Access-Token']
+        }
+        return await fetch(url, { ...opts, headers })
+      } finally {
+        stopLoading()
       }
-      return fetch(url, { ...opts, headers })
     }
     return (buildClient as any)(config, customFetch)
   } catch (e) {
@@ -93,8 +99,16 @@ export async function getAllCollectionPaths(
     // interface need update
     const collections: any[] = (await client.collection.fetchAll(limit)) || []
     return collections.map((val) => val.handle)
-  } catch (e) {
-    console.warn('Shopify getAllCollectionPaths error:', e)
+  } catch (e: any) {
+    const isAccessDenied =
+      Array.isArray(e) && e.some((item) => item?.extensions?.code === 'ACCESS_DENIED')
+    if (isAccessDenied) {
+      console.warn(
+        'Shopify getAllCollectionPaths: ACCESS_DENIED (Storefront API token is invalid or lacks permissions). Continuing build with empty collection paths.'
+      )
+    } else {
+      console.warn('Shopify getAllCollectionPaths error:', e)
+    }
     return []
   }
 }

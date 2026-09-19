@@ -21,11 +21,16 @@ const eslintNextVersion = packageJson.devDependencies?.['eslint-config-next']?.m
 const analyzerVersion = packageJson.devDependencies?.['@next/bundle-analyzer']?.match(/\d+/)?.[0]
 const nextVersion = packageJson.dependencies?.next?.match(/\d+/)?.[0]
 const buildScript = packageJson.scripts?.build || ''
+const buildRunner = read('scripts/build.js')
+const productionBuildConfigured =
+  buildScript.includes('NODE_ENV=production') ||
+  buildRunner.includes("NODE_ENV: 'production'") ||
+  buildRunner.includes('NODE_ENV: "production"')
 
 check(nodeVersion && nodeVersion === engineVersion, 'Node version must match package.json engines.node')
 check(nextVersion && eslintNextVersion === nextVersion, 'eslint-config-next must match the Next.js major version')
 check(nextVersion && analyzerVersion === nextVersion, '@next/bundle-analyzer must match the Next.js major version')
-check(buildScript.includes('NODE_ENV=production next build'), 'The production build must set NODE_ENV=production')
+check(productionBuildConfigured, 'The production build must set NODE_ENV=production')
 check(catchAllRoute.includes("const builderModel = 'page'"), 'Catch-all route must render the Builder page model')
 check(!catchAllRoute.includes('Path Page:'), 'Catch-all route must not contain the diagnostic placeholder')
 check(!nextConfig.match(/^\s*SHOPIFY_STOREFRONT_API_TOKEN\s*:/m), 'Private Shopify token must not be exposed by next.config.js')
