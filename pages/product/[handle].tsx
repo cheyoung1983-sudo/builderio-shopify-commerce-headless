@@ -18,6 +18,7 @@ import {
 import { ProductDetail } from '../../components/products/ProductDetail'
 import { ProductDetailSkeleton } from '../../components/products/ProductDetailSkeleton'
 import { Breadcrumbs } from '../../components/common/Breadcrumbs'
+import DynamicSEO from '../../components/DynamicSEO'
 
 if (builderConfig.apiKey) {
   builder.init(builderConfig.apiKey)
@@ -85,6 +86,16 @@ export default function Handle({
   if (router.isFallback) {
     return (
       <div className="min-h-screen bg-neutral-50/50 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-7xl mx-auto mb-4">
+          <Breadcrumbs
+            id="product-fallback-top-breadcrumbs"
+            items={[
+              { label: 'Home', href: '/' },
+              { label: 'Products', href: '/products' },
+              { label: 'Loading product...', isCurrent: true },
+            ]}
+          />
+        </div>
         <ProductDetailSkeleton asModal={false} className="shadow-md" />
       </div>
     )
@@ -93,45 +104,58 @@ export default function Handle({
   // If Builder.io content exists for this page, render via BuilderComponent
   if (page) {
     return (
-      <BuilderComponent
-        key={storefrontProduct?.id || 'product'}
-        model={builderModel}
-        options={{ enrich: true }}
-        data={{ product: storefrontProduct }}
-        content={page}
-      />
+      <div className="min-h-screen bg-neutral-50/50 py-8 px-4 sm:px-6 lg:px-8">
+        <DynamicSEO product={storefrontProduct} />
+        <div className="w-full max-w-7xl mx-auto mb-4">
+          <Breadcrumbs
+            id="product-builder-top-breadcrumbs"
+            items={[
+              { label: 'Home', href: '/' },
+              { label: 'Products', href: '/products' },
+              ...(storefrontProduct?.productType
+                ? [
+                    {
+                      label: storefrontProduct.productType,
+                      href: `/products?category=${encodeURIComponent(
+                        storefrontProduct.productType
+                      )}`,
+                    },
+                  ]
+                : []),
+              {
+                label: storefrontProduct?.title || 'Product Details',
+                isCurrent: true,
+              },
+            ]}
+          />
+        </div>
+        <BuilderComponent
+          key={storefrontProduct?.id || 'product'}
+          model={builderModel}
+          options={{ enrich: true }}
+          data={{ product: storefrontProduct }}
+          content={page}
+        />
+      </div>
     )
   }
 
-  const title = storefrontProduct?.title
-    ? `${storefrontProduct.title} | DisplayCellPros`
-    : 'Product Details | DisplayCellPros'
-  const description =
-    storefrontProduct?.description ||
-    'Shop replacement screens and repair parts with professional installation included.'
-
   return (
     <div className="min-h-screen bg-neutral-50/50 py-8 px-4 sm:px-6 lg:px-8">
-      <Head>
-        <title>{title}</title>
-        <meta name="description" content={description} />
-        {storefrontProduct?.featuredImage?.url && (
-          <meta property="og:image" content={storefrontProduct.featuredImage.url} />
-        )}
-      </Head>
+      <DynamicSEO product={storefrontProduct} />
 
-      {/* Breadcrumb Navigation */}
-      <div className="max-w-6xl mx-auto mb-3.5">
+      {/* Breadcrumb Navigation above Product Details */}
+      <div className="w-full max-w-7xl mx-auto mb-4">
         <Breadcrumbs
           id="product-page-top-breadcrumbs"
           items={[
             { label: 'Home', href: '/' },
-            { label: 'Products', href: '/' },
+            { label: 'Products', href: '/products' },
             ...(storefrontProduct?.productType
               ? [
                   {
                     label: storefrontProduct.productType,
-                    href: `/?category=${encodeURIComponent(
+                    href: `/products?category=${encodeURIComponent(
                       storefrontProduct.productType
                     )}`,
                   },
@@ -149,7 +173,14 @@ export default function Handle({
         handle={(router.query.handle as string) || storefrontProduct?.handle}
         initialProduct={storefrontProduct}
         asModal={false}
-        onBackToGrid={() => router.push('/')}
+        showBreadcrumbs={false}
+        onBackToGrid={() => {
+          if (typeof window !== 'undefined' && window.history.length > 1) {
+            router.back()
+          } else {
+            router.push('/products')
+          }
+        }}
         className="shadow-md"
       />
     </div>

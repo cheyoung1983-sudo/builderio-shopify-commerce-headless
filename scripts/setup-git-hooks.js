@@ -6,9 +6,16 @@
 // deploy that only copies source files).
 
 const { execFileSync } = require('node:child_process')
+const fs = require('node:fs')
+const path = require('node:path')
 
 try {
-  execFileSync('git', ['config', 'core.hooksPath', '.githooks'])
+  const gitDir = path.resolve(__dirname, '..', '.git')
+  if (fs.existsSync(gitDir)) {
+    execFileSync('git', ['config', 'core.hooksPath', '.githooks'], {
+      stdio: ['ignore', 'ignore', 'ignore'],
+    })
+  }
 } catch {
   // Not a git repository (or git unavailable) — nothing to configure.
 }

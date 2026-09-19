@@ -1,6 +1,6 @@
 {
   "name": "Builder.io Shopify Headless Commerce",
-  "description": "Headless Shopify commerce storefront featuring side-by-side product comparison, interactive image hover reveals, and instant catalog search.",
+  "description": "Headless Shopify commerce storefront featuring non-navigating Quick View side-panel drawer modal with instant cart actions, Intersection Observer lazy-loading for off-screen product images, responsive image optimization, global toast notifications, persistent local wishlist, and predictive catalog search.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

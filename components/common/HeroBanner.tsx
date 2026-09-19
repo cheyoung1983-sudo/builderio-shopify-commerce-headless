@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import Image from 'next/image'
 import { Sparkles, Layers, SlidersHorizontal, ArrowRight, ShieldCheck, Cpu } from 'lucide-react'
+import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
 
 export interface HeroSlide {
   id: string
@@ -62,7 +63,10 @@ export const HeroBanner: React.FC<{
           alt={current.title}
           fill
           priority
-          sizes="(max-width: 1280px) 100vw, 1280px"
+          placeholder="blur"
+          blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+          sizes={RESPONSIVE_IMAGE_SIZES.heroBanner}
+          quality={85}
           className="object-cover object-center transition-all duration-500 ease-out"
           referrerPolicy="no-referrer"
         />

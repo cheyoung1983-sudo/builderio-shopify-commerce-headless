@@ -12,7 +12,9 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useThemeUI } from '@theme-ui/core'
 import { ProductGrid } from '@components/products/ProductGrid'
+import { FAQAccordion } from '@components/common/FAQAccordion'
 import { fetchAllAvailableProducts, ShopifyProductNode } from '@services/shopify'
+import { DynamicSEO } from '@components/common/DynamicSEO'
 
 if (builderConfig.apiKey) {
   builder.init(builderConfig.apiKey)
@@ -82,13 +84,16 @@ export default function Path({
   // visual editor can still initialize against an empty page).
   if (page || isPreviewing) {
     return (
-      <BuilderComponent
-        key={page?.id || 'page'}
-        options={{ enrich: true }}
-        model={builderModel}
-        data={{ theme }}
-        content={page}
-      />
+      <>
+        <DynamicSEO page={page} />
+        <BuilderComponent
+          key={page?.id || 'page'}
+          options={{ enrich: true }}
+          model={builderModel}
+          data={{ theme }}
+          content={page}
+        />
+      </>
     )
   }
 
@@ -96,32 +101,26 @@ export default function Path({
   // backed by the live Shopify catalog instead of "Page not found".
   return (
     <>
-      <Head>
-        <title>DisplayCellPros | Replacement Screens and Repair Parts</title>
-        <meta
-          name="description"
-          content="Shop replacement screens and repair parts with professional installation included."
-        />
-      </Head>
+      <DynamicSEO
+        title="DisplayCellPros | Quality Replacement Screens & Repair Parts"
+        description="Shop OEM and premium replacement screens and repair components for popular smartphones and tablets with fast shipping and expert support."
+      />
       <main className="min-h-screen bg-neutral-50/50 py-10">
-        <section className="mx-auto max-w-6xl px-4 text-center sm:px-6 lg:px-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">
-            DisplayCellPros
-          </p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-neutral-900 sm:text-5xl">
-            Quality replacement screens, ready to ship
+        <section className="w-full max-w-7xl mx-auto px-4 text-center sm:px-6 lg:px-8">
+          <h1 className="text-4xl font-bold tracking-tight text-neutral-900 sm:text-5xl">
+            On-Site Screen Replacement in Spokane
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral-600">
             Browse OEM and premium replacement parts for popular devices, with expert support when you need it.
           </p>
           <Link
             href="/products"
-            className="mt-7 inline-flex rounded-md bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-700"
+            className="mt-7 inline-flex rounded-md bg-emerald-700 px-5 py-3 font-semibold text-white transition hover:bg-emerald-800"
           >
             Browse all products
           </Link>
         </section>
-        <section className="mx-auto mt-12 max-w-6xl px-4 sm:px-6 lg:px-8">
+        <section className="w-full max-w-7xl mx-auto mt-12 px-4 sm:px-6 lg:px-8">
           <ProductGrid
             initialProducts={fallbackProducts}
             title="Featured replacement parts"
@@ -129,6 +128,11 @@ export default function Path({
             showControls
           />
         </section>
+        <FAQAccordion
+          id="homepage-faq"
+          title="Repair Warranties & Timelines FAQ"
+          subtitle="Clear answers on our 1-year replacement warranty, same-day Spokane on-site dispatches, and turnaround times."
+        />
       </main>
     </>
   )

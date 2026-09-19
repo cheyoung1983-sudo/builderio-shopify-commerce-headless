@@ -21,6 +21,7 @@ import {
   PackageOpen,
   AlertCircle,
   HelpCircle,
+  Heart,
 } from 'lucide-react'
 import {
   fetchStorefrontProductByHandle,
@@ -28,10 +29,14 @@ import {
   ShopifyVariantNode,
 } from '../../services/shopify'
 import { useUI } from '../common/context'
+import { useAnnouncer } from '../common/Announcer'
 import { useAddItemToCart } from '../../lib/shopify/storefront-data-hooks/src/hooks/useAddItemToCart'
 import { CartContext } from '../../context/CartContext'
+import { useWishlist } from '../../context'
 import { ProductDetailSkeleton } from './ProductDetailSkeleton'
 import { Breadcrumbs } from '../common/Breadcrumbs'
+import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
+import { sanitizeRichText } from '../../lib/sanitize-html'
 
 export interface ProductDetailProps {
   /** The Shopify product handle to fetch and display */
@@ -50,6 +55,8 @@ export interface ProductDetailProps {
   productBaseUrl?: string
   /** Additional container class name */
   className?: string
+  /** Whether to show the top breadcrumb navigation (default: true) */
+  showBreadcrumbs?: boolean
 }
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
@@ -61,6 +68,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   onBackToGrid,
   productBaseUrl = '/product',
   className = '',
+  showBreadcrumbs = true,
 }) => {
   const [product, setProduct] = useState<ShopifyProductDetailNode | null>(initialProduct)
   const [loading, setLoading] = useState<boolean>(!initialProduct && Boolean(handle))
@@ -97,8 +105,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
   // Context & Hooks
   const { openSidebar } = useUI()
+  const { announce } = useAnnouncer()
   const addItemToCart = useAddItemToCart()
   const cart = useContext(CartContext)
+  const { isInWishlist, toggleWishlist } = useWishlist()
+  const isSaved = product ? isInWishlist(product.id) : false
 
   // Fetch product data whenever handle changes
   const loadProduct = useCallback(async (productHandle: string) => {
@@ -266,6 +277,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       }
 
       setAddSuccess(true)
+      announce(`Product added to cart: ${product.title}`)
       setTimeout(() => {
         setAddSuccess(false)
         if (typeof openSidebar === 'function') {
@@ -396,12 +408,15 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   alt={currentImage.altText || product.title}
                   fill
                   priority
-                  sizes="(max-width: 1024px) 100vw, 55vw"
+                  placeholder="blur"
+                  blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+                  sizes={RESPONSIVE_IMAGE_SIZES.productDetail}
+                  quality={90}
                   className="object-contain p-4 transition-transform duration-300 group-hover:scale-105"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-neutral-400 gap-3">
+                <div className="w-full h-full flex flex-col items-center justify-center text-neutral-500 gap-3">
                   <PackageOpen className="w-16 h-16 stroke-[1.2]" />
                   <span className="text-sm font-medium">No Image Available</span>
                 </div>
@@ -502,7 +517,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                         src={img.url}
                         alt={img.altText || `${product.title} thumbnail ${idx + 1}`}
                         fill
-                        sizes="80px"
+                        placeholder="blur"
+                        blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+                        sizes={RESPONSIVE_IMAGE_SIZES.thumbnail}
+                        loading="lazy"
                         className="object-contain p-1.5"
                         referrerPolicy="no-referrer"
                       />
@@ -586,7 +604,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 <span className="text-xs font-medium text-neutral-500">{currencyCode}</span>
               </span>
               {hasDiscount && (
-                <span className="text-base text-neutral-400 line-through">
+                <span className="text-base text-neutral-500 line-through">
                   ${parseFloat(compareAtPriceAmount!).toFixed(2)}
                 </span>
               )}
@@ -626,7 +644,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                             ? 'bg-neutral-900 text-white border-neutral-900 shadow-sm'
                             : variant.availableForSale
                             ? 'bg-white text-neutral-700 border-neutral-300 hover:border-neutral-400'
-                            : 'bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed line-through'
+                            : 'bg-neutral-100 text-neutral-500 border-neutral-200 cursor-not-allowed line-through'
                         }`}
                       >
                         <span>{variant.title}</span>
@@ -687,7 +705,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                       ? 'bg-emerald-600 text-white'
                       : isAvailable
                       ? 'bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white hover:shadow-lg focus:ring-2 focus:ring-primary-400 focus:ring-offset-2'
-                      : 'bg-neutral-200 text-neutral-400 cursor-not-allowed shadow-none'
+                      : 'bg-neutral-200 text-neutral-500 cursor-not-allowed shadow-none'
                   }`}
                 >
                   {isAddingToCart ? (
@@ -705,6 +723,27 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   ) : (
                     <span>Sold Out</span>
                   )}
+                </button>
+
+                {/* Wishlist Toggle Button */}
+                <button
+                  id="product-detail-wishlist-btn"
+                  type="button"
+                  onClick={() => {
+                    if (product) {
+                      toggleWishlist(product)
+                    }
+                  }}
+                  aria-label={isSaved ? `Remove ${product?.title || 'product'} from wishlist` : `Save ${product?.title || 'product'} to wishlist`}
+                  aria-pressed={isSaved}
+                  title={isSaved ? 'In Wishlist' : 'Add to Wishlist'}
+                  className={`p-3 rounded-xl border transition-all flex items-center justify-center cursor-pointer shadow-xs ${
+                    isSaved
+                      ? 'bg-rose-50 border-rose-300 text-rose-600 ring-2 ring-rose-200 scale-105'
+                      : 'bg-white border-neutral-300 text-neutral-600 hover:text-rose-600 hover:border-rose-200 active:scale-95'
+                  }`}
+                >
+                  <Heart className={`w-5 h-5 transition-colors ${isSaved ? 'fill-current text-rose-600' : ''}`} />
                 </button>
               </div>
             </div>
@@ -754,7 +793,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   {product.descriptionHtml ? (
                     <div
                       className="prose prose-sm prose-neutral max-w-none text-xs text-neutral-600 [&>h2]:text-sm [&>h2]:font-bold [&>h2]:text-neutral-900 [&>h2]:mb-1.5 [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ul]:mb-2 [&>li]:mb-1 [&>strong]:text-neutral-900"
-                      dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeRichText(product.descriptionHtml) }}
                     />
                   ) : product.description ? (
                     <p>{product.description}</p>
@@ -869,7 +908,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 Product Quick View
               </span>
               {product?.title && (
-                <span className="hidden sm:inline text-xs text-neutral-400 truncate max-w-sm">
+                <span className="hidden sm:inline text-xs text-neutral-600 truncate max-w-sm">
                   • {product.title}
                 </span>
               )}
@@ -911,32 +950,38 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   return (
     <div
       id="product-detail-inline-container"
-      className={`max-w-6xl mx-auto bg-white rounded-2xl border border-neutral-200/80 shadow-sm overflow-hidden ${className}`}
+      className={`w-full max-w-7xl mx-auto bg-white rounded-2xl border border-neutral-200/80 shadow-sm overflow-hidden ${className}`}
     >
       {/* Breadcrumb Navigation & Back Link Bar */}
-      <div className="px-6 py-3.5 border-b border-neutral-100 flex items-center justify-between gap-4 flex-wrap bg-neutral-50/50">
-        <Breadcrumbs
-          id="product-detail-inline-breadcrumbs"
-          items={[
-            { label: 'Home', href: '/' },
-            { label: 'Products', href: '/' },
-            ...(product?.productType
-              ? [{ label: product.productType, href: `/?category=${encodeURIComponent(product.productType)}` }]
-              : []),
-            { label: product?.title || 'Product Details', isCurrent: true },
-          ]}
-        />
-        {onBackToGrid && (
-          <button
-            id="product-detail-back-btn"
-            onClick={onBackToGrid}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-600 hover:text-neutral-900 transition-colors shrink-0"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Back to All Products
-          </button>
-        )}
-      </div>
+      {(showBreadcrumbs || onBackToGrid) && (
+        <div className="px-6 py-3.5 border-b border-neutral-100 flex items-center justify-between gap-4 flex-wrap bg-neutral-50/50">
+          {showBreadcrumbs ? (
+            <Breadcrumbs
+              id="product-detail-inline-breadcrumbs"
+              items={[
+                { label: 'Home', href: '/' },
+                { label: 'Products', href: '/products' },
+                ...(product?.productType
+                  ? [{ label: product.productType, href: `/products?category=${encodeURIComponent(product.productType)}` }]
+                  : []),
+                { label: product?.title || 'Product Details', isCurrent: true },
+              ]}
+            />
+          ) : (
+            <div />
+          )}
+          {onBackToGrid && (
+            <button
+              id="product-detail-back-btn"
+              onClick={onBackToGrid}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-600 hover:text-neutral-900 transition-colors shrink-0 cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Back to All Products
+            </button>
+          )}
+        </div>
+      )}
       {renderContent()}
     </div>
   )

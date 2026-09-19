@@ -2,6 +2,7 @@ import React from 'react'
 import Image from 'next/image'
 import { ArrowLeftRight, X, Trash2, Plus, Sparkles } from 'lucide-react'
 import { ShopifyProductNode } from '../../services/shopify'
+import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
 
 export interface ComparisonDockProps {
   selectedProducts: ShopifyProductNode[]
@@ -93,7 +94,9 @@ export const ComparisonDock: React.FC<ComparisonDockProps> = ({
                       src={imgUrl}
                       alt={product.title}
                       fill
-                      sizes="40px"
+                      placeholder="blur"
+                      blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+                      sizes={RESPONSIVE_IMAGE_SIZES.dockItem}
                       className="object-cover"
                       referrerPolicy="no-referrer"
                     />

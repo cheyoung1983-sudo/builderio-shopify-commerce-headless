@@ -163,7 +163,7 @@ export const AgenticShopAssistant: React.FC<AgenticShopAssistantProps> = ({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Ask an agentic query (e.g., 'Find 120Hz OLED screens' or 'Compare OEM vs aftermarket')..."
-              className="w-full px-4 py-2 text-xs bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-primary-500 text-neutral-900 placeholder:text-neutral-400"
+              className="w-full px-4 py-2 text-xs bg-neutral-50 border border-neutral-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-primary-500 text-neutral-900 placeholder:text-neutral-500"
             />
           </div>
           <button

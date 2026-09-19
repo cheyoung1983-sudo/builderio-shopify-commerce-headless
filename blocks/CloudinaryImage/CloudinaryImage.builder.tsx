@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import { Builder } from '@builder.io/react'
+import { PRODUCT_IMAGE_BLUR_DATA_URL } from '../../lib/image'
 
 Builder.registerComponent(
   (props: any) => {
@@ -12,6 +13,8 @@ Builder.registerComponent(
         alt={props.alt || ''}
         width={props.cloudinaryOptions.width}
         height={props.cloudinaryOptions.height}
+        placeholder="blur"
+        blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
       />
     )
   },

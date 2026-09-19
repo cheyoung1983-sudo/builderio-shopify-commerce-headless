@@ -9,6 +9,7 @@ import {
   updateStorefrontCartLines,
   removeStorefrontCartLines,
 } from '../../../../services/shopify'
+import { startLoading, stopLoading } from '../../../progress'
 
 export interface CommerceProviderProps extends ShopifyBuy.Config {
   children: React.ReactNode
@@ -145,13 +146,18 @@ export function CommerceProvider({
 
     try {
       const isCustomDomain = domain ? domain.includes('.') : false
-      const customFetch = (url: string, opts: any = {}) => {
-        const headers = { ...opts.headers }
-        if (storefrontAccessToken.startsWith('shpat_')) {
-          headers['Shopify-Storefront-Private-Token'] = storefrontAccessToken
-          delete headers['X-Shopify-Storefront-Access-Token']
+      const customFetch = async (url: string, opts: any = {}) => {
+        startLoading()
+        try {
+          const headers = { ...opts.headers }
+          if (storefrontAccessToken.startsWith('shpat_')) {
+            headers['Shopify-Storefront-Private-Token'] = storefrontAccessToken
+            delete headers['X-Shopify-Storefront-Access-Token']
+          }
+          return await fetch(url, { ...opts, headers })
+        } finally {
+          stopLoading()
         }
-        return fetch(url, { ...opts, headers })
       }
 
       const jsClient = (ShopifyBuy.buildClient as any)(

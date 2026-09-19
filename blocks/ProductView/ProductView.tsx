@@ -13,6 +13,7 @@ import {
 import ImageCarousel from '@components/common/ImageCarousel'
 import ProductLoader from './ProductLoader'
 import { Breadcrumbs } from '@components/common/Breadcrumbs'
+import { sanitizeRichText } from '@lib/sanitize-html'
 
 interface Props {
   className?: string
@@ -120,12 +121,12 @@ const ProductBox: React.FC<Props> = ({
           id="product-builder-breadcrumbs"
           items={[
             { label: 'Home', href: '/' },
-            { label: 'Products', href: '/' },
+            { label: 'Products', href: '/products' },
             ...((product as any)?.productType
               ? [
                   {
                     label: (product as any).productType,
-                    href: `/?category=${encodeURIComponent((product as any).productType)}`,
+                    href: `/products?category=${encodeURIComponent((product as any).productType)}`,
                   },
                 ]
               : []),
@@ -172,7 +173,7 @@ const ProductBox: React.FC<Props> = ({
               {getPrice(variant.priceV2.amount, variant.priceV2.currencyCode)}
             </Heading>
           </span>
-          <div dangerouslySetInnerHTML={{ __html: description! }} />
+          <div dangerouslySetInnerHTML={{ __html: sanitizeRichText(description!) }} />
           <div>
             <Grid padding={2} columns={2}>
               {colors?.length && (

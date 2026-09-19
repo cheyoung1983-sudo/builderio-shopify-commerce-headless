@@ -8,6 +8,7 @@ import {
   Dot,
 } from 'pure-react-carousel'
 import Image from 'next/image'
+import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '@lib/image'
 
 import 'pure-react-carousel/dist/react-carousel.es.css'
 
@@ -40,9 +41,13 @@ const CustomDotGroup: FC<Omit<ImageCarouselProps, 'alt'>> = ({
             <Image
               alt="dot"
               src={image.src}
+              placeholder="blur"
+              blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
               {...imageProps}
               height={80}
               width={80}
+              sizes="80px"
+              loading="lazy"
             ></Image>
           </Dot>
         </IconButton>
@@ -90,6 +95,8 @@ const ImageCarousel: FC<ImageCarouselProps> = ({
             <Image
               src={image.src}
               alt={alt || (image as any).altText || `Product image ${index + 1}`}
+              placeholder="blur"
+              blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
               {...imageProps}
             />
           )}
