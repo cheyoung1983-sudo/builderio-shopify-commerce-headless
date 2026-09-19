@@ -28,6 +28,8 @@
     "check:node-version": "node scripts/check-node-version-consistency.js",
     "check:builder-content": "node scripts/check-builder-content-health.js",
     "check:project-health": "node scripts/check-project-health.js",
+    "health": "node scripts/project-health.js",
+    "health:fix": "node scripts/project-health.js --fix",
     "check:ci-integrity": "node scripts/check-ci-integrity.js",
     "check:dependency-health": "node scripts/check-dependency-health.js",
     "check:dev-health": "node scripts/check-dev-health.js",

@@ -29,7 +29,7 @@ for (const file of ['.env.local', '.env']) {
 
 const TIMEOUT_MS = 8000
 const MODEL_REFERENCE_PATTERN =
-  /(?:const\s+builderModel\s*=|resolveBuilderContent\()\s*['"]([a-zA-Z0-9_-]+)['"]/g
+  /(?:const\s+builderModel\s*=|resolveBuilderContent\(|builder\.get\(|model=)\s*['"]([a-zA-Z0-9_-]+)['"]/g
 
 // Scans source instead of hardcoding a model list, so this stays accurate
 // as pages/blocks are added or renamed.
@@ -51,7 +51,7 @@ function findReferencedModels() {
     }
   }
 
-  for (const dir of ['pages', 'lib', 'blocks']) {
+  for (const dir of ['pages', 'lib', 'blocks', 'components']) {
     const fullDir = path.join(repoRoot, dir)
     if (fs.existsSync(fullDir)) walk(fullDir)
   }
@@ -111,14 +111,18 @@ async function main() {
   }
 
   const models = findReferencedModels()
-  if (models.length === 0) {
-    console.log('check-builder-content-health: no resolveBuilderContent() model references found in pages/lib/blocks.')
+  const configuredAnnouncementModel =
+    process.env.NEXT_PUBLIC_BUILDER_ANNOUNCEMENT_MODEL || ''
+  if (configuredAnnouncementModel) models.push(configuredAnnouncementModel)
+  const uniqueModels = [...new Set(models)]
+  if (uniqueModels.length === 0) {
+    console.log('check-builder-content-health: no Builder model references found in pages/lib/blocks/components.')
     return
   }
 
-  console.log(`Checking ${models.length} Builder.io model(s) referenced in this codebase against the CDN...\n`)
+  console.log(`Checking ${uniqueModels.length} Builder.io model(s) referenced in this codebase against the CDN...\n`)
 
-  const results = await Promise.all(models.map((model) => checkModel(apiKey, model)))
+  const results = await Promise.all(uniqueModels.map((model) => checkModel(apiKey, model)))
 
   const markers = { OK: '✓', EMPTY: '!', MISSING: '✗', TIMEOUT: '✗', ERROR: '✗' }
   for (const r of results) {
@@ -142,8 +146,8 @@ async function main() {
     }
   }
   console.log(
-    '\nThese degrade gracefully at runtime (lib/resolve-builder-content.ts times out after 8s and falls ' +
-      'back to null) but every affected page pays that latency until the CMS content exists.'
+    '\nThese should be created and published in the Builder space, or disabled when optional. ' +
+      'Server-side page resolution times out after 8s, while client-side model requests can still log 404s.'
   )
   process.exitCode = 1
 }
