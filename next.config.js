@@ -73,7 +73,7 @@ const nextConfig = {
               // from the browser, and the Vercel Toolbar/Live feedback widget on
               // preview deployments (fixes the sw.js/geist.woff2 console noise).
               // ws://localhost:* is for next dev's Fast Refresh websocket.
-              "connect-src 'self' https://cdn.builder.io https://builder.io https://*.builder.io https://*.myshopify.com https://vercel.live wss://*.pusher.com https://vitals.vercel-insights.com ws://localhost:* https://*.run.app https://ai.studio",
+              "connect-src 'self' https://cdn.builder.io https://builder.io https://*.builder.io https://*.myshopify.com https://vercel.live https://*.vercel.live wss://*.pusher.com https://vitals.vercel-insights.com ws://localhost:* https://*.run.app https://ai.studio",
               // img-src: mirrors the remotePatterns allowed by next/image above.
               "img-src 'self' data: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://via.placeholder.com https://vercel.live",
               "font-src 'self' data: https://vercel.live",
