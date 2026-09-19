@@ -44,7 +44,9 @@ const nextConfig = {
               // that). cdn.builder.io/builder.io/*.builder.io covers the visual
               // editor's embed bridge script; vercel.live covers the Toolbar/
               // Live feedback widget on preview deployments.
-              "script-src 'self' https://cdn.builder.io https://builder.io https://*.builder.io https://vercel.live",
+              `script-src 'self' https://cdn.builder.io https://builder.io https://*.builder.io https://vercel.live${
+                process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''
+              }`,
               // style-src: 'unsafe-inline' is required because this app uses
               // Emotion/theme-ui (CSS-in-JS), which injects <style> tags at
               // runtime with computed class names — there's no static nonce to
