@@ -4,57 +4,44 @@ function isPrivateToken(value?: string) {
   return typeof value === 'string' && /^(shpat_|shpua_)/i.test(value)
 }
 
-function assertProductionShopifyConfig(domainValue?: string, tokenValue?: string) {
-  const isProductionBuild = process.env.NEXT_PHASE === 'phase-production-build'
-
-  if (process.env.NODE_ENV === 'production' && !isProductionBuild) {
-    if (isInvalid(domainValue)) {
-      throw new Error(
-        'SHOPIFY_STORE_DOMAIN is required in production. Set SHOPIFY_STORE_DOMAIN or NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN.'
-      )
-    }
-
-    if (isInvalid(tokenValue)) {
-      throw new Error(
-        'SHOPIFY_STOREFRONT_API_TOKEN is required in production. Set SHOPIFY_STOREFRONT_API_TOKEN or NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN.'
-      )
-    }
-  }
+function cleanDomain(rawDomain?: string): string {
+  if (!rawDomain || isInvalid(rawDomain)) return 'displaycellpros.myshopify.com'
+  return rawDomain.replace(/^https?:\/\//i, '').replace(/\/+$/, '')
 }
 
-const domain = isInvalid(process.env.SHOPIFY_STORE_DOMAIN)
+const rawDomain = isInvalid(process.env.SHOPIFY_STORE_DOMAIN)
   ? (isInvalid(process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN)
       ? (isInvalid(process.env.SHOPIFY_DOMAIN)
-          ? (process.env.NODE_ENV === 'production' ? '' : 'displaycellpros.myshopify.com')
+          ? 'displaycellpros.myshopify.com'
           : process.env.SHOPIFY_DOMAIN)
       : process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN)
   : process.env.SHOPIFY_STORE_DOMAIN
+
+const domain = cleanDomain(rawDomain)
 
 const serverStorefrontAccessToken =
   process.env.SHOPIFY_STOREFRONT_API_TOKEN || process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN
 const publicStorefrontAccessToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN
 
 if (isPrivateToken(publicStorefrontAccessToken)) {
-  throw new Error(
-    'NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN must contain a public Storefront API token, not a private Shopify token.'
+  console.warn(
+    '[config/shopify] Warning: NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN looks like a private token. Use a public Storefront API token for browser access.'
   )
 }
 
 const storefrontAccessToken = isInvalid(serverStorefrontAccessToken)
   ? publicStorefrontAccessToken || ''
-  : serverStorefrontAccessToken
+  : serverStorefrontAccessToken || ''
 
-assertProductionShopifyConfig(domain, storefrontAccessToken)
-
-if (!storefrontAccessToken && process.env.NODE_ENV !== 'production') {
+if (!storefrontAccessToken) {
   console.warn(
-    'SHOPIFY_STOREFRONT_API_TOKEN environment variable is missing or empty. Set SHOPIFY_STOREFRONT_API_TOKEN for server-side requests or NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN for browser-side requests.'
+    '[config/shopify] Warning: SHOPIFY_STOREFRONT_API_TOKEN / NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN is missing or empty. Set this environment variable in Vercel to fetch catalog products.'
   )
 }
 
 const shopifyConfig = {
-  domain: domain || (process.env.NODE_ENV === 'production' ? '' : 'displaycellpros.myshopify.com'),
-  storefrontAccessToken: storefrontAccessToken || '',
+  domain,
+  storefrontAccessToken,
   apiVersion: process.env.SHOPIFY_STOREFRONT_API_VERSION || '2024-07',
   clientId: process.env.SHOPIFY_CLIENT_ID || '',
   clientSecret: process.env.SHOPIFY_CLIENT_SECRET || '',

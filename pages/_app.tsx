@@ -8,6 +8,7 @@ import builderConfig from '@config/builder'
 import { startLoading, stopLoading, forceStopLoading } from '../lib/progress'
 import { useScrollRestoration } from '../lib/scroll-restoration'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { Analytics } from '@vercel/analytics/next'
 
 if (builderConfig.apiKey) {
   builder.init(builderConfig.apiKey)
@@ -55,6 +56,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         <Component {...pageProps} />
       </Layout>
       <SpeedInsights />
+      <Analytics />
     </ErrorBoundary>
   )
 }

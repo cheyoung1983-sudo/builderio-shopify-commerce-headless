@@ -97,6 +97,7 @@
     "@theme-ui/presets": "0.15.5",
     "@types/shopify-buy": "2.10.3",
     "@types/traverse": "0.6.32",
+    "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "@vercel/toolbar": "^0.2.7",
     "autoprefixer": "^10.5.5",
