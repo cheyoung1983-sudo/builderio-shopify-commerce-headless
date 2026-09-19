@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { ShopifyProductNode } from '../services/shopify'
 import { useAnnouncer } from '../components/common/Announcer'
+import { useToast } from './ToastContext'
 
 interface WishlistContextType {
   wishlist: ShopifyProductNode[]
@@ -21,6 +22,7 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [wishlist, setWishlist] = useState<ShopifyProductNode[]>([])
   const [isLoaded, setIsLoaded] = useState<boolean>(false)
   const { announce } = useAnnouncer()
+  const { showWishlistToast, showInfo } = useToast()
 
   // Hydrate from localStorage once mounted on client
   useEffect(() => {
@@ -71,37 +73,59 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, [wishlist, isLoaded])
 
-  const isInWishlist = (productId: string) => {
-    return wishlist.some((item) => item.id === productId)
-  }
+  const isInWishlist = useCallback(
+    (productId: string) => {
+      return wishlist.some((item) => item.id === productId)
+    },
+    [wishlist]
+  )
 
-  const addToWishlist = (product: ShopifyProductNode) => {
-    if (!isInWishlist(product.id)) {
-      setWishlist((prev) => [product, ...prev])
-      announce(`Added ${product.title} to wishlist`, 'polite')
-    }
-  }
+  const addToWishlist = useCallback(
+    (product: ShopifyProductNode) => {
+      if (!isInWishlist(product.id)) {
+        setWishlist((prev) => [product, ...prev])
+        announce(`Added ${product.title} to wishlist`, 'polite')
+        showWishlistToast({
+          product,
+          actionType: 'added',
+        })
+      }
+    },
+    [isInWishlist, announce, showWishlistToast]
+  )
 
-  const removeFromWishlist = (productId: string) => {
-    const itemToRemove = wishlist.find((item) => item.id === productId)
-    setWishlist((prev) => prev.filter((item) => item.id !== productId))
-    if (itemToRemove) {
-      announce(`Removed ${itemToRemove.title} from wishlist`, 'polite')
-    }
-  }
+  const removeFromWishlist = useCallback(
+    (productId: string) => {
+      const itemToRemove = wishlist.find((item) => item.id === productId)
+      if (itemToRemove) {
+        setWishlist((prev) => prev.filter((item) => item.id !== productId))
+        announce(`Removed ${itemToRemove.title} from wishlist`, 'polite')
+        showWishlistToast({
+          product: itemToRemove,
+          actionType: 'removed',
+          onUndo: () => addToWishlist(itemToRemove),
+        })
+      }
+    },
+    [wishlist, announce, showWishlistToast, addToWishlist]
+  )
 
-  const toggleWishlist = (product: ShopifyProductNode) => {
-    if (isInWishlist(product.id)) {
-      removeFromWishlist(product.id)
-    } else {
-      addToWishlist(product)
-    }
-  }
+  const toggleWishlist = useCallback(
+    (product: ShopifyProductNode) => {
+      if (isInWishlist(product.id)) {
+        removeFromWishlist(product.id)
+      } else {
+        addToWishlist(product)
+      }
+    },
+    [isInWishlist, removeFromWishlist, addToWishlist]
+  )
 
-  const clearWishlist = () => {
+  const clearWishlist = useCallback(() => {
     setWishlist([])
     announce('Wishlist cleared', 'polite')
-  }
+    showInfo('Wishlist cleared', 'All saved products have been removed.')
+  }, [announce, showInfo])
 
   return (
     <WishlistContext.Provider

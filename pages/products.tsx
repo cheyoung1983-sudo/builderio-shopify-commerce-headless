@@ -1,6 +1,6 @@
 import React from 'react'
 import type { GetStaticPropsContext, InferGetStaticPropsType } from 'next'
-import Head from 'next/head'
+import { DynamicSEO } from '../components/common/DynamicSEO'
 import { useSafeRouter } from '../lib/hooks/useSafeRouter'
 import { ProductGrid } from '../components/products/ProductGrid'
 import { Breadcrumbs } from '../components/common/Breadcrumbs'
@@ -72,15 +72,25 @@ export default function ProductsPage({
       : [{ label: 'All Products', isCurrent: true }]),
   ]
 
+  const pageTitle = categoryParam
+    ? `${categoryParam} Replacement Screens | DisplayCellPros`
+    : qParam
+    ? `Search Results for "${qParam}" | DisplayCellPros`
+    : 'All Products & Replacement Screens | DisplayCellPros'
+
+  const pageDescription = categoryParam
+    ? `Explore our premium selection of ${categoryParam} screen assemblies and repair components with fast shipping.`
+    : qParam
+    ? `Search results for "${qParam}". Browse available smartphone displays and repair components in our inventory.`
+    : 'Explore all available OEM and LCD replacement screen assemblies and repair accessories for Samsung Galaxy and modern devices.'
+
   return (
     <>
-      <Head>
-        <title>All Products | DisplayCellPros Storefront</title>
-        <meta
-          name="description"
-          content="Explore all available OEM and LCD replacement screen assemblies for Samsung Galaxy and other devices."
-        />
-      </Head>
+      <DynamicSEO
+        title={pageTitle}
+        description={pageDescription}
+        breadcrumbs={breadcrumbItems}
+      />
 
       <main className="min-h-screen bg-neutral-50/50 py-6">
         {/* Breadcrumb Navigation above product listing */}

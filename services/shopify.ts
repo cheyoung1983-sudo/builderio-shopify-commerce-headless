@@ -1,6 +1,6 @@
 import ShopifyBuy from 'shopify-buy'
 import shopifyConfig from '../config/shopify.ts'
-import { startLoading, stopLoading } from '../lib/progress.ts'
+import { startLoading, stopLoading } from '../lib/progress'
 
 /**
  * Shopify Storefront API Configuration

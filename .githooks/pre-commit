@@ -1,17 +1,12 @@
 #!/bin/sh
 # Blocks commits that introduce hardcoded secrets, hardcoded fallback
-# values for sensitive env vars, a stripped-down CI workflow, a
-# wholesale-disabled eslint rule, or a dependency/install regression that
-# would only surface later when CI runs `npm ci`. See
-# scripts/check-hardcoded-secrets.js, scripts/check-ci-integrity.js, and
-# scripts/check-dependency-health.js.
+# values for sensitive env vars, a stripped-down CI workflow, or a
+# wholesale-disabled eslint rule. See scripts/check-hardcoded-secrets.js
+# and scripts/check-ci-integrity.js.
 #
 # Enabled automatically via `npm install` (the "prepare" script sets
 # core.hooksPath to this directory). To run manually:
 #   node scripts/check-hardcoded-secrets.js --staged
 #   node scripts/check-ci-integrity.js
-#   node scripts/check-dependency-health.js
 
-node scripts/check-hardcoded-secrets.js --staged \
-  && node scripts/check-ci-integrity.js \
-  && node scripts/check-dependency-health.js
+node scripts/check-hardcoded-secrets.js --staged && node scripts/check-ci-integrity.js

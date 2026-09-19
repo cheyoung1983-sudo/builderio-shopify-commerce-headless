@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import type { AppProps } from 'next/app'
 import Router from 'next/router'
 import Layout from '@components/common/Layout'
+import ErrorBoundary from '@components/ErrorBoundary'
 import { builder } from '@builder.io/react'
 import builderConfig from '@config/builder'
 import { startLoading, stopLoading, forceStopLoading } from '../lib/progress'
@@ -45,9 +46,11 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   }, [])
 
   return (
-    <Layout pageProps={pageProps}>
-      <Component {...pageProps} />
-    </Layout>
+    <ErrorBoundary boundaryName="app-root-layout">
+      <Layout pageProps={pageProps}>
+        <Component {...pageProps} />
+      </Layout>
+    </ErrorBoundary>
   )
 }
 

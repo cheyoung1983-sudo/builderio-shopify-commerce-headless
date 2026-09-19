@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react'
-import Head from 'next/head'
+import { DynamicSEO } from '../components/common/DynamicSEO'
 import Link from 'next/link'
-import { useWishlist } from '../context'
+import { useWishlist, useToast } from '../context'
 import { ProductCard } from '../components/products/ProductCard'
 import { ProductCardSkeleton } from '../components/products/ProductCardSkeleton'
 import { ProductDetail } from '../components/products/ProductDetail'
@@ -12,6 +12,7 @@ import { ShopifyProductNode } from '../services/shopify'
 
 export default function WishlistPage() {
   const { wishlist, clearWishlist, totalItems, isLoaded } = useWishlist()
+  const { showSuccess } = useToast()
   const cart = useContext(CartContext)
   const [selectedProductHandle, setSelectedProductHandle] = useState<string | null>(null)
   const [quickAddingId, setQuickAddingId] = useState<string | null>(null)
@@ -81,6 +82,13 @@ export default function WishlistPage() {
           vendor: product.vendor,
         })
       }
+
+      showSuccess('All items added to shopping bag', `${wishlist.length} products moved to your shopping bag.`, {
+        action: {
+          label: 'View Bag',
+          onClick: () => cart.openCart(),
+        },
+      })
     } catch (err) {
       console.warn('Add all to cart notice:', err)
     } finally {
@@ -90,10 +98,14 @@ export default function WishlistPage() {
 
   return (
     <div id="wishlist-page-container" className="min-h-screen bg-neutral-50/50 py-8 px-4 sm:px-6 lg:px-8">
-      <Head>
-        <title>My Wishlist | DisplayCellPros</title>
-        <meta name="description" content="View and manage your saved replacement parts and repair products." />
-      </Head>
+      <DynamicSEO
+        title="My Wishlist | DisplayCellPros"
+        description="View and manage your saved smartphone screens, repair parts, and components."
+        breadcrumbs={[
+          { label: 'Home', href: '/' },
+          { label: 'Wishlist', href: '/wishlist' },
+        ]}
+      />
 
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">

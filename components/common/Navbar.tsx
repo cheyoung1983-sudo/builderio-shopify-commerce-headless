@@ -18,13 +18,10 @@ const Navbar: FC = () => {
   const { theme } = useThemeUI()
   const { navigationLinks, logo, openSidebar } = useUI()
   const activeLogo =
-    logo && (logo.image || logo.text)
+    logo && (logo.text)
       ? logo
       : {
-          image: '/assets/logo-new.png',
           text: 'Display Cell Pros',
-          width: 48,
-          height: 48,
         }
   const cart = useCart()
   const modernCart = useModernCart()
@@ -191,39 +188,19 @@ const Navbar: FC = () => {
               fontWeight: 'bold',
             }}
           >
-            {activeLogo && activeLogo.image && (
-              <Link
-                href="/"
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  textDecoration: `none`,
-                  paddingLeft: '5px',
-                }}
-              >
-                <Image
-                  alt={activeLogo.text || 'Display Cell Pros'}
-                  width={activeLogo.width || 190}
-                  height={activeLogo.height || 40}
-                  src={activeLogo.image}
-                  priority
-                  unoptimized
-                  style={{ width: 'auto', height: 'auto' }}
-                />
-              </Link>
-            )}
-            {activeLogo && activeLogo.text && !activeLogo.image && (
-              <Link
-                href="/"
-                sx={{
-                  letterSpacing: -1,
-                  textDecoration: `none`,
-                  paddingLeft: '5px',
-                }}
-              >
-                {activeLogo.text}
-              </Link>
-            )}
+            <Link
+              href="/"
+              sx={{
+                letterSpacing: -0.5,
+                textDecoration: 'none',
+                paddingLeft: '5px',
+                color: 'inherit',
+                display: 'inline-flex',
+                alignItems: 'center',
+              }}
+            >
+              {activeLogo?.text || 'Display Cell Pros'}
+            </Link>
           </Heading>
         </Box>
         <Box

@@ -5,7 +5,13 @@ const nextConfig = {
   // inference doesn't get confused by an unrelated lockfile in a parent
   // directory (e.g. a stray package-lock.json in the user's home dir).
   turbopack: { root: __dirname },
+  allowedDevOrigins: [
+    'ais-dev-jexmzfsqsgf4mbwujko5hx-367327296310.us-west2.run.app',
+    'localhost:3000',
+    '127.0.0.1:3000',
+  ],
   images: {
+    qualities: [75, 85],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [360, 480, 640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 24, 32, 40, 48, 64, 80, 96, 128, 256, 384],

@@ -15,6 +15,11 @@ const LazyProductView = dynamic(
   { ssr: true }
 )
 
+const LazyFAQAccordion = dynamic(
+  () => import('./components/common/FAQAccordion'),
+  { ssr: true }
+)
+
 const productCardFields: Input[] = [
   { name: 'imgWidth', type: 'number', defaultValue: 540 },
   { name: 'imgHeight', type: 'number', defaultValue: 540 },
@@ -205,6 +210,28 @@ Builder.registerComponent(
     ],
   }
 )
+
+// 8. FAQAccordion
+Builder.registerComponent(LazyFAQAccordion, {
+  name: 'FAQAccordion',
+  image: 'https://unpkg.com/css.gg@2.0.0/icons/svg/info.svg',
+  description: 'Accordion addressing customer repair warranties and process timelines',
+  inputs: [
+    { name: 'title', type: 'string', defaultValue: 'Frequently Asked Questions' },
+    {
+      name: 'subtitle',
+      type: 'string',
+      defaultValue:
+        'Everything you need to know about our repair warranties, Spokane on-site service timelines, and quality guarantees.',
+    },
+    {
+      name: 'includeJsonLd',
+      type: 'boolean',
+      defaultValue: true,
+      description: 'Inject Schema.org FAQPage structured data for SEO rich snippets',
+    },
+  ],
+})
 
 // Register insert menus
 Builder.register('insertMenu', {

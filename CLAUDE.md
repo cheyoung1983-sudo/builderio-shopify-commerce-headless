@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A headless commerce storefront: **Next.js (Pages Router, v16)** for rendering, **Shopify Storefront API** for product/cart/checkout data, and **Builder.io** as the visual CMS driving page content. Live at `www.displaycellpros.com` (verified against this repo's connected Vercel project's domain configuration — `displaycellpros.com` apex 308-redirects there); this instance is configured for the `displaycellpros.myshopify.com` store.
+A headless commerce storefront: **Next.js (Pages Router, v16)** for rendering, **Shopify Storefront API** for product/cart/checkout data, and **Builder.io** as the visual CMS driving page content. Live at `headless.builders`; this instance is configured for the `displaycellpros.myshopify.com` store.
 
 Read `node_modules/next/dist/docs/` before writing Next.js code — this is Next 16 and APIs may differ from training data (see `AGENTS.md`).
 
@@ -20,8 +20,6 @@ npm run lint             # eslint blocks components config context lib pages ser
 npm run lint:a11y        # stylelint "**/*.css"
 npm run test:a11y        # jest (jest-axe accessibility tests)
 npm run check:secrets    # scan for hardcoded credentials
-npm run check:shopify-catalog-health   # verify live Storefront API + ISR + CSP wiring to the Shopify catalog
-npm run fix:shopify-catalog-health     # same, auto-fixing mechanical issues (stale revalidate, missing CSP/image entries)
 npm run precheck         # node-version check + ci-integrity check + typecheck + lint + secrets (runs before build)
 ```
 
@@ -59,9 +57,9 @@ There are two independent ways to talk to Shopify Storefront in this codebase:
 1. **`services/shopify.ts`** — the primary, actively-developed client. Wraps `@shopify/storefront-api-client`, exposes `storefrontFetch`/`shopifyFetch`, ready-made GraphQL operations (products, collections, cart CRUD), and high-level helpers like `fetchAllAvailableProducts`, `fetchStorefrontProductByHandle`. Handles token-type detection (`shpat_` private vs public tokens), retries, and timeouts. **This is what pages and components should call.**
 2. **`lib/shopify/storefront-data-hooks/`** — an older hook-based data layer (`useCart`, `useAddItemToCart`, etc.) with its own `operations.ts`, used by `lib/resolve-builder-content.ts` for Builder block resolution and by `context/CartContext.tsx`.
 
-`fetchAllAvailableProducts` / `fetchStorefrontProductByHandle` in `services/shopify.ts` hit the Storefront API directly whether called server-side (SSR/SSG) or client-side — there is no `pages/api/products/` proxy route in this codebase (an earlier version of this doc described one; it doesn't exist).
+When client-side code in the browser calls `fetchAllAvailableProducts` / `fetchStorefrontProductByHandle` from `services/shopify.ts`, it transparently proxies through `pages/api/products/index.ts` instead of hitting Storefront API directly — server-side calls (SSR/SSG) hit Storefront API directly.
 
-**No demo/fallback catalog**: if Storefront credentials are missing or return `ACCESS_DENIED`, `fetchAllAvailableProducts` logs a `console.warn`/`console.error` and returns zero products (`{ products: [], ok: false, errors }`) — there is no `lib/shopify/demo-catalog.ts` and no `isDemo` flag (an earlier version of this doc described a fallback that was never built). A bad token or Storefront misconfiguration currently renders as a silently empty storefront, not obviously-fake demo data. Run `npm run check:shopify-catalog-health` to catch this class of failure explicitly.
+**Demo/fallback catalog**: if Storefront credentials are missing or return `ACCESS_DENIED`, `fetchAllAvailableProducts` silently falls back to `lib/shopify/demo-catalog.ts` and marks the result `isDemo: true`. Don't mistake demo data for a broken integration when debugging — check `notice`/`isDemo` on the result first.
 
 `services/shopify-admin.ts` and `services/shopify-customer-account.ts` are separate: Admin API (server-side mutations) and Customer Account API (headless OAuth2/PKCE for buyer auth — see `pages/api/account/*` and `pages/api/auth/callback.ts`).
 
@@ -85,4 +83,4 @@ Only variables explicitly listed in `next.config.js`'s `env` block reach the bro
 
 ### Health-check scripts (`scripts/`)
 
-A number of custom Node scripts back the `check:*` npm scripts and CI: `check-ci-integrity.js` (see above), `check-hardcoded-secrets.js`, `check-node-version-consistency.js` (Node version must match across `.nvmrc`, `package.json` `engines`, and CI), `check-builder-content-health.js`, `check-project-health.js`, `check-shopify-catalog-health.js` (live Storefront API reachability/catalog contents + regression guard for ISR `revalidate` windows on catalog pages and the Shopify CDN/API entries in `next.config.js`'s CSP and `images.remotePatterns` — run with `--fix` to auto-correct mechanical drift; not part of `precheck` since it makes a live network call and needs real Storefront credentials), `check-stale-branches.js` (finds fully-merged remote branches safe to delete — run weekly via `.github/workflows/stale-branches.yml`). These are guardrails other agents have tripped in the past (see `AGENT_WORKFLOW.md` for the incidents) — don't disable them to unblock a push.
+A number of custom Node scripts back the `check:*` npm scripts and CI: `check-ci-integrity.js` (see above), `check-hardcoded-secrets.js`, `check-node-version-consistency.js` (Node version must match across `.nvmrc`, `package.json` `engines`, and CI), `check-builder-content-health.js`, `check-project-health.js`, `check-stale-branches.js` (finds fully-merged remote branches safe to delete — run weekly via `.github/workflows/stale-branches.yml`). These are guardrails other agents have tripped in the past (see `AGENT_WORKFLOW.md` for the incidents) — don't disable them to unblock a push.

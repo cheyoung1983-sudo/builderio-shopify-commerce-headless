@@ -18,8 +18,7 @@ import {
 import { ProductDetail } from '../../components/products/ProductDetail'
 import { ProductDetailSkeleton } from '../../components/products/ProductDetailSkeleton'
 import { Breadcrumbs } from '../../components/common/Breadcrumbs'
-import SEO from '../../components/common/SEO'
-import { generateProductSeo } from '../../lib/seo'
+import DynamicSEO from '../../components/DynamicSEO'
 
 if (builderConfig.apiKey) {
   builder.init(builderConfig.apiKey)
@@ -106,7 +105,7 @@ export default function Handle({
   if (page) {
     return (
       <div className="min-h-screen bg-neutral-50/50 py-8 px-4 sm:px-6 lg:px-8">
-        <SEO {...generateProductSeo(storefrontProduct)} />
+        <DynamicSEO product={storefrontProduct} />
         <div className="w-full max-w-7xl mx-auto mb-4">
           <Breadcrumbs
             id="product-builder-top-breadcrumbs"
@@ -143,7 +142,7 @@ export default function Handle({
 
   return (
     <div className="min-h-screen bg-neutral-50/50 py-8 px-4 sm:px-6 lg:px-8">
-      <SEO {...generateProductSeo(storefrontProduct)} />
+      <DynamicSEO product={storefrontProduct} />
 
       {/* Breadcrumb Navigation above Product Details */}
       <div className="w-full max-w-7xl mx-auto mb-4">
