@@ -18,6 +18,16 @@ export type {
 } from './CartContext'
 export { WishlistProvider, useWishlist } from './WishlistContext'
 export {
+  QuickViewContext,
+  QuickViewProvider,
+  useQuickView,
+} from './QuickViewContext'
+export type {
+  QuickViewProductInput,
+  QuickViewContextValue,
+  QuickViewProviderProps,
+} from './QuickViewContext'
+export {
   ToastContext,
   ToastProvider,
   useToast,

@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react'
 import { DynamicSEO } from '../components/common/DynamicSEO'
 import Link from 'next/link'
-import { useWishlist, useToast } from '../context'
+import { useWishlist, useToast, useQuickView } from '../context'
 import { ProductCard } from '../components/products/ProductCard'
 import { ProductCardSkeleton } from '../components/products/ProductCardSkeleton'
 import { ProductDetail } from '../components/products/ProductDetail'
@@ -13,8 +13,8 @@ import { ShopifyProductNode } from '../services/shopify'
 export default function WishlistPage() {
   const { wishlist, clearWishlist, totalItems, isLoaded } = useWishlist()
   const { showSuccess } = useToast()
+  const { openQuickView } = useQuickView()
   const cart = useContext(CartContext)
-  const [selectedProductHandle, setSelectedProductHandle] = useState<string | null>(null)
   const [quickAddingId, setQuickAddingId] = useState<string | null>(null)
   const [addedItemHandle, setAddedItemHandle] = useState<string | null>(null)
   const [isAddingAll, setIsAddingAll] = useState<boolean>(false)
@@ -207,22 +207,12 @@ export default function WishlistPage() {
                     if (e && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
                       e.preventDefault()
                     }
-                    setSelectedProductHandle(p.handle)
+                    openQuickView(p)
                   }}
                 />
               </div>
             ))}
           </div>
-        )}
-
-        {/* Quick View Modal for saved products */}
-        {selectedProductHandle && (
-          <ProductDetail
-            handle={selectedProductHandle}
-            asModal={true}
-            isOpen={Boolean(selectedProductHandle)}
-            onClose={() => setSelectedProductHandle(null)}
-          />
         )}
       </div>
     </div>

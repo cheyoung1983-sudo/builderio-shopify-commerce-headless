@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { ShopifyProductNode } from '../../services/shopify'
 import { ProductCardSkeleton } from './ProductCardSkeleton'
-import { useWishlist } from '../../context'
+import { useWishlist, useQuickView } from '../../context'
 import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
 import { useIntersectionObserver } from '../../lib/hooks/useIntersectionObserver'
 
@@ -36,6 +36,8 @@ export interface ProductCardProps {
   formatPrice?: (amount?: string, currencyCode?: string) => string
   /** Handler when user clicks the product card */
   onProductClick?: (product: ShopifyProductNode, e?: React.MouseEvent) => void
+  /** Handler when user clicks Quick View button */
+  onQuickView?: (product: ShopifyProductNode, e: React.MouseEvent) => void
   /** Handler when user toggles comparison */
   onToggleCompare?: (product: ShopifyProductNode, e: React.MouseEvent) => void
   /** Handler when user clicks Quick Add */
@@ -54,12 +56,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   isAdded = false,
   formatPrice = (amount, currency = 'USD') => (amount ? `$${amount}` : ''),
   onProductClick,
+  onQuickView,
   onToggleCompare,
   onQuickAddToCart,
   className = '',
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false)
   const { isInWishlist, toggleWishlist } = useWishlist()
+  const { openQuickView } = useQuickView()
   const isSaved = product ? isInWishlist(product.id) : false
 
   // Determine if card is initially above the fold (e.g. top 4 products get eager/priority loading)
@@ -110,6 +114,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     e.preventDefault()
     e.stopPropagation()
     toggleWishlist(product)
+  }
+
+  const handleQuickViewClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (onQuickView) {
+      onQuickView(product, e)
+    } else {
+      openQuickView(product)
+    }
   }
 
   const handleAddToCartClick = (e: React.MouseEvent) => {
@@ -284,13 +298,28 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Multi-image indicator badge */}
         {secondaryImage && (
-          <div className="absolute bottom-2.5 right-2.5 z-10 opacity-75 group-hover:opacity-100 transition-opacity pointer-events-none">
+          <div className="absolute bottom-2.5 right-2.5 z-10 opacity-75 group-hover:opacity-0 transition-opacity pointer-events-none">
             <span className="bg-neutral-900/80 backdrop-blur-xs text-white text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
               <Layers className="w-2.5 h-2.5" />
               <span>2 views</span>
             </span>
           </div>
         )}
+
+        {/* Hover Quick View Trigger on Image */}
+        <div className="absolute inset-x-3 bottom-2.5 z-20 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none transform translate-y-1 group-hover:translate-y-0 hidden sm:flex justify-center">
+          <button
+            id={`product-card-hover-quick-view-btn-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
+            type="button"
+            onClick={handleQuickViewClick}
+            aria-label={`Quick view ${product.title}`}
+            title="Open side-panel quick view"
+            className="pointer-events-auto w-full py-2 px-3 bg-white/95 hover:bg-neutral-900 text-neutral-900 hover:text-white text-xs font-bold rounded-lg shadow-md border border-neutral-200/90 backdrop-blur-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+          >
+            <Eye className="w-3.5 h-3.5 text-emerald-600 group-hover:text-white" />
+            <span>Quick View</span>
+          </button>
+        </div>
       </div>
 
       {/* Card Body */}
@@ -372,7 +401,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <button
               id={`product-card-quick-view-btn-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
               type="button"
-              onClick={handleCardClick}
+              onClick={handleQuickViewClick}
+              aria-label={`Quick view ${product.title} in side panel`}
+              title="Quick view product details without leaving this page"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-neutral-100 hover:bg-neutral-900 hover:text-white text-neutral-800 transition-colors cursor-pointer"
             >
               <Eye className="w-3.5 h-3.5" />

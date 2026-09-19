@@ -35,6 +35,7 @@ import { ProductCardSkeleton } from './ProductCardSkeleton'
 import { SearchBar } from './SearchBar'
 import { ProductFilterSidebar, FilterState } from './ProductFilterSidebar'
 import { CartContext } from '../../context/CartContext'
+import { useQuickView } from '../../context/QuickViewContext'
 import { Breadcrumbs, BreadcrumbItem } from '../common/Breadcrumbs'
 
 export interface ProductGridProps {
@@ -205,6 +206,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   }
 
   const cart = useContext(CartContext)
+  const { openQuickView } = useQuickView()
 
   const handleQuickAddToCart = async (product: ShopifyProductNode, e: React.MouseEvent) => {
     e.preventDefault()
@@ -243,7 +245,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     }
   }
 
-  // Handle clicking a product to show ProductDetail
+  // Handle clicking a product to show Quick View side panel or trigger callback
   const handleProductCardClick = (
     product: ShopifyProductNode,
     e?: React.MouseEvent
@@ -255,7 +257,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           e.preventDefault()
         }
       }
-      setSelectedProductHandle(product.handle)
+      openQuickView(product)
     }
     onProductClick?.(product)
   }

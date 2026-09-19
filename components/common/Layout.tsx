@@ -19,7 +19,8 @@ import { ScrollProgressBar } from './ScrollProgressBar'
 import { ScrollToTop } from './ScrollToTop'
 import Footer from './Footer'
 import AnnouncerProvider from './Announcer'
-import { WishlistProvider, ToastProvider } from '../../context'
+import { WishlistProvider, ToastProvider, QuickViewProvider } from '../../context'
+import { QuickViewDrawer } from '../products/QuickViewDrawer'
 import { ToastContainer } from './Toast'
 import ErrorBoundary from '@components/ErrorBoundary'
 
@@ -111,46 +112,49 @@ const InnerLayout: React.FC<{
         <ToastProvider>
           <WishlistProvider>
             <CartProvider onOpen={openSidebar} onClose={closeSidebar}>
-              <NoSSR>
-                <ScrollProgressBar />
-                <ScrollToTop />
-              </NoSSR>
-              <Navbar />
-              <Box
-                sx={{
-                  margin: `0 auto`,
-                  width: '100%',
-                  maxWidth: '100%',
-                  px: { xs: 4, sm: 6, lg: 8 },
-                  minHeight: 800,
-                }}
-              >
-                <ErrorBoundary name="MainContent">
-                  <main>{children}</main>
-                </ErrorBoundary>
-              </Box>
-              <Footer />
+              <QuickViewProvider>
+                <NoSSR>
+                  <ScrollProgressBar />
+                  <ScrollToTop />
+                </NoSSR>
+                <Navbar />
+                <Box
+                  sx={{
+                    margin: `0 auto`,
+                    width: '100%',
+                    maxWidth: '100%',
+                    px: { xs: 4, sm: 6, lg: 8 },
+                    minHeight: 800,
+                  }}
+                >
+                  <ErrorBoundary name="MainContent">
+                    <main>{children}</main>
+                  </ErrorBoundary>
+                </Box>
+                <Footer />
 
-              <Sidebar
-                open={
-                  displaySidebar ||
-                  (builder.editingModel || Builder.previewingModel) ===
-                    'cart-upsell-sidebar'
-                }
-                onClose={closeSidebar}
-              >
-                <CartSidebarView />
-              </Sidebar>
-              <ToastContainer />
-              <NoSSR>
-                <FeatureBar
-                  title="This site uses cookies to improve your experience. By clicking, you agree to our Privacy Policy."
-                  hide={Builder.isEditing ? true : acceptedCookies}
-                  action={
-                    <Button onClick={() => onAcceptCookies()}>Accept cookies</Button>
+                <Sidebar
+                  open={
+                    displaySidebar ||
+                    (builder.editingModel || Builder.previewingModel) ===
+                      'cart-upsell-sidebar'
                   }
-                />
-              </NoSSR>
+                  onClose={closeSidebar}
+                >
+                  <CartSidebarView />
+                </Sidebar>
+                <QuickViewDrawer />
+                <ToastContainer />
+                <NoSSR>
+                  <FeatureBar
+                    title="This site uses cookies to improve your experience. By clicking, you agree to our Privacy Policy."
+                    hide={Builder.isEditing ? true : acceptedCookies}
+                    action={
+                      <Button onClick={() => onAcceptCookies()}>Accept cookies</Button>
+                    }
+                  />
+                </NoSSR>
+              </QuickViewProvider>
             </CartProvider>
           </WishlistProvider>
         </ToastProvider>
