@@ -19,14 +19,7 @@ export const DEFAULT_DESCRIPTION =
   'Shop premium OEM and LCD replacement screens and repair components for smartphones and tablets with fast shipping and expert support.'
 
 export function getBaseUrl(): string {
-  if (typeof window !== 'undefined' && window.location.origin) {
-    return window.location.origin
-  }
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.APP_URL ||
-    'https://displaycellpros.com'
-  )
+  return process.env.NEXT_PUBLIC_SITE_URL || 'https://displaycellpros.com'
 }
 
 /**

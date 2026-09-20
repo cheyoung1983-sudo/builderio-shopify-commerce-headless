@@ -41,10 +41,10 @@ const Navbar: FC = () => {
 
   useEffect(() => {
     async function fetchContent() {
-      if (!builderConfig.apiKey) return
+      if (!builderConfig.apiKey || !builderConfig.announcementModel) return
       try {
         const anouncementContent = await builder
-          .get('announcement-bar', {
+          .get(builderConfig.announcementModel, {
             cacheSeconds: 120,
             userAttributes: {
               itemInCart: itemHandles ? itemHandles.split(',') : [],
@@ -63,11 +63,11 @@ const Navbar: FC = () => {
 
   return (
     <React.Fragment>
-      {announcement && builderConfig.apiKey && (
+      {announcement && builderConfig.announcementModel && (
         <BuilderComponent
           content={announcement}
           data={{ theme }}
-          model="announcement-bar"
+          model={builderConfig.announcementModel}
         />
       )}
       <Box

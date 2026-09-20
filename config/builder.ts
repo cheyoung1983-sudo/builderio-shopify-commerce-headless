@@ -21,7 +21,7 @@ const builderConfig = {
   apiKey: getBuilderConfig(),
   productsModel: 'shopify-product',
   collectionsModel: 'shopify-collection',
+  announcementModel: process.env.NEXT_PUBLIC_BUILDER_ANNOUNCEMENT_MODEL || '',
 }
 
 export default builderConfig
-
