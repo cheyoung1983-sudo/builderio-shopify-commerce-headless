@@ -39,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ? req.body?.first ?? req.query?.first
         : req.query?.first
 
-    const query = typeof rawQuery === 'string' ? rawQuery.trim() : ''
+    const query = typeof rawQuery === 'string' ? rawQuery.trim().slice(0, 200) : ''
     const first = typeof rawFirst === 'number'
       ? Math.min(Math.max(rawFirst, 1), 25)
       : typeof rawFirst === 'string'
@@ -94,11 +94,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       shopifyConfigured: isShopifyConfigured(),
       products: formattedProducts,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[API /api/agent/search] Error searching products:', error)
-    return res.status(500).json({
+    return res.status(502).json({
       ok: false,
-      error: error?.message || 'Failed to search products',
+      error: 'Failed to search products',
       products: [],
     })
   }
