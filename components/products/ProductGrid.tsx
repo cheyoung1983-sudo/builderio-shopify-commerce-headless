@@ -554,7 +554,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
         <div>
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold uppercase tracking-wider mb-2 border border-emerald-200/60">
             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Storefront API Catalog</span>
+            <span>Spokane On-Site Services &amp; Parts</span>
           </div>
           <h2
             id="storefront-products-title"
@@ -647,27 +647,6 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                     )}
                   </div>
                 </div>
-              </div>
-
-              {/* Shopify API Sorting Parameter Badge */}
-              <div
-                id="shopify-sort-param-badge"
-                title={`Shopify Storefront API parameter: ${SHOPIFY_SORT_CONFIGS[sortBy].apiParamDescription}`}
-                className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono text-neutral-600 bg-neutral-100 border border-neutral-200/80 px-2.5 py-1 rounded-lg"
-              >
-                <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-600">API</span>
-                <span className="text-neutral-600">•</span>
-                <span className="font-semibold text-emerald-700">
-                  sortKey: {SHOPIFY_SORT_CONFIGS[sortBy].sortKey}
-                </span>
-                {SHOPIFY_SORT_CONFIGS[sortBy].reverse && (
-                  <>
-                    <span className="text-neutral-600">•</span>
-                    <span className="text-amber-700 font-semibold bg-amber-50 px-1 py-0.5 rounded text-[10px]">
-                      reverse: true
-                    </span>
-                  </>
-                )}
               </div>
 
               {/* Compare Quick Button if items selected */}

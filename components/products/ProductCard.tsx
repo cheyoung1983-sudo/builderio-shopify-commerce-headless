@@ -332,7 +332,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         )}
 
         {/* Product Title */}
-        <h3 className="font-semibold text-neutral-900 text-sm sm:text-base leading-snug group-hover:text-emerald-700 transition-colors line-clamp-2 mb-2">
+        <h3 className="font-semibold text-neutral-900 text-sm sm:text-base leading-snug group-hover:text-emerald-700 transition-colors line-clamp-2 mb-1.5">
           <Link
             href={`${productBaseUrl}/${product.handle}`}
             onClick={handleCardClick}
@@ -341,6 +341,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {product.title}
           </Link>
         </h3>
+
+        {/* On-Site Labor Guarantee Micro-Badge */}
+        <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-md w-fit mb-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+          <span>Includes On-Site Labor</span>
+        </div>
 
         {/* Short description excerpt if available */}
         {product.description && (

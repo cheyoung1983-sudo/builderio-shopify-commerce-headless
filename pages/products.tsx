@@ -113,7 +113,7 @@ export default function ProductsPage({
         <ProductGrid
           initialProducts={initialProducts}
           title="Catalog & Screen Replacements"
-          subtitle="Real-time available inventory fetched directly from the Shopify Storefront API."
+          subtitle="Explore genuine OEM and premium device replacement screens, gaming repair parts, and on-site diagnostic services."
           showControls={true}
           initialQuery={qParam}
           initialCategory={categoryParam}
