@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
-const { execFileSync, spawnSync } = require('node:child_process')
-const fs = require('node:fs')
+const { execFileSync } = require('node:child_process')
 const path = require('node:path')
 
-const repoRoot = path.resolve(__dirname, '..')
+let repoRoot = path.resolve(__dirname, '..')
 const allowedStrategies = new Set(['ours', 'theirs', 'manual'])
 
 function usage() {
@@ -16,6 +15,7 @@ Options:
   --stage             Stage resolved paths after applying a strategy
   --check             Fail if unresolved conflicts remain; do not modify files
   --files=<paths>     Limit reporting/applying to comma-separated conflicted paths
+  --repo=<path>       Git repository to inspect (default: project root)
   --json              Print machine-readable output
   --help              Show this help
 
@@ -30,6 +30,7 @@ function parseArgs(argv) {
     stage: false,
     check: false,
     files: null,
+    repo: null,
     json: false,
   }
 
@@ -70,6 +71,11 @@ function parseArgs(argv) {
         .split(',')
         .map((file) => file.trim())
         .filter(Boolean)
+      continue
+    }
+
+    if (argument.startsWith('--repo=')) {
+      options.repo = argument.slice('--repo='.length)
       continue
     }
 
@@ -160,10 +166,17 @@ function applyStrategy(paths, options) {
     throw new Error('The manual strategy only reports conflicts; choose ours or theirs with --apply')
   }
 
-  runGit(['checkout', `--${options.strategy}`, '--', ...paths], { capture: false })
+  for (const file of paths) {
+    const stages = getConflictStages(file)
+    const selectedStage = options.strategy === 'ours' ? 2 : 3
 
-  if (options.stage) {
-    runGit(['add', '--', ...paths], { capture: false })
+    if (!stages.includes(selectedStage)) {
+      runGit(['rm', '--', file], { capture: false })
+      continue
+    }
+
+    runGit(['checkout', `--${options.strategy}`, '--', file], { capture: false })
+    if (options.stage) runGit(['add', '--', file], { capture: false })
   }
 }
 
@@ -190,6 +203,7 @@ function printReport(report, json) {
 
 function main() {
   const options = parseArgs(process.argv.slice(2))
+  if (options.repo) repoRoot = path.resolve(options.repo)
   ensureRepository()
 
   const allPaths = getConflictedPaths()
