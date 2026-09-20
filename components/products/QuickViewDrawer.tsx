@@ -370,10 +370,14 @@ const QuickViewContent: React.FC<QuickViewContentProps> = ({
               )}
               <h2
                 id="quick-view-drawer-title"
-                className="text-xl sm:text-2xl font-bold text-neutral-900 leading-snug tracking-tight"
+                className="text-xl sm:text-2xl font-bold text-neutral-900 leading-snug tracking-tight mb-2"
               >
                 {activeProduct.title}
               </h2>
+              <div className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-lg">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                <span>Includes Professional On-Site Labor</span>
+              </div>
             </div>
 
             {/* Pricing Block */}
