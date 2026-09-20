@@ -130,6 +130,11 @@ const nextConfig = {
   },
 }
 
-module.exports = process.env.BUNDLE_ANALYZE
-  ? require('@next/bundle-analyzer')({ enabled: true })(nextConfig)
-  : nextConfig
+module.exports = () => {
+  const withBuilderDevTools = require('@builder.io/dev-tools/next')()
+  const config = process.env.BUNDLE_ANALYZE
+    ? require('@next/bundle-analyzer')({ enabled: true })(nextConfig)
+    : nextConfig
+
+  return withBuilderDevTools(config)
+}
