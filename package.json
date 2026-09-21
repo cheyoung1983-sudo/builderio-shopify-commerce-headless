@@ -91,6 +91,7 @@
     "@builder.io/react": "^3.1.1",
     "@builder.io/utils": "1.1.10",
     "@builder.io/widgets": "1.2.24",
+    "@elevenlabs/client": "^1.25.0",
     "@emotion/react": "^11.10.6",
     "@radix-ui/react-dialog": "^1.0.2",
     "@reach/dialog": "^0.18.0",

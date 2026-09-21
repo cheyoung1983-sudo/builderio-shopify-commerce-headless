@@ -28,6 +28,14 @@ const FeatureBar = dynamic(() => import('@components/common/FeatureBar'), {
   ssr: false,
 })
 
+const CartDrawer = dynamic(() => import('@components/CartDrawer'), {
+  ssr: false,
+})
+
+const ElevenLabsAgent = dynamic(() => import('@components/ElevenLabsAgent'), {
+  ssr: false,
+})
+
 const Layout: React.FC<{ pageProps: any; children: React.ReactNode }> = ({
   children,
   pageProps,
@@ -145,6 +153,8 @@ const InnerLayout: React.FC<{
                 </Sidebar>
                 <QuickViewDrawer />
                 <ToastContainer />
+                <CartDrawer />
+                <ElevenLabsAgent />
                 <NoSSR>
                   <FeatureBar
                     title="This site uses cookies to improve your experience. By clicking, you agree to our Privacy Policy."

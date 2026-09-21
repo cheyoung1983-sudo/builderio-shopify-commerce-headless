@@ -21,7 +21,9 @@ const domain = cleanDomain(rawDomain)
 
 const serverStorefrontAccessToken =
   process.env.SHOPIFY_STOREFRONT_API_TOKEN || process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN
-const publicStorefrontAccessToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN
+const publicStorefrontAccessToken =
+  process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_TOKEN ||
+  process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN
 
 const storefrontAccessToken = isInvalid(serverStorefrontAccessToken)
   ? publicStorefrontAccessToken || ''
