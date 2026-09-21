@@ -75,20 +75,49 @@ export default function ElevenLabsAgent() {
       setErrorMessage("");
       setIsMicPermissionDenied(false);
 
-      // Verify browser MediaDevices support
+      // Step 1: Check environment & MediaDevices support
+      console.log("[ElevenLabsAgent:Init] [Step 1/5] Checking browser MediaDevices compatibility...");
       if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+        console.warn("[ElevenLabsAgent:Init] [Step 1/5 Failed] navigator.mediaDevices.getUserMedia is unavailable in this environment.");
         setErrorMessage("Microphone access is not supported in this browser.");
         setStatus("error");
         return;
       }
+      console.log("[ElevenLabsAgent:Init] [Step 1/5 Success] navigator.mediaDevices.getUserMedia is supported.");
 
-      // Check and request microphone permission before establishing the session
+      // Step 2: Query navigator.permissions if available
+      try {
+        if (navigator.permissions && typeof navigator.permissions.query === "function") {
+          const perm = await navigator.permissions.query({ name: "microphone" });
+          console.log("[ElevenLabsAgent:Init] [Step 2/5] Browser permission query state:", perm.state);
+        } else {
+          console.log("[ElevenLabsAgent:Init] [Step 2/5] navigator.permissions.query for microphone not supported; proceeding directly to hardware trigger.");
+        }
+      } catch (permErr) {
+        console.log("[ElevenLabsAgent:Init] [Step 2/5] Permission query skipped/errored:", permErr?.message);
+      }
+
+      // Step 3: Trigger hardware permission and probe audio input stream
+      console.log("[ElevenLabsAgent:Init] [Step 3/5] Requesting hardware microphone access via getUserMedia({ audio: true })...");
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        // Release the probe tracks immediately so the SDK can acquire the device
-        stream.getTracks().forEach((track) => track.stop());
+        const tracks = stream.getTracks();
+        console.log(
+          `[ElevenLabsAgent:Init] [Step 3/5 Success] Hardware microphone granted. Acquired ${tracks.length} audio track(s):`,
+          tracks.map((t) => ({ label: t.label, enabled: t.enabled, readyState: t.readyState }))
+        );
+        // Release probe tracks immediately so the ElevenLabs Conversational SDK can acquire the device
+        tracks.forEach((track) => track.stop());
+        console.log("[ElevenLabsAgent:Init] [Step 3/5 Cleanup] Probe audio tracks stopped cleanly.");
       } catch (micErr) {
-        console.warn("[ElevenLabsAgent] Microphone access not granted:", micErr?.name || micErr?.message);
+        console.warn(
+          "[ElevenLabsAgent:Init] [Step 3/5 Failed] Hardware microphone trigger rejected:",
+          {
+            name: micErr?.name,
+            message: micErr?.message,
+            stack: micErr?.stack,
+          }
+        );
         setIsMicPermissionDenied(true);
         if (
           micErr?.name === "NotAllowedError" ||
@@ -106,22 +135,34 @@ export default function ElevenLabsAgent() {
         return;
       }
 
+      // Step 4: Initiate ElevenLabs WebSocket session
+      console.log("[ElevenLabsAgent:Init] [Step 4/5] Initiating ElevenLabs Conversation.startSession...", {
+        agentId: AGENT_ID,
+        targetEndpoint: "wss://api.elevenlabs.io",
+      });
+
       const conversation = await Conversation.startSession({
         agentId: AGENT_ID,
         onConnect: () => {
+          console.log("[ElevenLabsAgent:Init] [Step 5/5 Success] ElevenLabs WebSocket connection established. Status: connected.");
           setStatus("connected");
         },
         onDisconnect: () => {
+          console.log("[ElevenLabsAgent:Session] ElevenLabs session disconnected.");
           setStatus("disconnected");
           setIsSpeaking(false);
           conversationRef.current = null;
         },
         onError: (err) => {
-          console.warn("[ElevenLabsAgent] Session warning:", err?.message || err);
+          console.warn("[ElevenLabsAgent:Session] ElevenLabs runtime session error/warning:", {
+            message: err?.message,
+            error: err,
+          });
           setErrorMessage(err?.message || "Connection error");
           setStatus("error");
         },
         onModeChange: ({ mode }) => {
+          console.log("[ElevenLabsAgent:Session] Agent mode transitioned:", mode);
           setIsSpeaking(mode === "speaking");
         },
         clientTools: {
@@ -246,8 +287,14 @@ export default function ElevenLabsAgent() {
       });
 
       conversationRef.current = conversation;
+      console.log("[ElevenLabsAgent:Init] conversation instance assigned to ref successfully.");
     } catch (err) {
-      console.warn("[ElevenLabsAgent] Session notice:", err?.name || err?.message || err);
+      console.warn("[ElevenLabsAgent:Init:Error] Caught exception during Conversation.startSession initialization:", {
+        name: err?.name,
+        message: err?.message,
+        stack: err?.stack,
+        details: err,
+      });
       const isDenied =
         err?.name === "NotAllowedError" ||
         err?.name === "PermissionDeniedError" ||
@@ -257,6 +304,10 @@ export default function ElevenLabsAgent() {
         setIsMicPermissionDenied(true);
         setErrorMessage(
           "Microphone access was denied. Please allow microphone permissions to speak with the agent."
+        );
+      } else if (err?.message?.includes("signal connection") || err?.name === "ConnectionError") {
+        setErrorMessage(
+          "Could not establish WebRTC signal connection with ElevenLabs. Please check network connectivity or refresh the page."
         );
       } else {
         setErrorMessage(err?.message || "Failed to connect to voice agent.");
@@ -279,7 +330,7 @@ export default function ElevenLabsAgent() {
   return (
     <div
       id="elevenlabs-voice-agent-container"
-      className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3 pointer-events-none select-none"
+      className="fixed bottom-20 sm:bottom-22 right-4 sm:right-6 z-40 flex flex-col items-end gap-3 pointer-events-none select-none"
     >
       {/* Expanded Control Box */}
       {isOpen && (

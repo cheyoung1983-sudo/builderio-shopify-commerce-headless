@@ -36,6 +36,13 @@ const ElevenLabsAgent = dynamic(() => import('@components/ElevenLabsAgent'), {
   ssr: false,
 })
 
+const AudioPermissionDiagnostics = dynamic(
+  () => import('@components/AudioPermissionDiagnostics'),
+  {
+    ssr: false,
+  }
+)
+
 const Layout: React.FC<{ pageProps: any; children: React.ReactNode }> = ({
   children,
   pageProps,
@@ -155,6 +162,7 @@ const InnerLayout: React.FC<{
                 <ToastContainer />
                 <CartDrawer />
                 <ElevenLabsAgent />
+                <AudioPermissionDiagnostics />
                 <NoSSR>
                   <FeatureBar
                     title="This site uses cookies to improve your experience. By clicking, you agree to our Privacy Policy."
