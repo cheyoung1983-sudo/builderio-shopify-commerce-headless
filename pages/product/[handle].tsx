@@ -17,7 +17,7 @@ import {
 } from '../../services/shopify'
 import { ProductDetail } from '../../components/products/ProductDetail'
 import { ProductDetailSkeleton } from '../../components/products/ProductDetailSkeleton'
-import { Breadcrumbs } from '../../components/common/Breadcrumbs'
+import { Breadcrumbs, formatProductBreadcrumbs } from '../../components/common/Breadcrumbs'
 import DynamicSEO from '../../components/DynamicSEO'
 
 if (builderConfig.apiKey) {
@@ -83,12 +83,41 @@ export default function Handle({
   const router = useSafeRouter()
   const isLive = !useIsPreviewing()
 
+  // Derive dynamic breadcrumbs path (Home > Category > Product)
+  const categoryParam = typeof router.query.category === 'string' ? router.query.category : null
+  const fromCollection = typeof router.query.collection === 'string' ? router.query.collection : null
+  const productHandle = typeof router.query.handle === 'string' ? router.query.handle : storefrontProduct?.handle
+
+  const breadcrumbItems = storefrontProduct
+    ? formatProductBreadcrumbs({
+        product: storefrontProduct,
+        categoryOverride: categoryParam,
+        collectionOverride: fromCollection,
+        includeProductsRoot: false,
+      })
+    : [
+        { label: 'Home', href: '/' },
+        { label: 'Products', href: '/products' },
+        {
+          label: productHandle
+            ? productHandle.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+            : 'Product Details',
+          isCurrent: true,
+        },
+      ]
+
   if (router.isFallback) {
     return (
       <div className="min-h-screen bg-neutral-50/50 py-8 px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-7xl mx-auto mb-4">
           <Breadcrumbs
             id="product-fallback-top-breadcrumbs"
+            variant="contained"
+            showHomeIcon={true}
+            showBackOnMobile={true}
+            productHandle={productHandle}
+            categoryOverride={categoryParam}
+            collectionOverride={fromCollection}
             items={[
               { label: 'Home', href: '/' },
               { label: 'Products', href: '/products' },
@@ -105,28 +134,18 @@ export default function Handle({
   if (page) {
     return (
       <div className="min-h-screen bg-neutral-50/50 py-8 px-4 sm:px-6 lg:px-8">
-        <DynamicSEO product={storefrontProduct} />
+        <DynamicSEO product={storefrontProduct} breadcrumbs={breadcrumbItems} />
         <div className="w-full max-w-7xl mx-auto mb-4">
           <Breadcrumbs
             id="product-builder-top-breadcrumbs"
-            items={[
-              { label: 'Home', href: '/' },
-              { label: 'Products', href: '/products' },
-              ...(storefrontProduct?.productType
-                ? [
-                    {
-                      label: storefrontProduct.productType,
-                      href: `/products?category=${encodeURIComponent(
-                        storefrontProduct.productType
-                      )}`,
-                    },
-                  ]
-                : []),
-              {
-                label: storefrontProduct?.title || 'Product Details',
-                isCurrent: true,
-              },
-            ]}
+            variant="contained"
+            showHomeIcon={true}
+            showBackOnMobile={true}
+            product={storefrontProduct}
+            productHandle={productHandle}
+            categoryOverride={categoryParam}
+            collectionOverride={fromCollection}
+            items={breadcrumbItems}
           />
         </div>
         <BuilderComponent
@@ -142,30 +161,20 @@ export default function Handle({
 
   return (
     <div className="min-h-screen bg-neutral-50/50 py-8 px-4 sm:px-6 lg:px-8">
-      <DynamicSEO product={storefrontProduct} />
+      <DynamicSEO product={storefrontProduct} breadcrumbs={breadcrumbItems} />
 
-      {/* Breadcrumb Navigation above Product Details */}
+      {/* Dynamic Breadcrumb Navigation above Product Details */}
       <div className="w-full max-w-7xl mx-auto mb-4">
         <Breadcrumbs
           id="product-page-top-breadcrumbs"
-          items={[
-            { label: 'Home', href: '/' },
-            { label: 'Products', href: '/products' },
-            ...(storefrontProduct?.productType
-              ? [
-                  {
-                    label: storefrontProduct.productType,
-                    href: `/products?category=${encodeURIComponent(
-                      storefrontProduct.productType
-                    )}`,
-                  },
-                ]
-              : []),
-            {
-              label: storefrontProduct?.title || 'Product Details',
-              isCurrent: true,
-            },
-          ]}
+          variant="contained"
+          showHomeIcon={true}
+          showBackOnMobile={true}
+          product={storefrontProduct}
+          productHandle={productHandle}
+          categoryOverride={categoryParam}
+          collectionOverride={fromCollection}
+          items={breadcrumbItems}
         />
       </div>
 

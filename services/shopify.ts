@@ -888,9 +888,54 @@ export const PRODUCT_BY_HANDLE_QUERY = /* GraphQL */ `
         id
         name
       }
+      collections(first: 5) {
+        edges {
+          node {
+            id
+            handle
+            title
+          }
+        }
+      }
       seo {
         title
         description
+      }
+    }
+  }
+`
+
+export const PRODUCT_BREADCRUMB_QUERY = /* GraphQL */ `
+  query getProductBreadcrumbPath($handle: String!) {
+    product(handle: $handle) {
+      id
+      handle
+      title
+      productType
+      vendor
+      collections(first: 5) {
+        edges {
+          node {
+            id
+            handle
+            title
+          }
+        }
+      }
+    }
+  }
+`
+
+export const COLLECTION_BREADCRUMB_QUERY = /* GraphQL */ `
+  query getCollectionBreadcrumbPath($handle: String!) {
+    collection(handle: $handle) {
+      id
+      handle
+      title
+      products(first: 1) {
+        pageInfo {
+          hasNextPage
+        }
       }
     }
   }
@@ -1335,6 +1380,54 @@ export async function fetchProductByHandle(handle: string) {
 }
 
 /**
+ * Fetches product path hierarchy for breadcrumbs from Shopify Storefront API
+ */
+export async function fetchStorefrontProductBreadcrumbPath(handle: string) {
+  return storefrontFetch<{
+    product: {
+      id: string
+      handle: string
+      title: string
+      productType?: string
+      vendor?: string
+      collections?: {
+        edges: Array<{
+          node: {
+            id: string
+            handle: string
+            title: string
+          }
+        }>
+      }
+    } | null
+  }>({
+    query: PRODUCT_BREADCRUMB_QUERY,
+    variables: { handle },
+  })
+}
+
+/**
+ * Fetches collection path hierarchy for breadcrumbs from Shopify Storefront API
+ */
+export async function fetchStorefrontCollectionBreadcrumbPath(handle: string) {
+  return storefrontFetch<{
+    collection: {
+      id: string
+      handle: string
+      title: string
+      products?: {
+        pageInfo: {
+          hasNextPage: boolean
+        }
+      }
+    } | null
+  }>({
+    query: COLLECTION_BREADCRUMB_QUERY,
+    variables: { handle },
+  })
+}
+
+/**
  * Fetches list of collections
  */
 export async function fetchStorefrontCollections(options?: { first?: number }) {
@@ -1444,8 +1537,10 @@ export const shopifyStorefront = {
   fetchAllAvailableProducts,
   fetchAllProducts,
   fetchProductByHandle: fetchStorefrontProductByHandle,
+  fetchProductBreadcrumbPath: fetchStorefrontProductBreadcrumbPath,
   fetchCollections: fetchStorefrontCollections,
   fetchCollectionByHandle: fetchStorefrontCollectionByHandle,
+  fetchCollectionBreadcrumbPath: fetchStorefrontCollectionBreadcrumbPath,
   fetchCart: fetchStorefrontCart,
   createCart: createStorefrontCart,
   addCartLines: addStorefrontCartLines,

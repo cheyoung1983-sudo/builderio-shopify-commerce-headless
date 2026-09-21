@@ -15,11 +15,11 @@ interface Props {
   id?: string
 }
 
-const Searchbar: FC<Props> = () => {
+const Searchbar: FC<Props> = ({ className, id }) => {
   const router = useSafeRouter()
   const { q } = router.query
   const [isOpen, setIsOpen] = useState(false)
-  const buttonRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
   const [overlayTop, setOverlayTop] = useState(0)
 
   const pathWithoutQuery = router.asPath.split('?')[0]
@@ -75,12 +75,17 @@ const Searchbar: FC<Props> = () => {
         />
       </ExpandModal>
 
-      <Box
+      <button
         ref={buttonRef}
-        as={Button}
-        mx={2}
+        id={id || 'navbar-search-toggle-btn'}
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        aria-label="Search"
+        aria-label={isOpen ? 'Close search' : 'Search catalog'}
+        aria-expanded={isOpen}
+        className={
+          className ||
+          'relative inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full text-neutral-700 hover:text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500'
+        }
       >
         {isOpen ? (
           <Cross />
@@ -99,7 +104,7 @@ const Searchbar: FC<Props> = () => {
             />
           </svg>
         )}
-      </Box>
+      </button>
     </React.Fragment>
   )
 }
