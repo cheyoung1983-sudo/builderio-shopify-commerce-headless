@@ -200,6 +200,20 @@ export const ProductDetailSkeleton: React.FC<ProductDetailSkeletonProps> = ({
             <div className="h-4 w-5/6 bg-neutral-100 rounded animate-pulse" />
             <div className="h-4 w-4/6 bg-neutral-100 rounded animate-pulse" />
           </div>
+
+          {/* Tabbed Info Panel Skeleton */}
+          <div className="mt-auto border-t border-neutral-200 pt-4">
+            <div className="flex border-b border-neutral-200 gap-6 pb-2.5 mb-4">
+              <div className="h-4 w-28 bg-emerald-100 rounded animate-pulse" />
+              <div className="h-4 w-24 bg-neutral-100 rounded animate-pulse" />
+              <div className="h-4 w-32 bg-neutral-100 rounded animate-pulse" />
+            </div>
+            <div className="space-y-2">
+              <div className="h-3.5 w-full bg-neutral-100 rounded animate-pulse" />
+              <div className="h-3.5 w-11/12 bg-neutral-100 rounded animate-pulse" />
+              <div className="h-3.5 w-4/5 bg-neutral-100 rounded animate-pulse" />
+            </div>
+          </div>
         </div>
       </div>
     </div>

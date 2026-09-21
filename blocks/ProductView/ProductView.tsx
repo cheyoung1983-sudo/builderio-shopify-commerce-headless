@@ -13,6 +13,7 @@ import {
 import ImageCarousel from '@components/common/ImageCarousel'
 import ProductLoader from './ProductLoader'
 import { Breadcrumbs } from '@components/common/Breadcrumbs'
+import { SocialShareButtons } from '@components/products/SocialShareButtons'
 import { sanitizeRichText } from '@lib/sanitize-html'
 
 interface Props {
@@ -119,19 +120,10 @@ const ProductBox: React.FC<Props> = ({
       <div className="mb-4">
         <Breadcrumbs
           id="product-builder-breadcrumbs"
-          items={[
-            { label: 'Home', href: '/' },
-            { label: 'Products', href: '/products' },
-            ...((product as any)?.productType
-              ? [
-                  {
-                    label: (product as any).productType,
-                    href: `/products?category=${encodeURIComponent((product as any).productType)}`,
-                  },
-                ]
-              : []),
-            { label: title || 'Product Details', isCurrent: true },
-          ]}
+          variant="contained"
+          showHomeIcon={true}
+          showBackOnMobile={true}
+          product={product}
         />
       </div>
       <Grid gap={4} columns={[1, 2]}>
@@ -209,6 +201,14 @@ const ProductBox: React.FC<Props> = ({
               {addToCartError}
             </p>
           )}
+          <div sx={{ margin: 2, pt: 3, borderTop: '1px solid #e2e8f0' }}>
+            <SocialShareButtons
+              title={product?.title || title}
+              description={product?.description || description}
+              variant="default"
+              showLabel={true}
+            />
+          </div>
         </div>
       </Grid>
     </React.Fragment>

@@ -3,9 +3,8 @@ import { BuilderComponent, builder } from '@builder.io/react'
 import builderConfig from '@config/builder'
 import { useCart } from '@lib/shopify/storefront-data-hooks'
 import { useCart as useModernCart } from '../../context/CartContext'
-import { jsx, Box, useThemeUI, Heading, Button } from 'theme-ui'
+import { useThemeUI } from 'theme-ui'
 import { useUI } from '@components/common/context'
-import Image from 'next/image'
 import Searchbar from './Searchbar'
 import Link from '@components/common/Link'
 import { Bag } from '@components/icons'
@@ -70,357 +69,206 @@ const Navbar: FC = () => {
           model={builderConfig.announcementModel}
         />
       )}
-      <Box
-        as="header"
-        sx={{
-          margin: `0 auto`,
-          width: '100%',
-          maxWidth: '100%',
-          py: 3,
-          px: { xs: 4, sm: 6, lg: 8 },
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          position: 'relative',
-        }}
+      <header
+        id="main-site-header"
+        className="w-full bg-white/95 backdrop-blur-md border-b border-neutral-200/80 sticky top-0 z-40 transition-colors"
       >
-        <Box
-          sx={{
-            display: 'flex',
-            flexBasis: 0,
-            minWidth: [100, 140, 260],
-            justifyContent: 'flex-start',
-            alignItems: 'center',
-            gap: '12px',
-          }}
-        >
-          {/* Mobile Hamburger Toggle Button */}
-          <Button
-            id="mobile-menu-toggle-btn"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle mobile menu"
-            sx={{
-              display: ['flex', 'flex', 'none'],
-              alignItems: 'center',
-              justifyContent: 'center',
-              p: 2,
-              bg: 'transparent',
-              color: 'inherit',
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </Button>
+        <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4 relative">
+          {/* Left section: Hamburger (mobile) + Navigation Links (desktop) */}
+          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0 min-w-0">
+            {/* Mobile Hamburger Toggle Button */}
+            <button
+              id="mobile-menu-toggle-btn"
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle mobile menu"
+              aria-expanded={mobileMenuOpen}
+              className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 active:bg-neutral-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
 
-          {/* Desktop Navigation Links */}
-          <Box
-            sx={{
-              display: ['none', 'none', 'flex'],
-              alignItems: 'center',
-              gap: '12px',
-            }}
-          >
-            {navigationLinks && navigationLinks.length > 0 ? (
-              <>
-                {navigationLinks.map((link, index) => (
-                  <Link key={index} sx={{ padding: '6px 10px', fontSize: '13px', fontWeight: 500 }} href={link.link || '//'}>
-                    {link.title}
+            {/* Desktop Navigation Links */}
+            <nav className="hidden md:flex items-center gap-1 lg:gap-2" aria-label="Main Navigation">
+              {navigationLinks && navigationLinks.length > 0 ? (
+                <>
+                  {navigationLinks.map((link, index) => (
+                    <Link
+                      key={index}
+                      href={link.link || '//'}
+                      className="px-2.5 py-1.5 text-sm font-medium text-neutral-700 hover:text-emerald-700 transition-colors rounded-md"
+                    >
+                      {link.title}
+                    </Link>
+                  ))}
+                  <Link
+                    href="/trends"
+                    className="ml-1 inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                  >
+                    Styles &amp; Trends
                   </Link>
-                ))}
-                <Link
-                  sx={{
-                    padding: '5px 12px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    borderRadius: '9999px',
-                    bg: '#ecfdf5',
-                    color: '#059669',
-                    border: '1px solid #a7f3d0',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    textDecoration: 'none',
-                  }}
-                  href="/trends"
-                >
-                  Styles & Trends
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link sx={{ padding: '6px 10px', fontSize: '13px', fontWeight: 500, color: 'inherit' }} href="/#catalog">
-                  Catalog
-                </Link>
-                <Link sx={{ padding: '6px 10px', fontSize: '13px', fontWeight: 500, color: 'inherit' }} href="/products">
-                  All Products
-                </Link>
-                <Link
-                  sx={{
-                    padding: '5px 12px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    borderRadius: '9999px',
-                    bg: '#ecfdf5',
-                    color: '#059669',
-                    border: '1px solid #a7f3d0',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    textDecoration: 'none',
-                  }}
-                  href="/trends"
-                >
-                  Styles & Trends
-                </Link>
-              </>
-            )}
-          </Box>
-        </Box>
-        <Box
-          sx={{
-            transform: 'translateX(-50%)',
-            left: '50%',
-            position: 'absolute',
-          }}
-        >
-          <Heading
-            sx={{
-              fontSize: 20,
-              fontWeight: 'bold',
-            }}
-          >
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/#catalog"
+                    className="px-2.5 py-1.5 text-sm font-medium text-neutral-700 hover:text-emerald-700 transition-colors rounded-md"
+                  >
+                    Catalog
+                  </Link>
+                  <Link
+                    href="/products"
+                    className="px-2.5 py-1.5 text-sm font-medium text-neutral-700 hover:text-emerald-700 transition-colors rounded-md"
+                  >
+                    All Products
+                  </Link>
+                  <Link
+                    href="/trends"
+                    className="ml-1 inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                  >
+                    Styles &amp; Trends
+                  </Link>
+                </>
+              )}
+            </nav>
+          </div>
+
+          {/* Center section: Brand Logo with dedicated flex allocation (no absolute collision) */}
+          <div className="flex-1 min-w-0 flex items-center justify-center text-center px-1 sm:px-2 z-10">
             <Link
               href="/"
-              sx={{
-                letterSpacing: -0.5,
-                textDecoration: 'none',
-                paddingLeft: '5px',
-                color: 'inherit',
-                display: 'inline-flex',
-                alignItems: 'center',
-              }}
+              className="inline-flex items-center justify-center max-w-full font-bold tracking-tight text-neutral-900 hover:text-emerald-700 transition-colors no-underline py-1"
             >
-              {activeLogo?.text || 'Display Cell Pros'}
+              <span className="text-base sm:text-lg md:text-xl font-bold tracking-tight truncate block max-w-full">
+                {activeLogo?.text || 'Display Cell Pros'}
+              </span>
             </Link>
-          </Heading>
-        </Box>
-        <Box
-          sx={{
-            display: 'flex',
-            minWidth: 140,
-            width: '100%',
-            justifyContent: ['space-between', 'flex-end'],
-          }}
-        >
-          <Searchbar />
-          <Link
-            href="/account"
-            aria-label="My Account"
-            sx={{
-              padding: '6px 10px',
-              fontSize: '13px',
-              fontWeight: 500,
-              color: 'inherit',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Account
-          </Link>
-          <Link
-            id="navbar-wishlist-link"
-            href="/wishlist"
-            aria-label={`Wishlist (${isLoaded ? wishlistCount : 0} items)`}
-            sx={{
-              position: 'relative',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '6px 8px',
-              color: 'inherit',
-              textDecoration: 'none',
-            }}
-          >
-            <Heart className="w-5 h-5 text-rose-500 hover:scale-110 transition-transform" />
-            {isLoaded && wishlistCount > 0 && (
-              <span
-                id="navbar-wishlist-count-badge"
-                sx={{
-                  position: 'absolute',
-                  top: '0px',
-                  right: '0px',
-                  bg: '#e11d48',
-                  color: '#ffffff',
-                  borderRadius: '9999px',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  minWidth: '18px',
-                  height: '18px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  px: '3px',
-                  lineHeight: 1,
-                  border: '2px solid white',
-                }}
-              >
-                {wishlistCount}
-              </span>
-            )}
-          </Link>
-          <Button
-            id="navbar-bag-button"
-            onClick={openSidebar}
-            aria-label={`Shopping Bag (${cartCount} items)`}
-            sx={{
-              position: 'relative',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-            }}
-          >
-            <Bag />
-            {cartCount > 0 && (
-              <span
-                id="navbar-bag-badge"
-                sx={{
-                  position: 'absolute',
-                  top: '-6px',
-                  right: '-6px',
-                  bg: '#059669',
-                  color: '#ffffff',
-                  borderRadius: '9999px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  minWidth: '20px',
-                  height: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  px: '4px',
-                  lineHeight: 1,
-                  border: '2px solid white',
-                  boxShadow: '0 2px 5px rgba(5,150,105,0.4)',
-                }}
-              >
-                {cartCount}
-              </span>
-            )}
-          </Button>
-        </Box>
-      </Box>
-      {mobileMenuOpen && (
-        <Box
-          id="mobile-navigation-drawer"
-          sx={{
-            display: ['block', 'block', 'none'],
-            bg: 'white',
-            borderBottom: '1px solid #e5e5e5',
-            px: 6,
-            py: 4,
-            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            zIndex: 50,
-          }}
-        >
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {navigationLinks && navigationLinks.length > 0 ? (
-              navigationLinks.map((link, index) => (
-                <Link
-                  key={index}
-                  href={link.link || '//'}
-                  onClick={() => setMobileMenuOpen(false)}
-                  sx={{ py: 2, fontSize: '15px', fontWeight: 600, color: '#171717', borderBottom: '1px solid #f5f5f5', textDecoration: 'none' }}
-                >
-                  {link.title}
-                </Link>
-              ))
-            ) : (
-              <>
-                <Link
-                  href="/#catalog"
-                  onClick={() => setMobileMenuOpen(false)}
-                  sx={{ py: 2, fontSize: '15px', fontWeight: 600, color: '#171717', borderBottom: '1px solid #f5f5f5', textDecoration: 'none' }}
-                >
-                  Catalog
-                </Link>
-                <Link
-                  href="/products"
-                  onClick={() => setMobileMenuOpen(false)}
-                  sx={{ py: 2, fontSize: '15px', fontWeight: 600, color: '#171717', borderBottom: '1px solid #f5f5f5', textDecoration: 'none' }}
-                >
-                  All Products
-                </Link>
-              </>
-            )}
+          </div>
+
+          {/* Right section: Search, Account, Wishlist, Cart in a clean flex sequence */}
+          <div className="flex items-center justify-end gap-1 sm:gap-2 flex-shrink-0">
+            {/* Search Trigger Button */}
+            <Searchbar id="navbar-search-toggle-btn" />
+
+            {/* Account Link - hidden on narrow screens to prevent crowding, fully available in mobile drawer */}
             <Link
-              href="/trends"
-              onClick={() => setMobileMenuOpen(false)}
-              sx={{
-                py: 2.5,
-                px: 3,
-                fontSize: '14px',
-                fontWeight: 600,
-                borderRadius: '12px',
-                bg: '#ecfdf5',
-                color: '#059669',
-                border: '1px solid #a7f3d0',
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
+              href="/account"
+              aria-label="My Account"
+              className="hidden sm:inline-flex items-center px-2.5 py-1.5 text-sm font-medium text-neutral-700 hover:text-emerald-700 transition-colors rounded-md whitespace-nowrap"
             >
-              Styles & Trends
+              Account
             </Link>
+
+            {/* Wishlist Link */}
             <Link
-              id="mobile-drawer-wishlist-link"
+              id="navbar-wishlist-link"
               href="/wishlist"
-              onClick={() => setMobileMenuOpen(false)}
-              sx={{
-                py: 2,
-                fontSize: '15px',
-                fontWeight: 600,
-                color: '#171717',
-                borderBottom: '1px solid #f5f5f5',
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
+              aria-label={`Wishlist (${isLoaded ? wishlistCount : 0} items)`}
+              className="relative inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full text-neutral-700 hover:text-rose-600 hover:bg-rose-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
             >
-              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Heart className="w-4 h-4 text-rose-500" />
-                <span>My Wishlist</span>
-              </span>
+              <Heart className="w-5 h-5 text-rose-500 hover:scale-110 transition-transform" />
               {isLoaded && wishlistCount > 0 && (
                 <span
-                  style={{
-                    backgroundColor: '#ffe4e6',
-                    color: '#be123c',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: '9999px',
-                  }}
+                  id="navbar-wishlist-count-badge"
+                  className="absolute -top-0.5 -right-0.5 bg-rose-600 text-white rounded-full text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center px-1 leading-none border-2 border-white shadow-sm"
                 >
                   {wishlistCount}
                 </span>
               )}
             </Link>
-            <Link
-              id="mobile-drawer-account-link"
-              href="/account"
-              onClick={() => setMobileMenuOpen(false)}
-              sx={{ py: 2, fontSize: '15px', fontWeight: 600, color: '#171717', textDecoration: 'none' }}
+
+            {/* Shopping Bag Button */}
+            <button
+              id="navbar-bag-button"
+              type="button"
+              onClick={openSidebar}
+              aria-label={`Shopping Bag (${cartCount} items)`}
+              className="relative inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full text-neutral-700 hover:text-emerald-700 hover:bg-emerald-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
             >
-              My Account
-            </Link>
-          </Box>
-        </Box>
-      )}
+              <Bag className="w-5 h-5" />
+              {cartCount > 0 && (
+                <span
+                  id="navbar-bag-badge"
+                  className="absolute -top-1 -right-1 bg-emerald-600 text-white rounded-full text-[11px] font-bold min-w-[20px] h-[20px] flex items-center justify-center px-1 leading-none border-2 border-white shadow-sm"
+                >
+                  {cartCount}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation Drawer */}
+        {mobileMenuOpen && (
+          <div
+            id="mobile-navigation-drawer"
+            className="md:hidden absolute top-full left-0 right-0 z-50 bg-white border-b border-neutral-200 shadow-xl px-4 sm:px-6 py-4"
+          >
+            <div className="flex flex-col gap-1.5">
+              {navigationLinks && navigationLinks.length > 0 ? (
+                navigationLinks.map((link, index) => (
+                  <Link
+                    key={index}
+                    href={link.link || '//'}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="py-2.5 px-3 text-base font-semibold text-neutral-900 hover:bg-neutral-50 rounded-lg border-b border-neutral-100 last:border-b-0 transition-colors"
+                  >
+                    {link.title}
+                  </Link>
+                ))
+              ) : (
+                <>
+                  <Link
+                    href="/#catalog"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="py-2.5 px-3 text-base font-semibold text-neutral-900 hover:bg-neutral-50 rounded-lg border-b border-neutral-100 transition-colors"
+                  >
+                    Catalog
+                  </Link>
+                  <Link
+                    href="/products"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="py-2.5 px-3 text-base font-semibold text-neutral-900 hover:bg-neutral-50 rounded-lg border-b border-neutral-100 transition-colors"
+                  >
+                    All Products
+                  </Link>
+                </>
+              )}
+              <Link
+                href="/trends"
+                onClick={() => setMobileMenuOpen(false)}
+                className="mt-1 py-2.5 px-3 text-sm font-semibold rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-center flex items-center justify-center hover:bg-emerald-100 transition-colors"
+              >
+                Styles &amp; Trends
+              </Link>
+              <Link
+                id="mobile-drawer-wishlist-link"
+                href="/wishlist"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2.5 px-3 text-base font-semibold text-neutral-900 hover:bg-neutral-50 rounded-lg border-b border-neutral-100 flex items-center justify-between transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <Heart className="w-4 h-4 text-rose-500" />
+                  <span>My Wishlist</span>
+                </span>
+                {isLoaded && wishlistCount > 0 && (
+                  <span className="bg-rose-100 text-rose-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                    {wishlistCount}
+                  </span>
+                )}
+              </Link>
+              <Link
+                id="mobile-drawer-account-link"
+                href="/account"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2.5 px-3 text-base font-semibold text-neutral-900 hover:bg-neutral-50 rounded-lg transition-colors"
+              >
+                My Account
+              </Link>
+            </div>
+          </div>
+        )}
+      </header>
     </React.Fragment>
   )
 }

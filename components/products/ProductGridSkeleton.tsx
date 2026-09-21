@@ -6,6 +6,12 @@ export interface ProductGridSkeletonProps {
   count?: number
   /** Whether to show header filters & search bar skeleton (default: false) */
   showControls?: boolean
+  /** Whether to show a left filter sidebar skeleton (default: false) */
+  showSidebar?: boolean
+  /** Custom columns class name (default: "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-6") */
+  columnsClass?: string
+  /** Card display variant */
+  cardVariant?: 'standard' | 'compact'
   /** Optional custom title placeholder */
   title?: string
   /** Optional container class name */
@@ -15,6 +21,9 @@ export interface ProductGridSkeletonProps {
 export const ProductGridSkeleton: React.FC<ProductGridSkeletonProps> = ({
   count = 8,
   showControls = false,
+  showSidebar = false,
+  columnsClass = 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-6',
+  cardVariant = 'standard',
   title,
   className = '',
 }) => {
@@ -52,18 +61,73 @@ export const ProductGridSkeleton: React.FC<ProductGridSkeletonProps> = ({
         </div>
       )}
 
-      {/* Grid of Product Skeletons */}
-      <div
-        id="storefront-products-skeleton"
-        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
-      >
-        {Array.from({ length: count }).map((_, index) => (
-          <ProductCardSkeleton
-            key={index}
-            id={`product-card-skeleton-${index}`}
-            index={index}
-          />
-        ))}
+      {/* Main Layout Area: Optional Sidebar + Product Cards Grid */}
+      <div className={showSidebar ? 'flex flex-col lg:flex-row gap-8 items-start' : 'w-full'}>
+        {/* Left Filter Sidebar Skeleton */}
+        {showSidebar && (
+          <aside className="w-full lg:w-64 shrink-0 bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-xs space-y-6 hidden lg:block">
+            {/* Sidebar Title & Clear Button */}
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+              <div className="h-5 w-20 bg-neutral-200 rounded animate-pulse" />
+              <div className="h-4 w-12 bg-neutral-100 rounded animate-pulse" />
+            </div>
+
+            {/* Price Range Filter Skeleton */}
+            <div className="space-y-3">
+              <div className="h-4 w-24 bg-neutral-200 rounded animate-pulse" />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="h-9 bg-neutral-100 rounded-lg animate-pulse border border-neutral-200/60" />
+                <div className="h-9 bg-neutral-100 rounded-lg animate-pulse border border-neutral-200/60" />
+              </div>
+            </div>
+
+            {/* Availability Toggle Skeleton */}
+            <div className="space-y-3 pt-2 border-t border-neutral-100">
+              <div className="h-4 w-28 bg-neutral-200 rounded animate-pulse" />
+              <div className="flex items-center justify-between p-2 rounded-lg bg-neutral-50 border border-neutral-200/60">
+                <div className="h-3.5 w-24 bg-neutral-200 rounded animate-pulse" />
+                <div className="h-5 w-9 bg-neutral-300 rounded-full animate-pulse" />
+              </div>
+            </div>
+
+            {/* Brand / Vendor Checkboxes Skeleton */}
+            <div className="space-y-3 pt-2 border-t border-neutral-100">
+              <div className="h-4 w-20 bg-neutral-200 rounded animate-pulse" />
+              <div className="space-y-2.5">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-neutral-200 rounded animate-pulse" />
+                      <div
+                        className={`h-3.5 bg-neutral-100 rounded animate-pulse ${
+                          i % 2 === 0 ? 'w-24' : 'w-16'
+                        }`}
+                      />
+                    </div>
+                    <div className="h-3 w-6 bg-neutral-100 rounded-full animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </aside>
+        )}
+
+        {/* Grid of Product Skeletons */}
+        <div className="flex-1 w-full min-w-0">
+          <div
+            id="storefront-products-skeleton"
+            className={`grid ${columnsClass}`}
+          >
+            {Array.from({ length: count }).map((_, index) => (
+              <ProductCardSkeleton
+                key={index}
+                id={`product-card-skeleton-${index}`}
+                index={index}
+                variant={cardVariant}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )

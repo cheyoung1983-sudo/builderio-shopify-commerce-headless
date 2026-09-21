@@ -4,6 +4,7 @@ import { jsx } from 'theme-ui'
 import { Box, Heading } from '@theme-ui/components'
 import shopifyConfig from '@config/shopify'
 import { ProductGrid, ProductGridProps } from '../ProductGrid/ProductGrid'
+import { ProductGridSkeleton } from '@components/products/ProductGridSkeleton'
 import { getCollection } from '@lib/shopify/storefront-data-hooks/src/api/operations'
 import { sanitizeRichText } from '@lib/sanitize-html'
 
@@ -49,7 +50,11 @@ const CollectionPreview: FC<Props> = ({
   }, [collection])
 
   if (!collection || typeof collection === 'string' || loading) {
-    return <Box>Loading...</Box>
+    return (
+      <div className="w-full max-w-7xl mx-auto px-4 py-8">
+        <ProductGridSkeleton count={8} showControls={true} />
+      </div>
+    )
   }
 
   const { title, description, products } = collection
