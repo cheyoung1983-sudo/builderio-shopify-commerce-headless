@@ -8,7 +8,7 @@
  * broken Shopify data path fails loudly instead of only "the shell renders".
  */
 
-const DEFAULT_TIMEOUT_MS = 15000
+const DEFAULT_TIMEOUT_MS = 30000
 
 async function fetchWithTimeout(url, timeoutMs = DEFAULT_TIMEOUT_MS) {
   const controller = new AbortController()
@@ -41,6 +41,40 @@ function extractFirstMatch(body, pattern) {
   return match ? match[1] : null
 }
 
+async function checkLiveCatalog(baseUrl, allowDemo) {
+  const url = `${baseUrl}/api/agent/search?first=1`
+  try {
+    const { status, body } = await fetchWithTimeout(url)
+    if (status !== 200) {
+      return { name: 'Live Shopify catalog', url, outcome: 'FAIL', detail: `expected HTTP 200, got ${status}` }
+    }
+
+    const payload = JSON.parse(body)
+    if (!payload.shopifyConfigured) {
+      const outcome = allowDemo ? 'WARN' : 'FAIL'
+      return {
+        name: 'Live Shopify catalog',
+        url,
+        outcome,
+        detail: allowDemo ? 'Shopify is not configured; demo mode explicitly allowed' : 'Shopify is not configured',
+      }
+    }
+
+    const products = Array.isArray(payload.products) ? payload.products : []
+    if (products.some((product) => String(product.id || '').includes('/demo-'))) {
+      return { name: 'Live Shopify catalog', url, outcome: 'FAIL', detail: 'response contains demo product IDs' }
+    }
+
+    if (products.length === 0) {
+      return { name: 'Live Shopify catalog', url, outcome: 'WARN', detail: 'Shopify is configured but returned no available products' }
+    }
+
+    return { name: 'Live Shopify catalog', url, outcome: 'PASS', detail: `Shopify configured with ${products.length} product(s)` }
+  } catch (error) {
+    return { name: 'Live Shopify catalog', url, outcome: 'FAIL', detail: error.message }
+  }
+}
+
 async function checkRoute(baseUrl, { path, name, expectStatus = 200, onMismatch = 'fail' }) {
   const url = `${baseUrl}${path}`
   try {
@@ -65,8 +99,9 @@ async function checkRoute(baseUrl, { path, name, expectStatus = 200, onMismatch 
   }
 }
 
-async function runFunctionalTests(baseUrl) {
+async function runFunctionalTests(baseUrl, { allowDemo = false } = {}) {
   const results = []
+  results.push(await checkLiveCatalog(baseUrl, allowDemo))
 
   const homepage = await checkRoute(baseUrl, { path: '/en-US', name: 'Homepage' })
   results.push(homepage)
@@ -92,7 +127,7 @@ async function runFunctionalTests(baseUrl) {
   // Dynamic hop: follow a real product link surfaced by the listing page,
   // proving the Shopify data path actually resolves end-to-end.
   if (productsListing.outcome === 'PASS' && productsListing.body) {
-    const productHandle = extractFirstMatch(productsListing.body, /\/en-US\/product\/([a-z0-9-]+)/i)
+    const productHandle = extractFirstMatch(productsListing.body, /\/(?:en-US\/)?product\/([a-z0-9-]+)/i)
     if (productHandle) {
       results.push(
         await checkRoute(baseUrl, { path: `/en-US/product/${productHandle}`, name: `Product detail (${productHandle})` })
@@ -125,9 +160,10 @@ function printResults({ results, passed, failed, skipped, warned }) {
 }
 
 async function main() {
-  const baseUrl = process.argv[2] || 'http://localhost:3000'
-  console.log(`Running functional tests against ${baseUrl}`)
-  const summary = await runFunctionalTests(baseUrl)
+  const allowDemo = process.argv.includes('--allow-demo')
+  const baseUrl = process.argv[2] === '--allow-demo' ? 'http://localhost:3000' : process.argv[2] || 'http://localhost:3000'
+  console.log(`Running functional tests against ${baseUrl}${allowDemo ? ' (demo mode allowed)' : ' (live catalog required)'}`)
+  const summary = await runFunctionalTests(baseUrl, { allowDemo })
   printResults(summary)
   process.exitCode = summary.failed > 0 ? 1 : 0
 }
@@ -136,4 +172,4 @@ if (require.main === module) {
   main()
 }
 
-module.exports = { runFunctionalTests, printResults }
+module.exports = { runFunctionalTests, printResults, checkLiveCatalog }

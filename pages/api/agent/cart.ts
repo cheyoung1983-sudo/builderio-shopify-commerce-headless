@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const rawLines = req.body?.lines ?? (req.body?.merchandiseId ? [req.body] : [])
 
-    if (!Array.isArray(rawLines) || rawLines.length === 0) {
+    if (!Array.isArray(rawLines) || rawLines.length === 0 || rawLines.length > 50) {
       return res.status(400).json({
         ok: false,
         error:
@@ -33,8 +33,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const formattedLines = rawLines.map((line: any) => {
-      const merchandiseId = String(line?.merchandiseId || line?.variantId || '').trim()
-      const quantity = Math.max(parseInt(String(line?.quantity || 1), 10) || 1, 1)
+      const merchandiseId = String(line?.merchandiseId || line?.variantId || '').trim().slice(0, 256)
+      const quantity = Math.min(Math.max(parseInt(String(line?.quantity || 1), 10) || 1, 1), 100)
       return {
         merchandiseId,
         quantity,
@@ -90,11 +90,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ? `${cart.cost.totalAmount.amount} ${cart.cost.totalAmount.currencyCode}`
         : null,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[API /api/agent/cart] Error creating cart:', error)
-    return res.status(500).json({
+    return res.status(502).json({
       ok: false,
-      error: error?.message || 'Failed to create cart',
+      error: 'Failed to create cart',
     })
   }
 }

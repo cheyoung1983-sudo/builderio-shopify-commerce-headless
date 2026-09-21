@@ -7,6 +7,10 @@ function setCorsHeaders(res: NextApiResponse) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 }
 
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   setCorsHeaders(res)
 
@@ -33,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         : req.query?.query
 
     const model = typeof rawModel === 'string' && rawModel.trim() ? rawModel.trim() : 'page'
-    const query = typeof rawQuery === 'string' ? rawQuery.trim() : ''
+    const query = typeof rawQuery === 'string' ? rawQuery.trim().slice(0, 120) : ''
 
     const apiKey = builderConfig.apiKey || process.env.BUILDER_PUBLIC_KEY || process.env.NEXT_PUBLIC_BUILDER_PUBLIC_KEY
 
@@ -52,19 +56,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     endpointUrl.searchParams.set('cachebust', 'true')
 
     if (query) {
-      endpointUrl.searchParams.set('query.name.$regex', query)
+      endpointUrl.searchParams.set('query.name.$regex', escapeRegex(query))
     }
 
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 8000)
 
-    const response = await fetch(endpointUrl.toString(), {
-      signal: controller.signal,
-      headers: {
-        Accept: 'application/json',
-      },
-    })
-    clearTimeout(timeout)
+    let response: Response
+    try {
+      response = await fetch(endpointUrl.toString(), {
+        signal: controller.signal,
+        headers: {
+          Accept: 'application/json',
+        },
+      })
+    } finally {
+      clearTimeout(timeout)
+    }
 
     if (!response.ok) {
       return res.status(response.status).json({
@@ -89,11 +97,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       count: results.length,
       results,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('[API /api/agent/content] Error fetching Builder content:', error)
-    return res.status(500).json({
+    return res.status(502).json({
       ok: false,
-      error: error?.message || 'Failed to fetch Builder content',
+      error: 'Failed to fetch Builder content',
       results: [],
     })
   }

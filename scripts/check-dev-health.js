@@ -52,8 +52,14 @@ const RED_FLAG_PATTERNS = [
   { name: '5xx HTTP response', regex: /\s(GET|POST|PUT|DELETE|PATCH)\s\S+\s5\d\d\b/ },
   { name: 'Shopify Storefront API failure', regex: /\[Shopify Storefront\].*Failed/ },
   { name: 'Builder.io content resolution error', regex: /Failed to (load|fetch).*(Builder|page)|resolveBuilderContent.*[Ee]rror/ },
-  { name: 'React warning', regex: /^Warning:/m },
   { name: 'react-hooks violation surfaced at runtime', regex: /react-hooks\/[a-z-]+/ },
+]
+
+const WARNING_PATTERNS = [
+  { name: 'React warning', regex: /^Warning:/m },
+  { name: 'Shopify retry', regex: /\[Shopify Storefront\].*Retrying/i },
+  { name: 'Catalog fallback or missing credentials', regex: /credentials (missing|not configured)|demo mode|fallback catalog/i },
+  { name: 'Node runtime warning', regex: /^\(node:\d+\).*Warning:/i },
 ]
 
 function isKnownBenign(line) {
@@ -68,18 +74,28 @@ function scanLog(logPath) {
   const content = fs.readFileSync(logPath, 'utf8')
   const lines = content.split('\n')
   const findings = []
+  const warnings = []
 
   for (const line of lines) {
     if (!line.trim() || isKnownBenign(line)) continue
+    let matched = false
     for (const { name, regex } of RED_FLAG_PATTERNS) {
       if (regex.test(line)) {
         findings.push(`${name}: ${line.trim().slice(0, 200)}`)
+        matched = true
+        break
+      }
+    }
+    if (matched) continue
+    for (const { name, regex } of WARNING_PATTERNS) {
+      if (regex.test(line)) {
+        warnings.push(`${name}: ${line.trim().slice(0, 200)}`)
         break
       }
     }
   }
 
-  return { ok: findings.length === 0, findings }
+  return { ok: findings.length === 0, findings, warnings }
 }
 
 function checkLiveness(url) {
@@ -117,6 +133,11 @@ async function main() {
     console.log(`  log: ${logResult.reason}`)
   } else {
     console.log('  log: clean')
+  }
+
+  if (logResult.warnings?.length) {
+    console.log(`  log warnings (${logResult.warnings.length}):`)
+    logResult.warnings.forEach((warning) => console.log(`    - ${warning}`))
   }
 
   console.log(

@@ -23,20 +23,22 @@ const serverStorefrontAccessToken =
   process.env.SHOPIFY_STOREFRONT_API_TOKEN || process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN
 const publicStorefrontAccessToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN
 
-if (isPrivateToken(publicStorefrontAccessToken)) {
-  console.warn(
-    '[config/shopify] Warning: NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN looks like a private token. Use a public Storefront API token for browser access.'
-  )
-}
-
 const storefrontAccessToken = isInvalid(serverStorefrontAccessToken)
   ? publicStorefrontAccessToken || ''
   : serverStorefrontAccessToken || ''
 
-if (!storefrontAccessToken) {
-  console.warn(
-    '[config/shopify] Warning: SHOPIFY_STOREFRONT_API_TOKEN / NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN is missing or empty. Set this environment variable in Vercel to fetch catalog products.'
-  )
+if (typeof window === 'undefined') {
+  if (isPrivateToken(publicStorefrontAccessToken)) {
+    console.warn(
+      '[config/shopify] Warning: NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN looks like a private token. Use a public Storefront API token for browser access.'
+    )
+  }
+
+  if (!storefrontAccessToken) {
+    console.warn(
+      '[config/shopify] Warning: SHOPIFY_STOREFRONT_API_TOKEN / NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN is missing or empty. Set this environment variable in Vercel to fetch catalog products.'
+    )
+  }
 }
 
 const shopifyConfig = {
