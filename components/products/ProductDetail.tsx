@@ -325,23 +325,33 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     }
   }
 
+  const previousActiveElementRef = useRef<HTMLElement | null>(null)
+
   // Keyboard navigation & Esc key listener for modal
   useEffect(() => {
     if (!asModal || !isOpen) return
 
+    previousActiveElementRef.current = document.activeElement as HTMLElement | null
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && onClose) {
+        e.preventDefault()
+        e.stopPropagation()
         onClose()
+        if (previousActiveElementRef.current) {
+          previousActiveElementRef.current.focus()
+          previousActiveElementRef.current = null
+        }
       }
     }
 
-    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown, { capture: true })
     // Prevent body scrolling while modal is open
     const originalStyle = document.body.style.overflow
     document.body.style.overflow = 'hidden'
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keydown', handleKeyDown, { capture: true })
       document.body.style.overflow = originalStyle
     }
   }, [asModal, isOpen, onClose])

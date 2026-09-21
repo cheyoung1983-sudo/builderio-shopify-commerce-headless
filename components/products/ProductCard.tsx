@@ -22,7 +22,7 @@ export interface ProductCardProps {
   product?: ShopifyProductNode
   /** Whether the product card is in a loading state */
   loading?: boolean
-  /** Index for staggered animation delay */
+  /** Index for staggered animation delay and grid keyboard navigation */
   index?: number
   /** Base URL for product links (default: '/product') */
   productBaseUrl?: string
@@ -34,16 +34,30 @@ export interface ProductCardProps {
   isAdded?: boolean
   /** Price formatter function */
   formatPrice?: (amount?: string, currencyCode?: string) => string
-  /** Handler when user clicks the product card */
-  onProductClick?: (product: ShopifyProductNode, e?: React.MouseEvent) => void
+  /** Handler when user clicks or presses Enter on the product card */
+  onProductClick?: (product: ShopifyProductNode, e?: React.MouseEvent | React.KeyboardEvent) => void
   /** Handler when user clicks Quick View button */
-  onQuickView?: (product: ShopifyProductNode, e: React.MouseEvent) => void
+  onQuickView?: (product: ShopifyProductNode, e?: React.MouseEvent | React.KeyboardEvent) => void
   /** Handler when user toggles comparison */
   onToggleCompare?: (product: ShopifyProductNode, e: React.MouseEvent) => void
   /** Handler when user clicks Quick Add */
   onQuickAddToCart?: (product: ShopifyProductNode, e: React.MouseEvent) => void
   /** Additional container classes */
   className?: string
+  /** Roving tabindex value (0 if focused/active, -1 otherwise) */
+  tabIndex?: number
+  /** Whether this card is currently focused via keyboard navigation */
+  isFocused?: boolean
+  /** Callback when card receives keyboard/mouse focus */
+  onCardFocus?: (index: number) => void
+  /** Keyboard handler for grid-level arrow keys, Enter, and Escape */
+  onCardKeyDown?: (
+    e: React.KeyboardEvent<HTMLDivElement>,
+    index: number,
+    product: ShopifyProductNode
+  ) => void
+  /** Optional DOM ref callback */
+  cardRef?: (node: HTMLDivElement | null) => void
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -60,6 +74,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onToggleCompare,
   onQuickAddToCart,
   className = '',
+  tabIndex,
+  isFocused = false,
+  onCardFocus,
+  onCardKeyDown,
+  cardRef,
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false)
   const { isInWishlist, toggleWishlist } = useWishlist()
@@ -100,8 +119,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const variantCount = product.variants?.edges?.length || 0
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    onProductClick?.(product, e)
+  const handleCardClick = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    if (onProductClick) {
+      onProductClick(product, e)
+    } else {
+      openQuickView(product)
+    }
   }
 
   const handleCompareClick = (e: React.MouseEvent) => {
@@ -116,7 +139,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     toggleWishlist(product)
   }
 
-  const handleQuickViewClick = (e: React.MouseEvent) => {
+  const handleQuickViewClick = (e: React.MouseEvent | React.KeyboardEvent) => {
     e.preventDefault()
     e.stopPropagation()
     if (onQuickView) {
@@ -132,19 +155,70 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     onQuickAddToCart?.(product, e)
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement
+    const isInteractiveChild =
+      target !== e.currentTarget &&
+      ['BUTTON', 'A', 'INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)
+
+    // Forward arrow keys, Home, End to parent grid navigation handler if provided
+    if (
+      ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)
+    ) {
+      if (onCardKeyDown) {
+        onCardKeyDown(e, index, product)
+        return
+      }
+    }
+
+    if (e.key === 'Enter' || e.key === ' ') {
+      // If user pressed Enter or Space directly on the card
+      if (!isInteractiveChild || target === e.currentTarget) {
+        e.preventDefault()
+        e.stopPropagation()
+        if (onQuickView) {
+          onQuickView(product, e)
+        } else if (onProductClick) {
+          onProductClick(product, e)
+        } else {
+          openQuickView(product)
+        }
+      }
+    } else if (e.key === 'Escape') {
+      if (onCardKeyDown) {
+        onCardKeyDown(e, index, product)
+      } else if (!isInteractiveChild || target === e.currentTarget) {
+        e.preventDefault()
+        e.currentTarget.blur()
+      }
+    }
+  }
+
   return (
     <div
-      id={`product-card-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
       style={{
         animationDelay: `${Math.min(index * 45, 450)}ms`,
       }}
-      onClick={handleCardClick}
-      className={`animate-grid-fade-in group relative bg-white border rounded-xl overflow-hidden transition-all duration-300 ease-out flex flex-col cursor-pointer ${
-        isCompared
-          ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
-          : 'border-surface-stone hover:border-neutral-300 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1'
-      } ${className}`}
+      className={`animate-grid-fade-in h-full flex flex-col ${className}`}
     >
+      <div
+        id={`product-card-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
+        ref={cardRef}
+        role="article"
+        tabIndex={tabIndex ?? 0}
+        aria-label={`${product.title}, ${formatPrice(minPrice, currency)}. Press Enter for Quick View.`}
+        aria-roledescription="product card"
+        onClick={handleCardClick}
+        onKeyDown={handleKeyDown}
+        onFocus={() => onCardFocus?.(index)}
+        className={`group relative bg-white border rounded-xl overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col flex-1 cursor-pointer transform-gpu will-change-transform hover:scale-[1.025] hover:-translate-y-1.5 hover:shadow-xl active:scale-[0.99] active:translate-y-0 focus:outline-hidden focus-visible:outline-hidden focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:border-emerald-500 focus-visible:shadow-lg ${
+          isFocused
+            ? 'ring-3 ring-emerald-500 ring-offset-2 border-emerald-500 shadow-lg scale-[1.01]'
+            : isCompared
+            ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
+            : 'border-surface-stone hover:border-neutral-300 shadow-xs'
+        }`}
+      >
       {/* Media Container */}
       <div
         ref={imageObserverRef}
@@ -155,6 +229,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           id={`product-card-image-link-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
           href={`${productBaseUrl}/${product.handle}`}
           onClick={handleCardClick}
+          tabIndex={-1}
+          aria-hidden="true"
           className="block w-full h-full cursor-pointer relative"
         >
           {/* Shimmer skeleton active while Shopify CDN image is downloading */}
@@ -336,6 +412,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <Link
             href={`${productBaseUrl}/${product.handle}`}
             onClick={handleCardClick}
+            tabIndex={-1}
             className="hover:underline"
           >
             {product.title}
@@ -419,7 +496,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
       </div>
     </div>
-  )
+  </div>
+)
 }
 
 export default ProductCard

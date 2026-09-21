@@ -161,7 +161,7 @@ button, input, select, textarea, .font-sans {
 }
 
 .animate-grid-fade-in {
-  animation: gridEntranceFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: gridEntranceFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 @media (prefers-reduced-motion: reduce) {

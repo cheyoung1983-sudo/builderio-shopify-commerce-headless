@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useContext } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, useContext, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -20,6 +20,7 @@ import {
   ExternalLink,
   Eye,
   X,
+  Keyboard,
 } from 'lucide-react'
 import {
   fetchAllAvailableProducts,
@@ -67,6 +68,8 @@ export interface ProductGridProps {
   breadcrumbs?: BreadcrumbItem[]
   /** Whether to render breadcrumb navigation above the section */
   showBreadcrumbs?: boolean
+  /** Explicit loading state override for external controllers */
+  isLoading?: boolean
 }
 
 export type ShopifySortOption =
@@ -145,11 +148,13 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   onSearchChange,
   breadcrumbs,
   showBreadcrumbs = false,
+  isLoading,
 }) => {
   const [baseProducts, setBaseProducts] = useState<ShopifyProductNode[]>(initialProducts || [])
   const [products, setProducts] = useState<ShopifyProductNode[]>(initialProducts || [])
   const [loading, setLoading] = useState<boolean>(!initialProducts || initialProducts.length === 0)
   const [isSearching, setIsSearching] = useState<boolean>(false)
+  const isGridLoading = isLoading !== undefined ? isLoading : (loading || isSearching)
   const [isSorting, setIsSorting] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
@@ -245,14 +250,14 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     }
   }
 
-  // Handle clicking a product to show Quick View side panel or trigger callback
-  const handleProductCardClick = (
+  // Handle clicking or pressing Enter on a product to show Quick View side panel or trigger callback
+  const handleProductCardClick = useCallback((
     product: ShopifyProductNode,
-    e?: React.MouseEvent
+    e?: React.MouseEvent | React.KeyboardEvent
   ) => {
     if (enableModalQuickView) {
       if (e) {
-        // Prevent full page reload if standard left click without modifiers
+        // Prevent default navigation if standard click or Enter without modifier keys
         if (!e.metaKey && !e.ctrlKey && !e.shiftKey) {
           e.preventDefault()
         }
@@ -260,7 +265,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       openQuickView(product)
     }
     onProductClick?.(product)
-  }
+  }, [enableModalQuickView, openQuickView, onProductClick])
 
   // Fetch products from shopify.ts Storefront service
   const loadProducts = useCallback(
@@ -502,7 +507,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   }, [products, selectedTag, sortBy, filters])
 
   // Format currency
-  const formatPrice = (amount?: string, currencyCode: string = 'USD') => {
+  const formatPrice = useCallback((amount?: string, currencyCode: string = 'USD') => {
     if (!amount) return ''
     const num = parseFloat(amount)
     if (isNaN(num)) return `${currencyCode} ${amount}`
@@ -510,7 +515,126 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       style: 'currency',
       currency: currencyCode,
     }).format(num)
-  }
+  }, [])
+
+  // Grid accessibility & keyboard navigation state
+  const gridRef = useRef<HTMLDivElement>(null)
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([])
+  const [focusedIndex, setFocusedIndex] = useState<number>(0)
+  const [keyboardActive, setKeyboardActive] = useState<boolean>(false)
+  const [announcement, setAnnouncement] = useState<string>('')
+
+  // Safe focused index clamped within current filtered products length
+  const safeFocusedIndex = Math.min(
+    focusedIndex,
+    Math.max(0, filteredProducts.length - 1)
+  )
+
+  // Dynamically compute the number of columns in the grid
+  const getColumnCount = useCallback(() => {
+    if (!gridRef.current) return 3
+    try {
+      const computed = window.getComputedStyle(gridRef.current)
+      const templateCols = computed.getPropertyValue('grid-template-columns')
+      const count = templateCols.split(' ').filter(Boolean).length
+      return count > 0 ? count : 3
+    } catch {
+      return 3
+    }
+  }, [])
+
+  // Programmatically focus a specific card and notify screen readers
+  const focusCardAtIndex = useCallback((targetIndex: number) => {
+    if (filteredProducts.length === 0) return
+    const clampedIndex = Math.max(0, Math.min(filteredProducts.length - 1, targetIndex))
+    setFocusedIndex(clampedIndex)
+    setKeyboardActive(true)
+
+    const targetEl = cardRefs.current[clampedIndex]
+    if (targetEl) {
+      targetEl.focus()
+      targetEl.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+    }
+
+    const prod = filteredProducts[clampedIndex]
+    if (prod) {
+      const price = prod.priceRange?.minVariantPrice?.amount
+        ? formatPrice(prod.priceRange.minVariantPrice.amount, prod.priceRange.minVariantPrice.currencyCode)
+        : ''
+      setAnnouncement(`Product ${clampedIndex + 1} of ${filteredProducts.length}: ${prod.title}, ${price}. Press Enter for Quick View, Escape to close.`)
+    }
+  }, [filteredProducts, formatPrice])
+
+  // Grid keyboard event dispatcher for arrow keys, Enter, and Escape
+  const handleGridKeyDown = useCallback((
+    e: React.KeyboardEvent<HTMLDivElement>,
+    cardIndex: number,
+    product: ShopifyProductNode
+  ) => {
+    const total = filteredProducts.length
+    if (total === 0) return
+
+    const cols = getColumnCount()
+
+    switch (e.key) {
+      case 'ArrowRight': {
+        e.preventDefault()
+        const nextIdx = (cardIndex + 1) % total
+        focusCardAtIndex(nextIdx)
+        break
+      }
+      case 'ArrowLeft': {
+        e.preventDefault()
+        const prevIdx = (cardIndex - 1 + total) % total
+        focusCardAtIndex(prevIdx)
+        break
+      }
+      case 'ArrowDown': {
+        e.preventDefault()
+        const nextRowIdx = Math.min(total - 1, cardIndex + cols)
+        focusCardAtIndex(nextRowIdx)
+        break
+      }
+      case 'ArrowUp': {
+        e.preventDefault()
+        const prevRowIdx = Math.max(0, cardIndex - cols)
+        focusCardAtIndex(prevRowIdx)
+        break
+      }
+      case 'Home': {
+        e.preventDefault()
+        focusCardAtIndex(0)
+        break
+      }
+      case 'End': {
+        e.preventDefault()
+        focusCardAtIndex(total - 1)
+        break
+      }
+      case 'Enter':
+      case ' ': {
+        // If Enter or Space pressed on the card itself
+        const target = e.target as HTMLElement
+        const isInnerButton =
+          target !== e.currentTarget &&
+          ['BUTTON', 'A', 'INPUT', 'SELECT'].includes(target.tagName)
+        if (!isInnerButton) {
+          e.preventDefault()
+          e.stopPropagation()
+          handleProductCardClick(product, e)
+        }
+        break
+      }
+      case 'Escape': {
+        e.preventDefault()
+        setKeyboardActive(false)
+        if (e.currentTarget) {
+          e.currentTarget.blur()
+        }
+        break
+      }
+    }
+  }, [filteredProducts, getColumnCount, focusCardAtIndex, handleProductCardClick])
 
   return (
     <section
@@ -720,14 +844,14 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
         {/* Main Products Area */}
         <div className="flex-1 w-full min-w-0">
           {/* Loading Skeleton Grid */}
-          {(loading || isSearching) && (
+          {isGridLoading && (
             <ProductGridSkeleton
               count={Math.min(limit || 8, 8)}
             />
           )}
 
           {/* Error State */}
-          {!loading && !isSearching && (error || searchError) && (
+          {!isGridLoading && (error || searchError) && (
             <div
               id="storefront-products-error"
               className="p-6 rounded-xl border border-red-200 bg-red-50/70 text-red-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
@@ -755,7 +879,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           )}
 
           {/* Empty State */}
-          {!loading && !isSearching && !error && !searchError && filteredProducts.length === 0 && (
+          {!isGridLoading && !error && !searchError && filteredProducts.length === 0 && (
             <div
               id="storefront-products-empty"
               className="py-16 px-4 text-center bg-neutral-50 border border-dashed border-neutral-300 rounded-2xl max-w-xl mx-auto"
@@ -787,17 +911,72 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
             </div>
           )}
 
+          {/* Keyboard Accessibility Instruction & Shortcut Bar */}
+          {!isGridLoading && !error && !searchError && filteredProducts.length > 0 && (
+            <div
+              id="product-grid-keyboard-hint-bar"
+              className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 mb-4 rounded-xl bg-neutral-50/90 border border-neutral-200/70 text-xs text-neutral-600 shadow-2xs"
+            >
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1 font-semibold text-neutral-800">
+                  <Keyboard className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Keyboard Navigation:</span>
+                </span>
+                <span className="inline-flex items-center gap-1 font-mono text-[11px]">
+                  <kbd className="px-1.5 py-0.5 rounded bg-white border border-neutral-300 shadow-2xs font-bold text-neutral-800">←</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-white border border-neutral-300 shadow-2xs font-bold text-neutral-800">→</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-white border border-neutral-300 shadow-2xs font-bold text-neutral-800">↑</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-white border border-neutral-300 shadow-2xs font-bold text-neutral-800">↓</kbd>
+                  <span className="text-neutral-500 font-sans ml-0.5">navigate</span>
+                </span>
+                <span className="text-neutral-300 hidden sm:inline">•</span>
+                <span className="inline-flex items-center gap-1 font-mono text-[11px]">
+                  <kbd className="px-1.5 py-0.5 rounded bg-white border border-neutral-300 shadow-2xs font-bold text-neutral-800">Enter</kbd>
+                  <span className="text-neutral-500 font-sans ml-0.5">Quick View</span>
+                </span>
+                <span className="text-neutral-300 hidden sm:inline">•</span>
+                <span className="inline-flex items-center gap-1 font-mono text-[11px]">
+                  <kbd className="px-1.5 py-0.5 rounded bg-white border border-neutral-300 shadow-2xs font-bold text-neutral-800">Esc</kbd>
+                  <span className="text-neutral-500 font-sans ml-0.5">Close</span>
+                </span>
+              </div>
+
+              {filteredProducts.length > 0 && (
+                <span className="text-[11px] font-mono text-neutral-500">
+                  Item {safeFocusedIndex + 1} of {filteredProducts.length}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Screen reader live announcement */}
+          <div className="sr-only" aria-live="polite" aria-atomic="true">
+            {announcement}
+          </div>
+
           {/* Responsive Products Grid */}
-          {!loading && !isSearching && !error && !searchError && filteredProducts.length > 0 && (
+          {!isGridLoading && !error && !searchError && filteredProducts.length > 0 && (
             <div
               id="storefront-products-grid"
+              ref={gridRef}
+              role="region"
+              aria-label="Product catalog grid - use arrow keys to navigate between products, Enter to open quick view, Escape to close"
               className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-6"
             >
               {filteredProducts.map((product, index) => (
                 <ProductCard
                   key={product.id}
+                  cardRef={(el) => {
+                    cardRefs.current[index] = el
+                  }}
                   product={product}
                   index={index}
+                  tabIndex={safeFocusedIndex === index ? 0 : -1}
+                  isFocused={keyboardActive && safeFocusedIndex === index}
+                  onCardFocus={(idx) => {
+                    setFocusedIndex(idx)
+                  }}
+                  onCardKeyDown={handleGridKeyDown}
                   productBaseUrl={productBaseUrl}
                   isCompared={compareProducts.some((p) => p.id === product.id)}
                   isAddingToCart={quickAddingId === product.id}

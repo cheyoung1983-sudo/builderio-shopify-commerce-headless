@@ -29,6 +29,7 @@ import {
 } from '../../services/shopify'
 import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
 import { sanitizeRichText } from '../../lib/sanitize-html'
+import { ProductImageZoom } from './ProductImageZoom'
 
 export interface QuickViewDrawerProps {
   productBaseUrl?: string
@@ -287,89 +288,86 @@ const QuickViewContent: React.FC<QuickViewContentProps> = ({
           <>
             {/* Image Gallery */}
             <div className="space-y-3">
-              <div className="relative aspect-square w-full bg-neutral-100 rounded-2xl overflow-hidden border border-neutral-200/80">
-                {images.length > 0 && images[selectedImageIndex]?.url ? (
-                  <Image
-                    src={images[selectedImageIndex].url}
-                    alt={images[selectedImageIndex].altText || activeProduct.title}
-                    fill
-                    placeholder="blur"
-                    blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
-                    sizes={RESPONSIVE_IMAGE_SIZES.productDetail}
-                    priority
-                    className="object-contain p-4 object-center transition-all duration-300"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-neutral-400 gap-2">
-                    <PackageOpen className="w-12 h-12 stroke-[1.5]" />
-                    <span className="text-xs">No image preview</span>
-                  </div>
-                )}
-
-                {/* Badges Overlay */}
-                <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
-                  {isOnSale && (
-                    <span className="bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded shadow-sm">
-                      Save {discountPercent}%
-                    </span>
-                  )}
-                  <span className="bg-emerald-600/95 backdrop-blur-xs text-white text-[10px] font-medium px-2 py-0.5 rounded shadow-sm inline-flex items-center gap-1 w-fit">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
-                    In Stock & Ready to Ship
-                  </span>
-                </div>
-
-                {/* Wishlist Toggle Button (Top Right) */}
-                <button
-                  id="quick-view-wishlist-toggle-btn"
-                  type="button"
-                  onClick={() => toggleWishlist(activeProduct as ShopifyProductNode)}
-                  aria-label={isSaved ? 'Remove from wishlist' : 'Save to wishlist'}
-                  aria-pressed={isSaved}
-                  className={`absolute top-3 right-3 p-2.5 rounded-full transition-all shadow-md z-10 cursor-pointer ${
-                    isSaved
-                      ? 'bg-rose-500 text-white ring-2 ring-rose-300 scale-105'
-                      : 'bg-white/90 hover:bg-white text-neutral-700 hover:text-rose-500 border border-neutral-200 backdrop-blur-xs'
-                  }`}
+              {images.length > 0 && images[selectedImageIndex]?.url ? (
+                <ProductImageZoom
+                  src={images[selectedImageIndex].url}
+                  alt={images[selectedImageIndex].altText || activeProduct.title}
+                  priority
+                  blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+                  sizes={RESPONSIVE_IMAGE_SIZES.productDetail}
+                  zoomScales={[1.8, 2.5]}
+                  lensSize={190}
+                  allowModalInspection={true}
                 >
-                  <Heart
-                    className={`w-4 h-4 transition-colors ${
-                      isSaved ? 'fill-current text-white' : ''
-                    }`}
-                  />
-                </button>
-
-                {/* Left / Right Carousel arrows for multi-image */}
-                {images.length > 1 && (
-                  <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none z-10">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSelectedImageIndex((prev) =>
-                          prev > 0 ? prev - 1 : images.length - 1
-                        )
-                      }
-                      aria-label="Previous image"
-                      className="p-1.5 rounded-full bg-white/90 hover:bg-white text-neutral-800 shadow-md pointer-events-auto transition-transform active:scale-95 cursor-pointer"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSelectedImageIndex((prev) =>
-                          prev < images.length - 1 ? prev + 1 : 0
-                        )
-                      }
-                      aria-label="Next image"
-                      className="p-1.5 rounded-full bg-white/90 hover:bg-white text-neutral-800 shadow-md pointer-events-auto transition-transform active:scale-95 cursor-pointer"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+                  {/* Badges Overlay */}
+                  <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
+                    {isOnSale && (
+                      <span className="bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded shadow-sm">
+                        Save {discountPercent}%
+                      </span>
+                    )}
+                    <span className="bg-emerald-600/95 backdrop-blur-xs text-white text-[10px] font-medium px-2 py-0.5 rounded shadow-sm inline-flex items-center gap-1 w-fit">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                      In Stock & Ready to Ship
+                    </span>
                   </div>
-                )}
-              </div>
+
+                  {/* Wishlist Toggle Button (Top Right) */}
+                  <button
+                    id="quick-view-wishlist-toggle-btn"
+                    type="button"
+                    onClick={() => toggleWishlist(activeProduct as ShopifyProductNode)}
+                    aria-label={isSaved ? 'Remove from wishlist' : 'Save to wishlist'}
+                    aria-pressed={isSaved}
+                    className={`absolute top-3 right-14 p-2 rounded-xl transition-all shadow-md z-20 cursor-pointer border ${
+                      isSaved
+                        ? 'bg-rose-500 text-white border-rose-500 ring-2 ring-rose-300 scale-105'
+                        : 'bg-white/90 hover:bg-white text-neutral-700 hover:text-rose-500 border-neutral-200/80 backdrop-blur-xs'
+                    }`}
+                  >
+                    <Heart
+                      className={`w-4 h-4 transition-colors ${
+                        isSaved ? 'fill-current text-white' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {/* Left / Right Carousel arrows for multi-image */}
+                  {images.length > 1 && (
+                    <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none z-10">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedImageIndex((prev) =>
+                            prev > 0 ? prev - 1 : images.length - 1
+                          )
+                        }
+                        aria-label="Previous image"
+                        className="p-1.5 rounded-full bg-white/90 hover:bg-white text-neutral-800 shadow-md pointer-events-auto transition-transform active:scale-95 cursor-pointer"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedImageIndex((prev) =>
+                            prev < images.length - 1 ? prev + 1 : 0
+                          )
+                        }
+                        aria-label="Next image"
+                        className="p-1.5 rounded-full bg-white/90 hover:bg-white text-neutral-800 shadow-md pointer-events-auto transition-transform active:scale-95 cursor-pointer"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </ProductImageZoom>
+              ) : (
+                <div className="relative aspect-square w-full bg-neutral-100 rounded-2xl overflow-hidden border border-neutral-200/80 flex flex-col items-center justify-center text-neutral-400 gap-2">
+                  <PackageOpen className="w-12 h-12 stroke-[1.5]" />
+                  <span className="text-xs">No image preview</span>
+                </div>
+              )}
 
               {/* Thumbnail Strip */}
               {images.length > 1 && (
@@ -637,27 +635,49 @@ export const QuickViewDrawer: React.FC<QuickViewDrawerProps> = ({
 }) => {
   const { isOpen, product: contextProduct, handle, closeQuickView } = useQuickView()
   const drawerRef = useRef<HTMLDivElement>(null)
+  const previousActiveElementRef = useRef<HTMLElement | null>(null)
 
-  // Lock body scroll while Quick View side-panel modal is open
+  // Manage body scroll and focus restoration
   useEffect(() => {
     if (isOpen) {
+      // Remember which element had focus before opening (e.g. the product card)
+      previousActiveElementRef.current = document.activeElement as HTMLElement | null
+
       const originalOverflow = document.body.style.overflow
       document.body.style.overflow = 'hidden'
+
+      // Focus close button inside drawer for rapid keyboard navigation
+      const timer = setTimeout(() => {
+        const closeBtn = document.getElementById('quick-view-close-btn')
+        if (closeBtn) {
+          closeBtn.focus()
+        } else if (drawerRef.current) {
+          drawerRef.current.focus()
+        }
+      }, 50)
+
       return () => {
+        clearTimeout(timer)
         document.body.style.overflow = originalOverflow
       }
+    } else if (previousActiveElementRef.current) {
+      // Restore focus to previous active element when drawer closes
+      previousActiveElementRef.current.focus()
+      previousActiveElementRef.current = null
     }
   }, [isOpen])
 
-  // Close on Escape key
+  // Close on Escape key with event capturing
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
+        e.preventDefault()
+        e.stopPropagation()
         closeQuickView()
       }
     }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown, { capture: true })
+    return () => window.removeEventListener('keydown', handleKeyDown, { capture: true })
   }, [isOpen, closeQuickView])
 
   if (!isOpen) return null
