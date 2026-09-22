@@ -57,6 +57,35 @@ body {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Cumulative Layout Shift (CLS) Global Mitigation */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Preserve aspect ratios on image containers and prevent 0x0 initial bounding boxes */
+img[loading="lazy"] {
+  content-visibility: auto;
+}
+
+.aspect-square,
+[data-aspect-ratio="1/1"],
+.img-aspect-square {
+  aspect-ratio: 1 / 1;
+}
+
+.aspect-video,
+[data-aspect-ratio="16/9"],
+.img-aspect-video {
+  aspect-ratio: 16 / 9;
+}
+
+/* Fallback for Next.js image wrappers without predefined layout */
+span[style*="box-sizing: border-box"][style*="display: block"] > img,
+span[style*="box-sizing:border-box"][style*="display:block"] > img {
+  aspect-ratio: auto;
+}
+
 h1, h2, h3, h4, h5, h6,
 .font-serif,
 .font-display {
