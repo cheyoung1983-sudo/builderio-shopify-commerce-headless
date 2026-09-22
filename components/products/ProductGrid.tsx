@@ -276,7 +276,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
         const activeSortConfig = SHOPIFY_SORT_CONFIGS[currentSortOption] || SHOPIFY_SORT_CONFIGS.relevance
         const res = await fetchAllAvailableProducts({
           maxProducts: limit,
-          onlyAvailable: true,
+          onlyAvailable: false,
           query: query?.trim() || undefined,
           sortKey: activeSortConfig.sortKey,
           reverse: activeSortConfig.reverse,
@@ -331,7 +331,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       setIsSorting(true)
       const res = await fetchAllAvailableProducts({
         maxProducts: limit,
-        onlyAvailable: true,
+        onlyAvailable: false,
         query: searchQuery?.trim() || undefined,
         sortKey: config.sortKey,
         reverse: config.reverse,

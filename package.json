@@ -93,6 +93,7 @@
     "@builder.io/widgets": "1.2.24",
     "@elevenlabs/client": "^1.25.0",
     "@emotion/react": "^11.10.6",
+    "@google/genai": "^2.23.0",
     "@radix-ui/react-dialog": "^1.0.2",
     "@reach/dialog": "^0.18.0",
     "@reach/portal": "0.14.0",

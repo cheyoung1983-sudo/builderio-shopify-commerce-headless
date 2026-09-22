@@ -261,9 +261,17 @@ const Navbar: FC = () => {
                 id="mobile-drawer-account-link"
                 href="/account"
                 onClick={() => setMobileMenuOpen(false)}
-                className="py-2.5 px-3 text-base font-semibold text-neutral-900 hover:bg-neutral-50 rounded-lg transition-colors"
+                className="py-2.5 px-3 text-base font-semibold text-neutral-900 hover:bg-neutral-50 rounded-lg border-b border-neutral-100 transition-colors"
               >
                 My Account
+              </Link>
+              <Link
+                id="mobile-drawer-track-link"
+                href="/order-tracking"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2.5 px-3 text-base font-semibold text-neutral-900 hover:bg-neutral-50 rounded-lg transition-colors"
+              >
+                Track Order
               </Link>
             </div>
           </div>

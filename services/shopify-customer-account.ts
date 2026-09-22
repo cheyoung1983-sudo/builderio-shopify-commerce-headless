@@ -225,6 +225,62 @@ export async function customerAccountFetch<T = any>(params: {
   return res.json()
 }
 
+export interface CustomerAddress {
+  address1?: string | null
+  address2?: string | null
+  city?: string | null
+  province?: string | null
+  zip?: string | null
+  country?: string | null
+}
+
+export interface CustomerOrderLineItem {
+  id: string
+  title: string
+  quantity: number
+  variantTitle?: string | null
+  image?: {
+    url: string
+    altText?: string | null
+  } | null
+  price?: {
+    amount: string
+    currencyCode: string
+  } | null
+}
+
+export interface CustomerOrder {
+  id: string
+  name: string
+  number?: number | string | null
+  processedAt: string
+  financialStatus?: string | null
+  fulfillmentStatus?: string | null
+  totalPrice?: {
+    amount: string
+    currencyCode: string
+  } | null
+  lineItems?: {
+    edges: Array<{
+      node: CustomerOrderLineItem
+    }>
+  } | null
+}
+
+export interface CustomerAccountProfile {
+  id: string
+  firstName?: string | null
+  lastName?: string | null
+  emailAddress?: { emailAddress?: string | null } | null
+  phoneNumber?: { phoneNumber?: string | null } | null
+  defaultAddress?: CustomerAddress | null
+  orders?: {
+    edges: Array<{
+      node: CustomerOrder
+    }>
+  } | null
+}
+
 export const CUSTOMER_QUERY = /* GraphQL */ `
   query getCustomer {
     customer {
@@ -234,6 +290,9 @@ export const CUSTOMER_QUERY = /* GraphQL */ `
       emailAddress {
         emailAddress
       }
+      phoneNumber {
+        phoneNumber
+      }
       defaultAddress {
         address1
         address2
@@ -242,6 +301,39 @@ export const CUSTOMER_QUERY = /* GraphQL */ `
         zip
         country
       }
+      orders(first: 25, sortKey: PROCESSED_AT, reverse: true) {
+        edges {
+          node {
+            id
+            name
+            number
+            processedAt
+            financialStatus
+            fulfillmentStatus
+            totalPrice {
+              amount
+              currencyCode
+            }
+            lineItems(first: 10) {
+              edges {
+                node {
+                  id
+                  title
+                  quantity
+                  image {
+                    url
+                  }
+                  price {
+                    amount
+                    currencyCode
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 `
+

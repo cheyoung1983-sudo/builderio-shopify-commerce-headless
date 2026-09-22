@@ -12,7 +12,7 @@ export async function getStaticProps(context: GetStaticPropsContext) {
   try {
     const res = await fetchAllAvailableProducts({
       batchSize: 50,
-      onlyAvailable: true,
+      onlyAvailable: false,
     })
     initialProducts = res.products
   } catch (err) {

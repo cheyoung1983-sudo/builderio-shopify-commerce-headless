@@ -715,9 +715,9 @@ export interface FetchAllAvailableProductsOptions {
   reverse?: boolean
   /** Batch size per GraphQL page request (default: 50, max 250) */
   batchSize?: number
-  /** Maximum total products to collect (optional limit, defaults to fetching all available) */
+  /** Maximum total products to collect (optional limit, defaults to fetching all products) */
   maxProducts?: number
-  /** Filter out any unavailable items (default: true) */
+  /** Filter out any unavailable items (default: false to display entire catalog including 0 stock) */
   onlyAvailable?: boolean
   /** Request timeout per GraphQL query in ms (default: 15000) */
   timeoutMs?: number
@@ -1157,8 +1157,8 @@ export async function fetchStorefrontShopInfo() {
 }
 
 /**
- * Fetches all available products from the Shopify Storefront API using pagination.
- * Iterates through all pages using GraphQL cursor pagination until all available products
+ * Fetches all products (including 0 stock / unavailable items by default) from the Shopify Storefront API using pagination.
+ * Iterates through all pages using GraphQL cursor pagination until all products
  * are fetched or the optional maxProducts limit is reached.
  */
 export async function fetchAllAvailableProducts(
@@ -1170,14 +1170,14 @@ export async function fetchAllAvailableProducts(
     reverse,
     batchSize = 50,
     maxProducts,
-    onlyAvailable = true,
+    onlyAvailable = false,
     timeoutMs = 15000,
     cache,
     next,
   } = options
 
   // Build the Storefront search filter:
-  // If onlyAvailable is true, ensure available_for_sale:true is included
+  // If onlyAvailable is explicitly set to true, ensure available_for_sale:true is included
   let combinedQuery = customQuery ? customQuery.trim() : ''
   if (onlyAvailable) {
     if (!combinedQuery.includes('available_for_sale:')) {
@@ -1324,7 +1324,7 @@ export async function searchStorefrontProducts(
       ? true
       : options.unavailable_products === 'show'
       ? false
-      : (options.onlyAvailable ?? true)
+      : (options.onlyAvailable ?? false)
 
   return fetchAllAvailableProducts({
     ...options,

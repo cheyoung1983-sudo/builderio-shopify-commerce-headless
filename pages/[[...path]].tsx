@@ -43,7 +43,7 @@ export async function getStaticProps({
   let fallbackProducts: ShopifyProductNode[] = []
   if (!page) {
     try {
-      const result = await fetchAllAvailableProducts({ batchSize: 50, onlyAvailable: true })
+      const result = await fetchAllAvailableProducts({ batchSize: 50, onlyAvailable: false })
       fallbackProducts = result.products
     } catch (error) {
       console.error('[pages/[[...path]]] Failed to load fallback homepage products:', error)
