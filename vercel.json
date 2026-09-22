@@ -6,7 +6,6 @@
   "regions": ["iad1"],
   "functions": {
     "pages/api/**/*.ts": {
-      "memory": 1024,
       "maxDuration": 15
     }
   },
