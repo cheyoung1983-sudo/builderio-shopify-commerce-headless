@@ -49,7 +49,7 @@ const Layout: React.FC<{ pageProps: any; children: React.ReactNode }> = ({
 }) => {
   const builderTheme = pageProps?.theme
 
-  if (!builderConfig.apiKey && !builderTheme) {
+  if (!builderTheme && (!builderConfig.apiKey || !builderConfig.themeModel)) {
     return (
       <CommerceProvider {...shopifyConfig}>
         <ManagedUIContext siteSettings={{}}>

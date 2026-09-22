@@ -353,6 +353,10 @@ export default function ElevenLabsAgent() {
 
       const conversation = await Conversation.startSession({
         ...sessionParams,
+        workletPaths: {
+          rawAudioProcessor: "/rawAudioProcessor.js",
+          audioConcatProcessor: "/audioConcatProcessor.js",
+        },
         onConnect: () => {
           console.log("[ElevenLabsAgent:Init] [Step 5/5 Success] ElevenLabs WebSocket connection established. Status: connected.");
           setStatus("connected");
@@ -370,7 +374,11 @@ export default function ElevenLabsAgent() {
             message: err?.message,
             error: err,
           });
-          setErrorMessage(err?.message || "Connection error");
+          const errorMsg =
+            err?.message ||
+            (err?.reasonName ? `Connection error: ${err.reasonName}` : null) ||
+            (typeof err === "string" ? err : "Connection error with voice platform");
+          setErrorMessage(errorMsg);
           setStatus("error");
           setOutputVolume(0);
           smoothedVolumeRef.current = 0;
@@ -574,7 +582,11 @@ export default function ElevenLabsAgent() {
         setErrorMessage(
           "Microphone access was denied. Please allow microphone permissions to speak with the agent."
         );
-      } else if (err?.message?.includes("signal connection") || err?.name === "ConnectionError") {
+      } else if (err?.message?.includes("rawAudioProcessor") || err?.message?.includes("AudioWorklet") || err?.message?.includes("audio capture")) {
+        setErrorMessage(
+          "Audio capture worklet could not be initialized in this browser. Self-hosted worklets have been configured, please refresh or allow microphone access."
+        );
+      } else if (err?.message?.includes("signal connection") || err?.message?.includes("signal stream") || err?.name === "ConnectionError" || err?.reasonName === "WebSocket") {
         setErrorMessage(
           "Could not establish WebRTC signal connection with ElevenLabs. Please check network connectivity or refresh the page."
         );

@@ -6,6 +6,7 @@ import { useCart, useCheckoutUrl } from '@lib/shopify/storefront-data-hooks'
 import { useCart as useModernCart } from '../../../context/CartContext'
 import CartItem from '../CartItem'
 import { BuilderComponent, builder } from '@builder.io/react'
+import builderConfig from '@config/builder'
 import env from '@config/env'
 
 const CartSidebarView: FC = () => {
@@ -88,9 +89,10 @@ const CartSidebarView: FC = () => {
 
   useEffect(() => {
     async function fetchContent() {
+      if (!builderConfig.apiKey || !builderConfig.cartUpsellModel) return
       try {
         const cartUpsellContent = await builder
-          .get('cart-upsell-sidebar', {
+          .get(builderConfig.cartUpsellModel, {
             cacheSeconds: 120,
             userAttributes: {
               itemInCart: itemHandles ? itemHandles.split(',') : [],
@@ -156,7 +158,9 @@ const CartSidebarView: FC = () => {
               </Text>
             </Grid>
           </Card>
-          <BuilderComponent content={cartUpsell} model="cart-upsell-sidebar" />
+          {cartUpsell && builderConfig.cartUpsellModel && (
+            <BuilderComponent content={cartUpsell} model={builderConfig.cartUpsellModel} />
+          )}
           {checkoutUrl && (
             <NavLink
               variant="nav"

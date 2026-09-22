@@ -21,7 +21,20 @@ const repoRoot = path.resolve(__dirname, '..')
 // BUILDER_PUBLIC_KEY a real page render would use.
 for (const file of ['.env.local', '.env']) {
   try {
-    process.loadEnvFile(path.join(repoRoot, file))
+    const fullPath = path.join(repoRoot, file)
+    if (fs.existsSync(fullPath)) {
+      const content = fs.readFileSync(fullPath, 'utf8')
+      for (const line of content.split('\n')) {
+        const trimmed = line.trim()
+        if (!trimmed || trimmed.startsWith('#')) continue
+        const eqIdx = trimmed.indexOf('=')
+        if (eqIdx !== -1) {
+          const key = trimmed.slice(0, eqIdx).trim()
+          const val = trimmed.slice(eqIdx + 1).trim()
+          process.env[key] = val
+        }
+      }
+    }
   } catch {
     // file doesn't exist — fine, fall through to process.env as-is
   }

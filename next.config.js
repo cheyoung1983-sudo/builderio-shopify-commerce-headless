@@ -44,9 +44,11 @@ const nextConfig = {
               // that). cdn.builder.io/builder.io/*.builder.io covers the visual
               // editor's embed bridge script; vercel.live covers the Toolbar/
               // Live feedback widget on preview deployments.
-              `script-src 'self' https://cdn.builder.io https://builder.io https://*.builder.io https://vercel.live${
+              `script-src 'self' blob: data: https://cdn.builder.io https://builder.io https://*.builder.io https://vercel.live${
                 process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''
               }`,
+              // worker-src: required for Web Workers and AudioWorklet processors (e.g. ElevenLabs conversational client)
+              "worker-src 'self' blob: data:",
               // style-src: 'unsafe-inline' is required because this app uses
               // Emotion/theme-ui (CSS-in-JS), which injects <style> tags at
               // runtime with computed class names — there's no static nonce to
@@ -73,7 +75,7 @@ const nextConfig = {
               // from the browser, and the Vercel Toolbar/Live feedback widget on
               // preview deployments (fixes the sw.js/geist.woff2 console noise).
               // ws://localhost:* is for next dev's Fast Refresh websocket.
-              "connect-src 'self' https://cdn.builder.io https://builder.io https://*.builder.io https://*.myshopify.com https://vercel.live https://*.vercel.live wss://*.pusher.com https://vitals.vercel-insights.com ws://localhost:* https://*.run.app https://ai.studio https://api.elevenlabs.io wss://api.elevenlabs.io https://*.rtc.elevenlabs.io wss://*.rtc.elevenlabs.io https://*.rtc.eu.residency.elevenlabs.io wss://*.rtc.eu.residency.elevenlabs.io",
+              "connect-src 'self' https://cdn.builder.io https://builder.io https://*.builder.io https://*.myshopify.com https://vercel.live https://*.vercel.live wss://*.pusher.com https://vitals.vercel-insights.com ws://localhost:* https://*.run.app https://ai.studio https://api.elevenlabs.io wss://api.elevenlabs.io https://*.rtc.elevenlabs.io wss://*.rtc.elevenlabs.io https://*.rtc.eu.residency.elevenlabs.io wss://*.rtc.eu.residency.elevenlabs.io https://*.livekit.cloud wss://*.livekit.cloud",
               // img-src: mirrors the remotePatterns allowed by next/image above.
               "img-src 'self' data: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://via.placeholder.com https://vercel.live",
               "font-src 'self' data: https://vercel.live",
@@ -106,6 +108,8 @@ const nextConfig = {
     SHOPIFY_STOREFRONT_API_VERSION: process.env.SHOPIFY_STOREFRONT_API_VERSION || '2024-07',
     NEXT_PUBLIC_BUILDER_PUBLIC_KEY: process.env.NEXT_PUBLIC_BUILDER_PUBLIC_KEY || process.env.BUILDER_PUBLIC_KEY,
     NEXT_PUBLIC_BUILDER_ANNOUNCEMENT_MODEL: process.env.NEXT_PUBLIC_BUILDER_ANNOUNCEMENT_MODEL || '',
+    NEXT_PUBLIC_BUILDER_CART_UPSELL_MODEL: process.env.NEXT_PUBLIC_BUILDER_CART_UPSELL_MODEL || '',
+    NEXT_PUBLIC_BUILDER_THEME_MODEL: process.env.NEXT_PUBLIC_BUILDER_THEME_MODEL || '',
     IS_DEMO: process.env.IS_DEMO,
   },
   i18n: {
