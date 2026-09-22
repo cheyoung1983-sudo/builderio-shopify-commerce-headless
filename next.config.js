@@ -44,7 +44,9 @@ const nextConfig = {
               // that). cdn.builder.io/builder.io/*.builder.io covers the visual
               // editor's embed bridge script; vercel.live covers the Toolbar/
               // Live feedback widget on preview deployments.
-              "script-src 'self' blob: data: 'unsafe-eval' https://cdn.builder.io https://builder.io https://*.builder.io https://vercel.live",
+              `script-src 'self' blob: data: https://cdn.builder.io https://builder.io https://*.builder.io https://vercel.live${
+                process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''
+              }`,
               // worker-src: required for Web Workers and AudioWorklet processors (e.g. ElevenLabs conversational client)
               "worker-src 'self' blob: data:",
               // style-src: 'unsafe-inline' is required because this app uses

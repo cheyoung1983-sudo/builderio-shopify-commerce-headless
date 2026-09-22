@@ -45,7 +45,7 @@
     "deploy:preview": "node scripts/deploy.js preview",
     "deploy:production": "node scripts/deploy.js production",
     "precheck": "npm run check:node-version && npm run check:ci-integrity && npm run check:dependency-health && npm run typecheck && npm run lint && npm run check:secrets && npm run check:customer-account-auth-health && npm run check:xss-hardening",
-    "prepare": "node scripts/setup-git-hooks.js",
+    "prepare": "node scripts/setup-git-hooks.js && node scripts/patch-csp-eval.js",
     "analyze": "BUNDLE_ANALYZE=both npm run build",
     "find:unused": "next-unused",
     "prettier": "prettier",
