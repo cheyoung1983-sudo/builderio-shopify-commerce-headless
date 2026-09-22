@@ -2,7 +2,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const REPO_ROOT = path.resolve(__dirname, '..')
-const TARGET_DIR = path.join(REPO_ROOT, 'node_modules', '@builder.io', 'react')
+const BASE_DIR = path.join(REPO_ROOT, 'node_modules', '@builder.io')
 
 function walkFiles(dir, callback) {
   if (!fs.existsSync(dir)) return
@@ -16,27 +16,36 @@ function walkFiles(dir, callback) {
   }
 }
 
-console.log('Patching @builder.io/react for CSP compliance...')
+console.log('Patching @builder.io/* packages for CSP compliance...')
 
-walkFiles(TARGET_DIR, (filePath) => {
-  let content = fs.readFileSync(filePath, 'utf8')
-  let changed = false
+if (fs.existsSync(BASE_DIR)) {
+  for (const pkgName of fs.readdirSync(BASE_DIR)) {
+    const targetDir = path.join(BASE_DIR, pkgName)
+    if (fs.statSync(targetDir).isDirectory()) {
+      walkFiles(targetDir, (filePath) => {
+        let content = fs.readFileSync(filePath, 'utf8')
+        let changed = false
 
-  // Replace eval('require') and eval("require")
-  // The user suggested: typeof require !== 'undefined' ? require : () => null
-  // But inside these files it's often assigned to a variable or exports.
+        const originalPattern1 = /eval\(['"]require['"]\)/g
+        if (originalPattern1.test(content)) {
+          console.log(`  Fixing eval('require') in: @builder.io/${pkgName}/${path.relative(targetDir, filePath)}`)
+          content = content.replace(originalPattern1, "(typeof globalThis !== 'undefined' && globalThis['require'] ? globalThis['require'] : (typeof require !== 'undefined' ? require : (function() { return null; })))")
+          changed = true
+        }
 
-  const originalPattern1 = /eval\(['"]require['"]\)/g
-  if (originalPattern1.test(content)) {
-    console.log(`  Fixing eval('require') in: ${path.relative(TARGET_DIR, filePath)}`)
-    // If it's safeDynamicRequire = eval('require'), we replace the eval call.
-    content = content.replace(originalPattern1, "(typeof require !== 'undefined' ? require : (function() { return null; }))")
-    changed = true
+        const oldPatchPattern = /\(typeof require !== ['"]undefined['"] \? require : \(function\(\) \{ return null; \}\)\)/g
+        if (oldPatchPattern.test(content)) {
+          console.log(`  Upgrading previous patch pattern in: @builder.io/${pkgName}/${path.relative(targetDir, filePath)}`)
+          content = content.replace(oldPatchPattern, "(typeof globalThis !== 'undefined' && globalThis['require'] ? globalThis['require'] : (typeof require !== 'undefined' ? require : (function() { return null; })))")
+          changed = true
+        }
+
+        if (changed) {
+          fs.writeFileSync(filePath, content)
+        }
+      })
+    }
   }
-
-  if (changed) {
-    fs.writeFileSync(filePath, content)
-  }
-})
+}
 
 console.log('Patching complete.')
