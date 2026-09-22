@@ -16,6 +16,7 @@ import { ProductCardSkeleton } from './ProductCardSkeleton'
 import { useWishlist, useQuickView } from '../../context'
 import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
 import { useIntersectionObserver } from '../../lib/hooks/useIntersectionObserver'
+import { motion } from 'motion/react'
 
 export interface ProductCardProps {
   /** The Shopify product data node */
@@ -201,7 +202,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       }}
       className={`animate-grid-fade-in h-full flex flex-col ${className}`}
     >
-      <div
+      <motion.div
         id={`product-card-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
         ref={cardRef}
         role="article"
@@ -211,12 +212,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         onClick={handleCardClick}
         onKeyDown={handleKeyDown}
         onFocus={() => onCardFocus?.(index)}
-        className={`group relative bg-white border rounded-xl overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col flex-1 cursor-pointer transform-gpu will-change-transform hover:scale-[1.025] hover:-translate-y-1.5 hover:shadow-xl active:scale-[0.99] active:translate-y-0 focus:outline-hidden focus-visible:outline-hidden focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:border-emerald-500 focus-visible:shadow-lg ${
+        whileHover={{
+          y: -6,
+          scale: 1.018,
+          transition: { type: 'spring', stiffness: 420, damping: 26 },
+        }}
+        whileTap={{
+          scale: 0.985,
+          y: -2,
+          transition: { type: 'spring', stiffness: 550, damping: 28 },
+        }}
+        className={`group relative bg-white border rounded-xl overflow-hidden flex flex-col flex-1 cursor-pointer transform-gpu will-change-transform shadow-xs hover:shadow-xl focus:outline-hidden focus-visible:outline-hidden focus-visible:ring-3 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:border-emerald-500 focus-visible:shadow-lg transition-colors duration-200 ${
           isFocused
-            ? 'ring-3 ring-emerald-500 ring-offset-2 border-emerald-500 shadow-lg scale-[1.01]'
+            ? 'ring-3 ring-emerald-500 ring-offset-2 border-emerald-500 shadow-lg'
             : isCompared
             ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
-            : 'border-surface-stone hover:border-neutral-300 shadow-xs'
+            : 'border-surface-stone hover:border-neutral-300'
         }`}
       >
       {/* Media Container */}
@@ -495,9 +506,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         </div>
       </div>
+      </motion.div>
     </div>
-  </div>
-)
+  )
 }
 
 export default ProductCard

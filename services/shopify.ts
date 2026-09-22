@@ -905,6 +905,78 @@ export const PRODUCT_BY_HANDLE_QUERY = /* GraphQL */ `
   }
 `
 
+export const PRODUCT_RECOMMENDATIONS_QUERY = /* GraphQL */ `
+  query getProductRecommendations($productId: ID!, $intent: ProductRecommendationIntent) {
+    productRecommendations(productId: $productId, intent: $intent) {
+      id
+      handle
+      title
+      description
+      availableForSale
+      productType
+      vendor
+      tags
+      featuredImage {
+        url
+        altText
+        width
+        height
+      }
+      images(first: 5) {
+        edges {
+          node {
+            url
+            altText
+            width
+            height
+          }
+        }
+      }
+      priceRange {
+        minVariantPrice {
+          amount
+          currencyCode
+        }
+        maxVariantPrice {
+          amount
+          currencyCode
+        }
+      }
+      compareAtPriceRange {
+        minVariantPrice {
+          amount
+          currencyCode
+        }
+        maxVariantPrice {
+          amount
+          currencyCode
+        }
+      }
+      variants(first: 10) {
+        edges {
+          node {
+            id
+            title
+            availableForSale
+            price {
+              amount
+              currencyCode
+            }
+            compareAtPrice {
+              amount
+              currencyCode
+            }
+            image {
+              url
+              altText
+            }
+          }
+        }
+      }
+    }
+  }
+`
+
 export const PRODUCT_BREADCRUMB_QUERY = /* GraphQL */ `
   query getProductBreadcrumbPath($handle: String!) {
     product(handle: $handle) {
@@ -1380,6 +1452,28 @@ export async function fetchProductByHandle(handle: string) {
 }
 
 /**
+ * Fetches product recommendations using Shopify's Product Recommendations API
+ */
+export async function fetchStorefrontProductRecommendations(
+  productId: string,
+  options?: {
+    intent?: 'RELATED' | 'COMPLEMENTARY'
+  }
+) {
+  const formattedId = productId.startsWith('gid://shopify/Product/')
+    ? productId
+    : `gid://shopify/Product/${productId.replace(/\D/g, '') || productId}`
+
+  return storefrontFetch<{ productRecommendations: ShopifyProductNode[] | null }>({
+    query: PRODUCT_RECOMMENDATIONS_QUERY,
+    variables: {
+      productId: formattedId,
+      intent: options?.intent || 'RELATED',
+    },
+  })
+}
+
+/**
  * Fetches product path hierarchy for breadcrumbs from Shopify Storefront API
  */
 export async function fetchStorefrontProductBreadcrumbPath(handle: string) {
@@ -1537,6 +1631,7 @@ export const shopifyStorefront = {
   fetchAllAvailableProducts,
   fetchAllProducts,
   fetchProductByHandle: fetchStorefrontProductByHandle,
+  fetchProductRecommendations: fetchStorefrontProductRecommendations,
   fetchProductBreadcrumbPath: fetchStorefrontProductBreadcrumbPath,
   fetchCollections: fetchStorefrontCollections,
   fetchCollectionByHandle: fetchStorefrontCollectionByHandle,

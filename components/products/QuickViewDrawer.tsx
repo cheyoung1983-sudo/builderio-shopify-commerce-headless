@@ -30,6 +30,7 @@ import {
 import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
 import { sanitizeRichText } from '../../lib/sanitize-html'
 import { ProductImageZoom } from './ProductImageZoom'
+import { ProductRecommendationsCarousel } from './ProductRecommendationsCarousel'
 
 export interface QuickViewDrawerProps {
   productBaseUrl?: string
@@ -48,6 +49,7 @@ const QuickViewContent: React.FC<QuickViewContentProps> = ({
   productBaseUrl,
   onClose,
 }) => {
+  const { openQuickView } = useQuickView()
   const { addItem } = useCart()
   const { isInWishlist, toggleWishlist } = useWishlist()
 
@@ -618,6 +620,20 @@ const QuickViewContent: React.FC<QuickViewContentProps> = ({
                 </Link>
               </div>
             )}
+
+            {/* 'You Might Also Like' Recommendations Carousel */}
+            <ProductRecommendationsCarousel
+              productId={activeProduct.id}
+              productHandle={activeProduct.handle}
+              productTitle={activeProduct.title}
+              productVendor={activeProduct.vendor}
+              productType={activeProduct.productType}
+              productBaseUrl={productBaseUrl}
+              onProductSelect={(recProduct) => {
+                openQuickView(recProduct)
+              }}
+              onCloseDrawer={onClose}
+            />
           </>
         ) : (
           <div className="py-12 text-center text-neutral-500">

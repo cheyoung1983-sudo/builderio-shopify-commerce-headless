@@ -22,3 +22,6 @@ export { SocialShareButtons } from './SocialShareButtons'
 export type { SocialShareButtonsProps } from './SocialShareButtons'
 export { ProductImageZoom } from './ProductImageZoom'
 export type { ProductImageZoomProps } from './ProductImageZoom'
+export { ProductRecommendationsCarousel } from './ProductRecommendationsCarousel'
+export type { ProductRecommendationsCarouselProps } from './ProductRecommendationsCarousel'
+

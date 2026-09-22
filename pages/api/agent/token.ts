@@ -7,6 +7,8 @@ import {
 interface TokenResponse {
   token?: string;
   conversation_id?: string;
+  agentId?: string;
+  iceServers?: Array<{ urls: string | string[] }>;
   error?: string;
   details?: string | Record<string, unknown>;
 }
@@ -59,6 +61,10 @@ export default async function handler(
     return res.status(200).json({
       token: result.token,
       conversation_id: result.conversationId,
+      agentId,
+      iceServers: [
+        { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
+      ],
     });
   } catch (error) {
     if (error instanceof ElevenLabsTokenError) {

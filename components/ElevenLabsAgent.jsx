@@ -14,6 +14,14 @@ import {
   Radio,
   MessageSquare,
   FileText,
+  ShieldAlert,
+  RefreshCw,
+  Send,
+  Wifi,
+  WifiOff,
+  HelpCircle,
+  CheckCircle2,
+  Settings2,
 } from "lucide-react";
 import VoiceTranscriptDisplay from "./VoiceTranscriptDisplay";
 import VoicePulseAvatar from "./VoicePulseAvatar";
@@ -243,6 +251,17 @@ export default function ElevenLabsAgent() {
   });
   const [isOpen, setIsOpen] = useState(false);
   const conversationRef = useRef(null);
+  const [useRelayPolicy, setUseRelayPolicy] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [textInput, setTextInput] = useState("");
+  const [isSendingText, setIsSendingText] = useState(false);
+  const [isSecureEnv] = useState(() => {
+    if (typeof window !== "undefined") {
+      return Boolean(window.isSecureContext);
+    }
+    return true;
+  });
+  const startSessionRef = useRef(null);
 
   const endSession = useCallback(async () => {
     try {
@@ -266,7 +285,8 @@ export default function ElevenLabsAgent() {
     }
   }, []);
 
-  const startSession = useCallback(async () => {
+  const startSession = useCallback(async (options = {}) => {
+    const forceRelay = options.forceRelay !== undefined ? options.forceRelay : useRelayPolicy;
     try {
       setStatus("connecting");
       setErrorMessage("");
@@ -353,13 +373,18 @@ export default function ElevenLabsAgent() {
 
       const conversation = await Conversation.startSession({
         ...sessionParams,
+        webRtc: {
+          iceTransportPolicy: forceRelay ? "relay" : "all",
+          singlePeerConnection: false,
+        },
         workletPaths: {
           rawAudioProcessor: "/rawAudioProcessor.js",
           audioConcatProcessor: "/audioConcatProcessor.js",
         },
         onConnect: () => {
-          console.log("[ElevenLabsAgent:Init] [Step 5/5 Success] ElevenLabs WebSocket connection established. Status: connected.");
+          console.log("[ElevenLabsAgent:Init] [Step 5/5 Success] ElevenLabs WebRTC connection established. Status: connected.");
           setStatus("connected");
+          setShowDiagnostics(false);
         },
         onDisconnect: () => {
           console.log("[ElevenLabsAgent:Session] ElevenLabs session disconnected.");
@@ -374,11 +399,30 @@ export default function ElevenLabsAgent() {
             message: err?.message,
             error: err,
           });
+          const isWebRtcError =
+            err?.name === "ConnectionError" ||
+            err?.reasonName === "WebSocket" ||
+            err?.code === 1 ||
+            err?.message?.includes("signal connection") ||
+            err?.message?.includes("signal stream");
+
+          if (isWebRtcError && !forceRelay) {
+            console.warn("[ElevenLabsAgent:Session] WebRTC stream error during active session, auto-retrying with TURN relay...");
+            setUseRelayPolicy(true);
+            setTimeout(() => {
+              startSessionRef.current?.({ forceRelay: true });
+            }, 500);
+            return;
+          }
+
           const errorMsg =
             err?.message ||
             (err?.reasonName ? `Connection error: ${err.reasonName}` : null) ||
             (typeof err === "string" ? err : "Connection error with voice platform");
           setErrorMessage(errorMsg);
+          if (isWebRtcError) {
+            setShowDiagnostics(true);
+          }
           setStatus("error");
           setOutputVolume(0);
           smoothedVolumeRef.current = 0;
@@ -586,10 +630,26 @@ export default function ElevenLabsAgent() {
         setErrorMessage(
           "Audio capture worklet could not be initialized in this browser. Self-hosted worklets have been configured, please refresh or allow microphone access."
         );
-      } else if (err?.message?.includes("signal connection") || err?.message?.includes("signal stream") || err?.name === "ConnectionError" || err?.reasonName === "WebSocket") {
+      } else if (
+        err?.message?.includes("signal connection") ||
+        err?.message?.includes("signal stream") ||
+        err?.name === "ConnectionError" ||
+        err?.reasonName === "WebSocket" ||
+        err?.code === 1
+      ) {
+        if (!forceRelay) {
+          console.warn("[ElevenLabsAgent:Init] WebRTC direct signal stream failed, auto-retrying with TURN relay...");
+          setErrorMessage("Direct WebRTC signal stream dropped. Retrying with TURN relay...");
+          setUseRelayPolicy(true);
+          setTimeout(() => {
+            startSessionRef.current?.({ forceRelay: true });
+          }, 450);
+          return;
+        }
         setErrorMessage(
-          "Could not establish WebRTC signal connection with ElevenLabs. Please check network connectivity or refresh the page."
+          "Could not establish WebRTC signal connection with ElevenLabs. Network UDP or WebSocket signaling may be blocked by a firewall, VPN, or ad-blocker."
         );
+        setShowDiagnostics(true);
       } else if (err?.status === 401 || err?.status === 403 || err?.isAuthError) {
         if (err?.message?.includes("API key ID used as API key")) {
           setErrorMessage(
@@ -613,7 +673,78 @@ export default function ElevenLabsAgent() {
       }
       setStatus("error");
     }
-  }, [router]);
+  }, [router, useRelayPolicy]);
+
+  useEffect(() => {
+    startSessionRef.current = startSession;
+  }, [startSession]);
+
+  const handleSendTextMessage = useCallback(
+    async (e) => {
+      if (e) e.preventDefault();
+      const query = textInput.trim();
+      if (!query || isSendingText) return;
+
+      const userMsg = {
+        id: `user-${Date.now()}`,
+        sender: "user",
+        text: query,
+        timestamp: new Date(),
+      };
+      setTranscript((prev) => [...prev, userMsg]);
+      setTextInput("");
+      setIsSendingText(true);
+
+      try {
+        const res = await fetch("/api/agent/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query, first: 4 }),
+        });
+        const data = await res.json();
+        const products = data?.products || [];
+
+        let reply = "";
+        if (products.length > 0) {
+          reply =
+            `Found ${products.length} matching product${products.length > 1 ? "s" : ""} in our Spokane inventory:\n` +
+            products
+              .map((p) => {
+                const price = p.priceRange?.minVariantPrice?.amount;
+                const cur = p.priceRange?.minVariantPrice?.currencyCode || "$";
+                return `• ${p.title} (${price ? `${cur} ${price}` : "Inquire for quote"})`;
+              })
+              .join("\n") +
+            `\n\nYou can search for these items in our site header or visit our Spokane repair shop!`;
+        } else {
+          reply = `Thanks for asking! For Spokane repair estimates, iPhone/Samsung screen replacements, or custom parts, you can search our catalog or visit Display Cell Pros in Spokane, WA.`;
+        }
+
+        setTranscript((prev) => [
+          ...prev,
+          {
+            id: `agent-${Date.now()}`,
+            sender: "agent",
+            text: reply,
+            timestamp: new Date(),
+          },
+        ]);
+      } catch (err) {
+        setTranscript((prev) => [
+          ...prev,
+          {
+            id: `agent-${Date.now()}`,
+            sender: "agent",
+            text: "I'm temporarily unable to query live catalog items, but our Spokane store is open for walk-ins and phone inquiries!",
+            timestamp: new Date(),
+          },
+        ]);
+      } finally {
+        setIsSendingText(false);
+      }
+    },
+    [textInput, isSendingText]
+  );
 
   useEffect(() => {
     return () => {
@@ -813,57 +944,151 @@ export default function ElevenLabsAgent() {
             </button>
           </div>
 
-          {/* Navigation Tabs (Available when connected or when transcript exists) */}
-          {(isConnected || transcript.length > 0) && (
-            <div
-              id="elevenlabs-card-tabs"
-              className="flex items-center gap-1 p-1 mt-2.5 bg-neutral-100/90 rounded-xl text-xs border border-neutral-200/70"
+          {/* Navigation Tabs */}
+          <div
+            id="elevenlabs-card-tabs"
+            className="flex items-center gap-1 p-1 mt-2.5 bg-neutral-100/90 rounded-xl text-xs border border-neutral-200/70"
+          >
+            <button
+              id="elevenlabs-tab-call"
+              type="button"
+              onClick={() => setActiveView("call")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg font-semibold text-xs transition-all duration-150 cursor-pointer ${
+                activeView === "call"
+                  ? "bg-white text-neutral-900 shadow-xs"
+                  : "text-neutral-500 hover:text-neutral-900"
+              }`}
             >
-              <button
-                id="elevenlabs-tab-call"
-                type="button"
-                onClick={() => setActiveView("call")}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg font-semibold text-xs transition-all duration-150 cursor-pointer ${
-                  activeView === "call"
-                    ? "bg-white text-neutral-900 shadow-xs"
-                    : "text-neutral-500 hover:text-neutral-900"
-                }`}
-              >
-                <Radio className="w-3.5 h-3.5" />
-                <span>Call Controls</span>
-              </button>
-              <button
-                id="elevenlabs-tab-transcript"
-                type="button"
-                onClick={() => setActiveView("transcript")}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg font-semibold text-xs transition-all duration-150 cursor-pointer ${
-                  activeView === "transcript"
-                    ? "bg-white text-neutral-900 shadow-xs"
-                    : "text-neutral-500 hover:text-neutral-900"
-                }`}
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>Transcript</span>
-                {transcript.length > 0 && (
-                  <span
-                    id="elevenlabs-transcript-tab-badge"
-                    className="px-1.5 py-0.2 rounded-full bg-neutral-200 text-[10px] font-bold text-neutral-700"
-                  >
-                    {transcript.length}
-                  </span>
-                )}
-              </button>
-            </div>
-          )}
+              <Radio className="w-3.5 h-3.5" />
+              <span>Voice Call</span>
+            </button>
+            <button
+              id="elevenlabs-tab-chat"
+              type="button"
+              onClick={() => setActiveView("chat")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg font-semibold text-xs transition-all duration-150 cursor-pointer ${
+                activeView === "chat"
+                  ? "bg-white text-neutral-900 shadow-xs"
+                  : "text-neutral-500 hover:text-neutral-900"
+              }`}
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Text Chat</span>
+            </button>
+            <button
+              id="elevenlabs-tab-transcript"
+              type="button"
+              onClick={() => setActiveView("transcript")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg font-semibold text-xs transition-all duration-150 cursor-pointer ${
+                activeView === "transcript"
+                  ? "bg-white text-neutral-900 shadow-xs"
+                  : "text-neutral-500 hover:text-neutral-900"
+              }`}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Transcript</span>
+              {transcript.length > 0 && (
+                <span
+                  id="elevenlabs-transcript-tab-badge"
+                  className="px-1.5 py-0.2 rounded-full bg-neutral-200 text-[10px] font-bold text-neutral-700"
+                >
+                  {transcript.length}
+                </span>
+              )}
+            </button>
+          </div>
 
           {/* Body Content */}
           <div className="py-2.5">
             {errorMessage && (
-              <div className="flex flex-col gap-2 p-3 mb-3 bg-red-50/90 border border-red-200/80 rounded-xl text-xs text-red-700">
+              <div className="flex flex-col gap-2.5 p-3 mb-3 bg-red-50/95 border border-red-200 rounded-xl text-xs text-red-800 shadow-xs">
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span className="leading-snug">{errorMessage}</span>
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+                  <div className="flex-1">
+                    <span className="font-semibold block text-red-900">
+                      {errorMessage.includes("WebRTC") || errorMessage.includes("signal")
+                        ? "WebRTC Connection Notice"
+                        : "Voice Agent Error"}
+                    </span>
+                    <span className="leading-snug text-[11px] text-red-700">
+                      {errorMessage}
+                    </span>
+                  </div>
                 </div>
+
+                {/* Targeted Fixes & Diagnostics Accordion / Section */}
+                {(showDiagnostics || errorMessage.includes("WebRTC") || errorMessage.includes("signal") || errorMessage.includes("WebSocket")) && (
+                  <div className="mt-1 pt-2 border-t border-red-200/80 space-y-2 text-[11px]">
+                    <div className="font-semibold text-red-900 flex items-center gap-1.5">
+                      <ShieldAlert className="w-3.5 h-3.5 text-red-600" />
+                      <span>Targeted Connection Fixes:</span>
+                    </div>
+                    
+                    <ul className="space-y-1.5 pl-1 text-neutral-700">
+                      <li className="flex items-start gap-1.5">
+                        <span className="font-bold text-red-600 shrink-0">•</span>
+                        <span>
+                          <strong>Network & Firewall:</strong> WebRTC requires UDP & WebSocket traffic. Disable active VPNs, NextDNS, AdGuard, or Brave Shields, or retry on unrestricted Wi-Fi.
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-1.5">
+                        <span className="font-bold text-red-600 shrink-0">•</span>
+                        <span>
+                          <strong>Microphone Permissions:</strong> Ensure your browser has granted microphone access.
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-1.5">
+                        <span className="font-bold text-red-600 shrink-0">•</span>
+                        <span>
+                          <strong>Browser Compatibility:</strong> Standard Chrome or Safari is recommended over embedded in-app webviews.
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-1.5">
+                        <span className="font-bold text-red-600 shrink-0">•</span>
+                        <span>
+                          <strong>Environment:</strong> {isSecureEnv ? "✓ Secure Context (HTTPS/localhost)" : "⚠ Insecure HTTP - WebRTC requires HTTPS"}
+                        </span>
+                      </li>
+                    </ul>
+
+                    {/* Action Buttons for User & Developer */}
+                    <div className="flex flex-wrap items-center gap-2 pt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUseRelayPolicy(true);
+                          startSession({ forceRelay: true });
+                        }}
+                        className="flex-1 min-w-[130px] flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-700 hover:bg-red-800 text-white font-semibold text-[11px] transition-colors cursor-pointer"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>Retry with TURN Relay</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUseRelayPolicy(false);
+                          startSession({ forceRelay: false });
+                        }}
+                        className="flex-1 min-w-[110px] flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-900 text-white font-semibold text-[11px] transition-colors cursor-pointer"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>Retry Standard</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveView("chat")}
+                        className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-[11px] transition-colors cursor-pointer"
+                      >
+                        <Send className="w-3 h-3" />
+                        <span>Chat with Text Assistant Instead</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {isMicPermissionDenied && isInIframe && (
                   <button
                     type="button"
@@ -880,8 +1105,53 @@ export default function ElevenLabsAgent() {
               </div>
             )}
 
-            {/* View 1: Transcript Dedicated View */}
-            {activeView === "transcript" ? (
+            {/* View 1: Text Chat Assistant View */}
+            {activeView === "chat" ? (
+              <div id="elevenlabs-chat-view-container" className="space-y-2.5">
+                <div className="p-2 rounded-xl bg-emerald-50/80 border border-emerald-200/70 text-xs text-emerald-800 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span className="font-semibold">Text Assistant Mode</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-600 uppercase font-bold tracking-wider">
+                    Spokane Catalog Live
+                  </span>
+                </div>
+
+                <VoiceTranscriptDisplay
+                  transcript={transcript}
+                  isSpeaking={false}
+                  isConnected={false}
+                  status={status}
+                  onClearTranscript={() => setTranscript([])}
+                  maxHeight="max-h-56 sm:max-h-64"
+                />
+
+                <form onSubmit={handleSendTextMessage} className="flex items-center gap-2 pt-1">
+                  <input
+                    type="text"
+                    value={textInput}
+                    onChange={(e) => setTextInput(e.target.value)}
+                    placeholder="Ask about iPhone repairs, screens, parts..."
+                    disabled={isSendingText}
+                    className="flex-1 px-3 py-2 text-xs rounded-xl border border-neutral-300 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 bg-white shadow-inner"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSendingText || !textInput.trim()}
+                    className="flex items-center justify-center px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                    title="Send message"
+                  >
+                    {isSendingText ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                  </button>
+                </form>
+              </div>
+            ) : activeView === "transcript" ? (
+              /* View 2: Transcript Dedicated View */
               <div id="elevenlabs-transcript-view-container" className="space-y-2.5">
                 {/* Compact active status banner if currently in call */}
                 {isConnected && (
@@ -942,7 +1212,7 @@ export default function ElevenLabsAgent() {
                 )}
               </div>
             ) : isConnected ? (
-              /* View 2: Active Call with Live Audio Visualizer + Real-time Scrollable Transcript */
+              /* View 3: Active Call with Live Audio Visualizer + Real-time Scrollable Transcript */
               <div id="elevenlabs-call-active-container" className="flex flex-col space-y-3">
                 {/* Visual Status Visualizer with Dynamic Audio-Volume Reactive Avatar */}
                 <div
@@ -1025,7 +1295,7 @@ export default function ElevenLabsAgent() {
                 </button>
               </div>
             ) : (
-              /* View 3: Idle / Disconnected State */
+              /* View 4: Idle / Disconnected State */
               <div id="elevenlabs-call-idle-container" className="space-y-3">
                 {/* Visual Status Indicator Banner when Offline / Connecting */}
                 <div
@@ -1084,24 +1354,36 @@ export default function ElevenLabsAgent() {
                   </div>
                 )}
 
-                <button
-                  id="elevenlabs-start-call-btn"
-                  onClick={startSession}
-                  disabled={isConnecting}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-semibold shadow-xs disabled:opacity-50 transition-colors cursor-pointer"
-                >
-                  {isConnecting ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
-                      Connecting to Voice Agent...
-                    </>
-                  ) : (
-                    <>
-                      <Mic className="w-3.5 h-3.5 text-emerald-400" />
-                      Start Voice Call
-                    </>
-                  )}
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    id="elevenlabs-start-call-btn"
+                    onClick={() => startSession()}
+                    disabled={isConnecting}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-semibold shadow-xs disabled:opacity-50 transition-colors cursor-pointer"
+                  >
+                    {isConnecting ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                        Connecting to Voice Agent...
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="w-3.5 h-3.5 text-emerald-400" />
+                        Start Voice Call
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    id="elevenlabs-switch-text-btn"
+                    type="button"
+                    onClick={() => setActiveView("chat")}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    <Send className="w-3.5 h-3.5 text-neutral-600" />
+                    <span>Prefer text? Chat with Assistant</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
