@@ -4,21 +4,60 @@ import {
   fetchAllAvailableProducts,
   isShopifyConfigured,
 } from '../../../services/shopify'
+import {
+  createRateLimiter,
+  handleOptions,
+  isAllowedOrigin,
+  readBoundedInteger,
+  readBoundedString,
+} from '../../../lib/api-security'
 
-/**
- * Handles CORS headers for agent tool queries
- */
-function setCorsHeaders(res: NextApiResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+const allowedOrigins = ['https://displaycellpros.com', 'https://www.displaycellpros.com']
+const rateLimiter = createRateLimiter({ maxRequests: 30, windowMs: 60_000 })
+
+function getClientKey(req: NextApiRequest): string {
+  const forwarded = req.headers['x-forwarded-for']
+  const address = Array.isArray(forwarded) ? forwarded[0] : forwarded
+  return address?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
+}
+
+function hasOwn(value: unknown, key: string): boolean {
+  return typeof value === 'object' && value !== null && Object.prototype.hasOwnProperty.call(value, key)
+}
+
+function createSecurityResponse(res: NextApiResponse) {
+  return {
+    setHeader(name: string, value: string) {
+      res.setHeader(name, value)
+    },
+    getHeader(name: string) {
+      const value = res.getHeader(name)
+      return typeof value === 'number' ? String(value) : value
+    },
+    get statusCode() {
+      return res.statusCode
+    },
+    set statusCode(value: number) {
+      res.statusCode = value
+    },
+    end: res.end.bind(res),
+  }
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  setCorsHeaders(res)
+  const corsOptions = {
+    allowedOrigins,
+    allowLocalhost: process.env.NODE_ENV !== 'production',
+  }
+  const securityRes = createSecurityResponse(res)
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end()
+  if (handleOptions(req, securityRes, corsOptions)) {
+    return
+  }
+
+  const origin = typeof req.headers.origin === 'string' ? req.headers.origin : undefined
+  if (req.headers.origin && !isAllowedOrigin(origin, corsOptions)) {
+    return res.status(403).json({ ok: false, error: 'Origin not allowed' })
   }
 
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -28,23 +67,52 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
   }
 
+  const rateLimit = rateLimiter.check(getClientKey(req))
+  if (!rateLimit.allowed) {
+    res.setHeader('Retry-After', String(rateLimit.retryAfterSeconds))
+    return res.status(429).json({ ok: false, error: 'Too many requests' })
+  }
+
   try {
+    const body = req.method === 'POST' ? req.body : undefined
+    if (
+      req.method === 'POST' &&
+      body !== undefined &&
+      (body === null || typeof body !== 'object' || Array.isArray(body))
+    ) {
+      return res.status(400).json({ ok: false, error: 'Invalid request body' })
+    }
+
     const rawQuery =
       req.method === 'POST'
-        ? req.body?.query ?? req.body?.q ?? req.query?.query ?? req.query?.q
+        ? hasOwn(body, 'query')
+          ? body.query
+          : hasOwn(body, 'q')
+          ? body.q
+          : req.query?.query ?? req.query?.q
         : req.query?.query ?? req.query?.q
 
     const rawFirst =
       req.method === 'POST'
-        ? req.body?.first ?? req.query?.first
+        ? hasOwn(body, 'first')
+          ? body.first
+          : req.query?.first
         : req.query?.first
 
-    const query = typeof rawQuery === 'string' ? rawQuery.trim().slice(0, 200) : ''
-    const first = typeof rawFirst === 'number'
-      ? Math.min(Math.max(rawFirst, 1), 25)
-      : typeof rawFirst === 'string'
-      ? Math.min(Math.max(parseInt(rawFirst, 10) || 5, 1), 25)
-      : 5
+    const query =
+      rawQuery === undefined
+        ? ''
+        : readBoundedString(rawQuery, { maxLength: 200, truncate: false })
+    const parsedFirst =
+      rawFirst === undefined ? 5 : readBoundedInteger(rawFirst)
+    const first =
+      parsedFirst === undefined
+        ? undefined
+        : Math.min(Math.max(parsedFirst, 1), 25)
+
+    if (query === undefined || first === undefined) {
+      return res.status(400).json({ ok: false, error: 'Invalid query or first value' })
+    }
 
     const result = query
       ? await searchStorefrontProducts(query, {
