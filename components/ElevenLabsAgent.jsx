@@ -1023,7 +1023,7 @@ export default function ElevenLabsAgent() {
                       <ShieldAlert className="w-3.5 h-3.5 text-red-600" />
                       <span>Targeted Connection Fixes:</span>
                     </div>
-                    
+
                     <ul className="space-y-1.5 pl-1 text-neutral-700">
                       <li className="flex items-start gap-1.5">
                         <span className="font-bold text-red-600 shrink-0">•</span>
@@ -1113,7 +1113,7 @@ export default function ElevenLabsAgent() {
                     <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                     <span className="font-semibold">Text Assistant Mode</span>
                   </div>
-                  <span className="text-[10px] text-emerald-600 uppercase font-bold tracking-wider">
+                  <span className="text-[10px] text-emerald-800 uppercase font-bold tracking-wider">
                     Spokane Catalog Live
                   </span>
                 </div>
