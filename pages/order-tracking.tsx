@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { Breadcrumbs } from '../components/common/Breadcrumbs'
 import { OrderTracking } from '../components/orders'
+import { ReservationMapOverlay } from '../components/tribal/ReservationMapOverlay'
 import { Truck, ShieldCheck, Clock, Headphones } from 'lucide-react'
 
 export default function OrderTrackingPage() {
@@ -40,6 +41,15 @@ export default function OrderTrackingPage() {
             initialOrderId={orderIdQuery}
             initialEmail={emailQuery}
           />
+
+          {/* AIANA Reservation Boundary GIS Verification Map Overlay */}
+          <div className="mt-8">
+            <ReservationMapOverlay
+              userAddress={{ state: 'CA', city: 'Hoopa', zip: '95546' }}
+              reservationName="Hoopa Valley Indian Reservation"
+              isOnReservation={true}
+            />
+          </div>
 
           {/* Value Pillars / Trust Highlights */}
           <div className="mt-16 pt-12 border-t border-border-subtle grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
