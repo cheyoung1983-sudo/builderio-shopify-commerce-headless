@@ -4,21 +4,46 @@ import {
   fetchAllAvailableProducts,
   isShopifyConfigured,
 } from '../../../services/shopify'
+import {
+  applyCors,
+  createRateLimiter,
+  handleOptions,
+  readBoundedString,
+  readBoundedInteger,
+} from '../../../lib/api-security'
 
-/**
- * Handles CORS headers for agent tool queries
- */
-function setCorsHeaders(res: NextApiResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+const allowedOrigins = ['https://displaycellpros.com', 'https://www.displaycellpros.com']
+const rateLimiter = createRateLimiter({ maxRequests: 30, windowMs: 60_000 })
+
+function getClientKey(req: NextApiRequest): string {
+  const forwarded = req.headers['x-forwarded-for']
+  const address = Array.isArray(forwarded) ? forwarded[0] : forwarded
+  return address?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  setCorsHeaders(res)
+  const corsOptions = {
+    allowedOrigins,
+    allowLocalhost: process.env.NODE_ENV !== 'production',
+  }
+  applyCors(res, req.headers.origin, corsOptions)
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end()
+  if (handleOptions(req, res, corsOptions)) {
+    return
+  }
+
+  if (!rateLimiter.check(getClientKey(req)).allowed) {
+    const result = rateLimiter.check(getClientKey(req))
+    res.setHeader('Retry-After', String(result.retryAfterSeconds))
+    return res.status(429).json({ ok: false, error: 'Too many requests' })
+  }
+
+  if (
+    req.headers.origin &&
+    !corsOptions.allowedOrigins.includes(req.headers.origin) &&
+    !(corsOptions.allowLocalhost && req.headers.origin.startsWith('http://localhost:'))
+  ) {
+    return res.status(403).json({ ok: false, error: 'Origin not allowed' })
   }
 
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -39,12 +64,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ? req.body?.first ?? req.query?.first
         : req.query?.first
 
-    const query = typeof rawQuery === 'string' ? rawQuery.trim().slice(0, 200) : ''
-    const first = typeof rawFirst === 'number'
-      ? Math.min(Math.max(rawFirst, 1), 25)
-      : typeof rawFirst === 'string'
-      ? Math.min(Math.max(parseInt(rawFirst, 10) || 5, 1), 25)
-      : 5
+    const query = rawQuery === undefined
+      ? ''
+      : readBoundedString(rawQuery, { maxLength: 200 })
+    const first = rawFirst === undefined
+      ? 5
+      : readBoundedInteger(rawFirst, { min: 1, max: 25 }) || 5
 
     const result = query
       ? await searchStorefrontProducts(query, {

@@ -37,19 +37,30 @@ function getApiVersion(): string {
 
 /** Resolves the site's own origin used to build the OAuth redirect_uri. */
 export function getSiteUrl(req?: { headers: Record<string, string | string[] | undefined> }): string {
-  if (req) {
+  const siteUrlEnv = process.env.NEXT_PUBLIC_SITE_URL;
+  const trustedProxy = process.env.TRUSTED_PROXY === 'true';
+  const isProd = process.env.NODE_ENV === 'production';
+
+  if (req && trustedProxy) {
     const forwardedProto = req.headers['x-forwarded-proto']
     const proto = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto) || 'https'
     const forwardedHost = req.headers['x-forwarded-host']
     const rawHost = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost) || req.headers.host
     if (rawHost) {
       const host = Array.isArray(rawHost) ? rawHost[0] : rawHost
-      return `${proto}://${host}`
+      const finalProto = isProd && proto === 'http' ? 'https' : proto;
+      return `${finalProto}://${host}`
     }
   }
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, '')
+
+  if (siteUrlEnv) {
+    const normalized = siteUrlEnv.replace(/\/+$/, '');
+    if (isProd && normalized.startsWith('http://')) {
+      return normalized.replace('http://', 'https://');
+    }
+    return normalized;
   }
+
   return 'https://displaycellpros.com'
 }
 

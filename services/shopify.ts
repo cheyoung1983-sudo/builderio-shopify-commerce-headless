@@ -1,5 +1,12 @@
 import ShopifyBuy from 'shopify-buy'
-import shopifyConfig from '../config/shopify.ts'
+import shopifyConfig, {
+  getShopifyDomain,
+  getShopifyApiVersion,
+  getStorefrontAccessToken,
+  getShopifyClientId,
+  getShopifyClientSecret,
+  getAdminAccessToken,
+} from '../config/shopify.ts'
 import { startLoading, stopLoading } from '../lib/progress'
 import { formatForShopifyGraphQL } from '../lib/shopify-search-syntax'
 
@@ -153,39 +160,23 @@ export function normalizeShopifyDomain(rawDomain?: string): string {
  * ensuring dynamic runtime environment variables take precedence without module-caching lock.
  */
 export function getShopifyConfig(): ShopifyStorefrontConfig {
-  const rawDomain =
-    process.env.SHOPIFY_STORE_DOMAIN ||
-    process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN ||
-    process.env.SHOPIFY_DOMAIN ||
-    shopifyConfig.domain
-  const domain = normalizeShopifyDomain(rawDomain)
-
-  const rawApiVersion =
-    process.env.SHOPIFY_STOREFRONT_API_VERSION ||
-    shopifyConfig.apiVersion
-  const apiVersion = normalizeShopifyApiVersion(rawApiVersion)
-
-  const rawToken =
-    process.env.SHOPIFY_STOREFRONT_API_TOKEN ||
-    process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN ||
-    process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
-    shopifyConfig.storefrontAccessToken ||
-    ''
-  const storefrontAccessToken = rawToken.trim()
+  const domain = getShopifyDomain();
+  const apiVersion = getShopifyApiVersion();
+  const storefrontAccessToken = getStorefrontAccessToken();
 
   const endpoint = domain
     ? `https://${domain}/api/${apiVersion}/graphql.json`
-    : ''
+    : '';
 
   return {
     domain,
     storefrontAccessToken,
     apiVersion,
     endpoint,
-    clientId: process.env.SHOPIFY_CLIENT_ID || shopifyConfig.clientId,
-    clientSecret: process.env.SHOPIFY_CLIENT_SECRET || shopifyConfig.clientSecret,
-    adminAccessToken: process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || shopifyConfig.adminAccessToken,
-  }
+    clientId: getShopifyClientId(),
+    clientSecret: getShopifyClientSecret(),
+    adminAccessToken: getAdminAccessToken(),
+  };
 }
 
 /**

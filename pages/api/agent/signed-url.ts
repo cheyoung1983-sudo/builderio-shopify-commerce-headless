@@ -1,4 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import {
+  applyCors,
+  createRateLimiter,
+  handleOptions,
+  readBoundedString,
+} from '../../lib/api-security/index';
 
 interface SignedUrlResponse {
   signedUrl?: string;
@@ -8,31 +14,45 @@ interface SignedUrlResponse {
   message?: string;
 }
 
-const ALLOWED_ORIGINS = [
+const allowedOrigins = [
   'https://displaycellpros.com',
   'https://www.displaycellpros.com',
 ];
+const rateLimiter = createRateLimiter({ maxRequests: 30, windowMs: 60_000 });
+
+function getClientKey(req: NextApiRequest): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  const address = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+  return address?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+}
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<SignedUrlResponse>
 ) {
-  const origin = req.headers.origin;
-  if (
-    origin &&
-    (ALLOWED_ORIGINS.includes(origin) ||
-      origin.endsWith('.run.app') ||
-      origin.includes('localhost'))
-  ) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', 'https://displaycellpros.com');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  const corsOptions = {
+    allowedOrigins,
+    allowLocalhost: process.env.NODE_ENV !== 'production',
+  };
 
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
+  applyCors(res, req.headers.origin, corsOptions);
+
+  if (handleOptions(req, res, corsOptions)) {
+    return;
+  }
+
+  if (!rateLimiter.check(getClientKey(req)).allowed) {
+    const result = rateLimiter.check(getClientKey(req));
+    res.setHeader('Retry-After', String(result.retryAfterSeconds));
+    return res.status(429).json({ error: 'Too many requests' });
+  }
+
+  if (
+    req.headers.origin &&
+    !corsOptions.allowedOrigins.includes(req.headers.origin) &&
+    !(corsOptions.allowLocalhost && req.headers.origin.startsWith('http://localhost:'))
+  ) {
+    return res.status(403).json({ error: 'Origin not allowed' });
   }
 
   if (req.method !== 'POST' && req.method !== 'GET') {
@@ -47,12 +67,11 @@ export default async function handler(
 
   const agentId =
     typeof requestedAgentId === 'string'
-      ? requestedAgentId.trim()
+      ? readBoundedString(requestedAgentId.trim(), { maxLength: 100 }) || 'agent_3101m30qaxc1f3981zq05pp86ax1'
       : 'agent_3101m30qaxc1f3981zq05pp86ax1';
 
   const apiKey = (process.env.ELEVENLABS_API_KEY || '').trim();
 
-  // ElevenLabs signed URL requires a valid secret API key starting with 'sk_'
   if (!apiKey || !apiKey.startsWith('sk_')) {
     return res.status(200).json({
       authenticated: false,
@@ -83,7 +102,6 @@ export default async function handler(
         authenticated: false,
         agentId,
         error: `ElevenLabs returned HTTP ${response.status}`,
-        message: errText,
       });
     }
 
@@ -98,7 +116,6 @@ export default async function handler(
     console.error('[ElevenLabs:SignedUrl] Exception fetching signed url:', err);
     return res.status(500).json({
       error: 'Failed to generate signed URL',
-      message: err.message,
     });
   }
 }
