@@ -32,30 +32,46 @@ export async function getStaticProps({
 }: GetStaticPropsContext<{ handle: string }>) {
   const handle = params?.handle || ''
 
-  // Fetch product directly from Shopify Storefront API using the handle
-  const res = await fetchStorefrontProductByHandle(handle)
-  const storefrontProduct = res.ok && res.data?.product ? res.data.product : null
+  try {
+    // Fetch product directly from Shopify Storefront API using the handle
+    const res = await fetchStorefrontProductByHandle(handle)
+    const storefrontProduct = res.ok && res.data?.product ? res.data.product : null
 
-  // Optionally resolve Builder CMS content if configured
-  const page = await resolveBuilderContent(builderModel, locale, {
-    productHandle: handle,
-  })
+    // Optionally resolve Builder CMS content if configured
+    const page = await resolveBuilderContent(builderModel, locale, {
+      productHandle: handle,
+    }).catch((err) => {
+      console.warn(`[pages/product] Error resolving Builder content for handle "${handle}":`, err)
+      return null
+    })
 
-  // If neither product nor builder page exists, return 404
-  if (!storefrontProduct && !page) {
+    // If neither product nor builder page exists, return 404
+    if (!storefrontProduct && !page) {
+      return {
+        notFound: true,
+        revalidate: 30,
+      }
+    }
+
+    const layoutProps = await getLayoutProps().catch((err) => {
+      console.warn(`[pages/product] Error resolving layout props for handle "${handle}":`, err)
+      return { theme: null }
+    })
+
+    return {
+      revalidate: 30,
+      props: {
+        page: page,
+        storefrontProduct: storefrontProduct,
+        ...layoutProps,
+      },
+    }
+  } catch (error) {
+    console.error(`[pages/product] Unexpected error in getStaticProps for handle "${handle}":`, error)
     return {
       notFound: true,
       revalidate: 30,
     }
-  }
-
-  return {
-    revalidate: 30,
-    props: {
-      page: page,
-      storefrontProduct: storefrontProduct,
-      ...(await getLayoutProps()),
-    },
   }
 }
 

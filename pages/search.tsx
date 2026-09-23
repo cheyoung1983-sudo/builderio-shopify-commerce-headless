@@ -175,9 +175,27 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   }
 
   // 3. Parse search syntax for live AST inspection & debugging
-  const syntaxDebug: SearchSyntaxDebugResult = parseShopifySearchQuery(qParam)
+  let syntaxDebug: SearchSyntaxDebugResult
+  try {
+    syntaxDebug = parseShopifySearchQuery(qParam)
+  } catch (err) {
+    console.warn('[pages/search] Error parsing search syntax:', err)
+    syntaxDebug = {
+      rawQuery: qParam,
+      isValid: false,
+      ast: { type: 'boolean', children: [] },
+      parsed: { and: [], or: [] },
+      warnings: [{ message: 'Failed to parse search syntax' }],
+      formattedQuery: qParam,
+    }
+  }
 
-  const layoutProps = await getLayoutProps()
+  let layoutProps = { theme: null }
+  try {
+    layoutProps = await getLayoutProps()
+  } catch (err) {
+    console.error('[pages/search] Error fetching layout props:', err)
+  }
 
   return {
     props: {

@@ -29,22 +29,47 @@ export async function getStaticProps({
   params,
   locale,
 }: GetStaticPropsContext<{ handle: string }>) {
-  const collection = await getCollection(shopifyConfig, {
-    handle: params?.handle,
-  })
+  try {
+    const collection = await getCollection(shopifyConfig, {
+      handle: params?.handle,
+    }).catch((err) => {
+      console.error(`[pages/collection] Error fetching collection for handle "${params?.handle}":`, err)
+      return null
+    })
 
-  const page = await resolveBuilderContent(builderModel, locale, {
-    collectionHandle: params?.handle,
-  })
+    const page = await resolveBuilderContent(builderModel, locale, {
+      collectionHandle: params?.handle,
+    }).catch((err) => {
+      console.error(`[pages/collection] Error resolving builder content for handle "${params?.handle}":`, err)
+      return null
+    })
 
-  return {
-    notFound: !collection,
-    revalidate: 30,
-    props: {
-      page: page,
-      collection: collection,
-      ...(await getLayoutProps()),
-    },
+    if (!collection && !page) {
+      return {
+        notFound: true,
+        revalidate: 30,
+      }
+    }
+
+    const layoutProps = await getLayoutProps().catch((err) => {
+      console.error('[pages/collection] Error fetching layout props:', err)
+      return { theme: null }
+    })
+
+    return {
+      revalidate: 30,
+      props: {
+        page: page,
+        collection: collection,
+        ...layoutProps,
+      },
+    }
+  } catch (error) {
+    console.error(`[pages/collection] Unexpected error in getStaticProps for handle "${params?.handle}":`, error)
+    return {
+      notFound: true,
+      revalidate: 30,
+    }
   }
 }
 

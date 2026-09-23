@@ -19,7 +19,12 @@ export async function getStaticProps(context: GetStaticPropsContext) {
     console.error('[pages/products] Error pre-fetching products:', err)
   }
 
-  const layoutProps = await getLayoutProps()
+  let layoutProps = { theme: null }
+  try {
+    layoutProps = await getLayoutProps()
+  } catch (err) {
+    console.error('[pages/products] Error fetching layout props:', err)
+  }
 
   return {
     props: {

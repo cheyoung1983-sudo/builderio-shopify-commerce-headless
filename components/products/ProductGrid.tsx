@@ -222,8 +222,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     try {
       const firstVariant = product.variants?.edges?.[0]?.node
       const variantId = firstVariant?.id || product.id
-      const price = firstVariant?.price?.amount || product.priceRange.minVariantPrice.amount
-      const currency = firstVariant?.price?.currencyCode || product.priceRange.minVariantPrice.currencyCode
+      const price = firstVariant?.price?.amount || product.priceRange?.minVariantPrice?.amount || '0'
+      const currency = firstVariant?.price?.currencyCode || product.priceRange?.minVariantPrice?.currencyCode || 'USD'
       const comparePrice = firstVariant?.compareAtPrice?.amount || product.compareAtPriceRange?.minVariantPrice?.amount
       const imageUrl = product.featuredImage?.url || product.images?.edges?.[0]?.node?.url
 
@@ -478,15 +478,15 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     switch (sortBy) {
       case 'price-asc':
         result.sort((a, b) => {
-          const priceA = parseFloat(a.priceRange.minVariantPrice.amount || '0')
-          const priceB = parseFloat(b.priceRange.minVariantPrice.amount || '0')
+          const priceA = parseFloat(a.priceRange?.minVariantPrice?.amount || '0')
+          const priceB = parseFloat(b.priceRange?.minVariantPrice?.amount || '0')
           return priceA - priceB
         })
         break
       case 'price-desc':
         result.sort((a, b) => {
-          const priceA = parseFloat(a.priceRange.minVariantPrice.amount || '0')
-          const priceB = parseFloat(b.priceRange.minVariantPrice.amount || '0')
+          const priceA = parseFloat(a.priceRange?.minVariantPrice?.amount || '0')
+          const priceB = parseFloat(b.priceRange?.minVariantPrice?.amount || '0')
           return priceB - priceA
         })
         break
@@ -559,7 +559,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     const prod = filteredProducts[clampedIndex]
     if (prod) {
       const price = prod.priceRange?.minVariantPrice?.amount
-        ? formatPrice(prod.priceRange.minVariantPrice.amount, prod.priceRange.minVariantPrice.currencyCode)
+        ? formatPrice(prod.priceRange?.minVariantPrice?.amount, prod.priceRange?.minVariantPrice?.currencyCode)
         : ''
       setAnnouncement(`Product ${clampedIndex + 1} of ${filteredProducts.length}: ${prod.title}, ${price}. Press Enter for Quick View, Escape to close.`)
     }

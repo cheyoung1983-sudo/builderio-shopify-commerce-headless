@@ -169,7 +169,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const images = useMemo(() => {
     if (!product) return []
     const list: Array<{ url: string; altText?: string | null; width?: number | null; height?: number | null }> = []
-    
+
     // Check featuredImage
     if (product.featuredImage?.url) {
       list.push(product.featuredImage)
@@ -209,10 +209,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // Pricing calculations
   const priceAmount = selectedVariant
     ? selectedVariant.price.amount
-    : product?.priceRange.minVariantPrice.amount || '0'
+    : product?.priceRange?.minVariantPrice?.amount || '0'
   const currencyCode = selectedVariant
     ? selectedVariant.price.currencyCode
-    : product?.priceRange.minVariantPrice.currencyCode || 'USD'
+    : product?.priceRange?.minVariantPrice?.currencyCode || 'USD'
 
   const compareAtPriceAmount = selectedVariant?.compareAtPrice?.amount
     ? selectedVariant.compareAtPrice.amount

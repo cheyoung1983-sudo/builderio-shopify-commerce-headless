@@ -26,37 +26,53 @@ export async function getStaticProps({
   params,
   locale,
 }: GetStaticPropsContext<{ path?: string[] }>) {
-  const path = params?.path || []
-  const urlPath = `/${path.join('/')}`.replace(/\/$/, '') || '/'
-  const page = await resolveBuilderContent(builderModel, locale, { urlPath })
+  try {
+    const path = params?.path || []
+    const urlPath = `/${path.join('/')}`.replace(/\/$/, '') || '/'
+    const page = await resolveBuilderContent(builderModel, locale, { urlPath }).catch((err) => {
+      console.error('[pages/[[...path]]] Error resolving builder content:', err)
+      return null
+    })
 
-  // Unknown non-root paths with no Builder page genuinely 404.
-  if (!page && urlPath !== '/') {
+    // Unknown non-root paths with no Builder page genuinely 404.
+    if (!page && urlPath !== '/') {
+      return {
+        notFound: true,
+        revalidate: 30,
+      }
+    }
+
+    // The homepage falls back to a live product listing instead of 404ing
+    // when no Builder 'page' entry exists yet for '/'.
+    let fallbackProducts: ShopifyProductNode[] = []
+    if (!page) {
+      try {
+        const result = await fetchAllAvailableProducts({ batchSize: 50, onlyAvailable: false })
+        fallbackProducts = result.products
+      } catch (error) {
+        console.error('[pages/[[...path]]] Failed to load fallback homepage products:', error)
+      }
+    }
+
+    const layoutProps = await getLayoutProps().catch((err) => {
+      console.error('[pages/[[...path]]] Error fetching layout props:', err)
+      return { theme: null }
+    })
+
+    return {
+      props: {
+        page,
+        fallbackProducts,
+        ...layoutProps,
+      },
+      revalidate: 30,
+    }
+  } catch (error) {
+    console.error('[pages/[[...path]]] Unexpected error in getStaticProps:', error)
     return {
       notFound: true,
       revalidate: 30,
     }
-  }
-
-  // The homepage falls back to a live product listing instead of 404ing
-  // when no Builder 'page' entry exists yet for '/'.
-  let fallbackProducts: ShopifyProductNode[] = []
-  if (!page) {
-    try {
-      const result = await fetchAllAvailableProducts({ batchSize: 50, onlyAvailable: false })
-      fallbackProducts = result.products
-    } catch (error) {
-      console.error('[pages/[[...path]]] Failed to load fallback homepage products:', error)
-    }
-  }
-
-  return {
-    props: {
-      page,
-      fallbackProducts,
-      ...(await getLayoutProps()),
-    },
-    revalidate: 30,
   }
 }
 
