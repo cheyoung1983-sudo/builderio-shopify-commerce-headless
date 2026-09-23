@@ -14,12 +14,18 @@ function runRoute(routeName, requests, options = {}) {
     export async function searchStorefrontProducts(query, requestOptions) {
       globalThis.__calls.push({ name: 'search', query, options: requestOptions })
       if (globalThis.__throwShopify) throw new Error('private Shopify details')
-      return { products: [] }
+      if (globalThis.__structuredShopifyFailure) {
+        return { ok: false, errors: [{ message: 'private Shopify details' }], products: [] }
+      }
+      return { ok: true, products: [] }
     }
     export async function fetchAllAvailableProducts(requestOptions) {
       globalThis.__calls.push({ name: 'all', options: requestOptions })
       if (globalThis.__throwShopify) throw new Error('private Shopify details')
-      return { products: [] }
+      if (globalThis.__structuredShopifyFailure) {
+        return { ok: false, errors: [{ message: 'private Shopify details' }], products: [] }
+      }
+      return { ok: true, products: [] }
     }
     export function isShopifyConfigured() {
       return true
@@ -43,6 +49,7 @@ function runRoute(routeName, requests, options = {}) {
     globalThis.__calls = []
     const route = await import(${JSON.stringify(pathToFileURL(routePaths[routeName]).href)})
     globalThis.__throwShopify = ${Boolean(options.throwShopify)}
+    globalThis.__structuredShopifyFailure = ${Boolean(options.structuredShopifyFailure)}
     globalThis.fetch = async () => ${options.fetchError
       ? "({ ok: false, status: 500 })"
       : "({ ok: true, async json() { return { results: [] } } })"}
@@ -218,6 +225,38 @@ describe('public agent API security', () => {
     expect(throttled).toHaveLength(1)
     expect(throttled[0].headers['Retry-After']).toMatch(/^\d+$/)
     expect(result.calls).toHaveLength(30)
+  })
+
+  test('rate limits on the socket address despite spoofed forwarded headers', () => {
+    for (const routeName of ['search', 'content']) {
+      const result = runRoute(
+        routeName,
+        Array.from({ length: 31 }, (_, index) => ({
+          headers: {
+            origin: 'https://displaycellpros.com',
+            'x-forwarded-for': `203.0.113.${index + 1}`,
+          },
+          body: routeName === 'search' ? { query: 'phone' } : { model: 'page' },
+        }))
+      )
+      const throttled = result.responses.filter(({ statusCode }) => statusCode === 429)
+
+      expect(throttled).toHaveLength(1)
+    }
+  })
+
+  test('returns stable failure for structured Shopify errors', () => {
+    const search = runRoute(
+      'search',
+      [{ body: { query: 'phone' } }, { body: {} }],
+      { structuredShopifyFailure: true }
+    )
+
+    expect(search.responses).toHaveLength(2)
+    for (const response of search.responses) {
+      expect(response.statusCode).toBe(502)
+      expect(response.body).toEqual({ ok: false, error: 'Failed to search products', products: [] })
+    }
   })
 
   test('routes expose stable upstream error messages', () => {

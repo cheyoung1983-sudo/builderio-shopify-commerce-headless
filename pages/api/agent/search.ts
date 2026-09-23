@@ -16,9 +16,7 @@ const allowedOrigins = ['https://displaycellpros.com', 'https://www.displaycellp
 const rateLimiter = createRateLimiter({ maxRequests: 30, windowMs: 60_000 })
 
 function getClientKey(req: NextApiRequest): string {
-  const forwarded = req.headers['x-forwarded-for']
-  const address = Array.isArray(forwarded) ? forwarded[0] : forwarded
-  return address?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
+  return req.socket.remoteAddress || 'unknown'
 }
 
 function hasOwn(value: unknown, key: string): boolean {
@@ -125,6 +123,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           batchSize: Math.max(first, 10),
           onlyAvailable: true,
         })
+
+    if (result.ok === false || (result.errors && result.errors.length > 0)) {
+      console.error('[API /api/agent/search] Shopify returned errors:', result.errors)
+      return res.status(502).json({
+        ok: false,
+        error: 'Failed to search products',
+        products: [],
+      })
+    }
 
     const formattedProducts = (result.products || []).map((product) => {
       const primaryPrice =
