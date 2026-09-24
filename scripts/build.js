@@ -7,6 +7,7 @@ for (const command of [['run', 'precheck'], ['exec', 'next', '--', 'build']]) {
   const result = spawnSync(npmCommand, command, {
     env,
     stdio: 'inherit',
+    shell: true,
   })
 
   if (result.error) throw result.error
