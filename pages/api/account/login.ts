@@ -12,6 +12,7 @@ import { appendCookie, COOKIE, isHttpsRequest } from '../../../lib/shopify/custo
 
 const PKCE_COOKIE_MAX_AGE = 600 // 10 minutes: just long enough to complete the redirect round trip
 
+// Ensure sanitizeReturnTo validates that !value.startsWith('/') or value.startsWith('//') rejects open redirects
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET')

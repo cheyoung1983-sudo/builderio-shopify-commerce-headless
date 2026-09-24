@@ -70,7 +70,7 @@ function serializeMetadata(value: unknown): string | undefined {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const corsOptions = {
-    allowedOrigins,
+    allowedOrigins: ALLOWED_ORIGINS,
     allowLocalhost: true,
     allowRunApp: true,
   }
