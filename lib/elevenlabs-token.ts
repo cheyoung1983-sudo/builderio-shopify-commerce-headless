@@ -23,6 +23,7 @@ export interface ElevenLabsHttpErrorDetails {
   parsedBody?: Record<string, unknown>;
   category: 'authentication' | 'not_found' | 'rate_limit' | 'server_error' | 'client_error' | 'unknown';
   isRetryable: boolean;
+  responseHeaderKeys?: string[];
 }
 
 export class ElevenLabsTokenError extends Error {
@@ -74,6 +75,13 @@ function categorizeError(status: number, responseBody: string, parsedBody?: Reco
   return { category: 'unknown', isRetryable: true };
 }
 
+function maskApiKey(key?: string): string {
+  if (!key) return '[NOT_PROVIDED]';
+  const trimmed = key.trim();
+  if (trimmed.length <= 8) return '****';
+  return `${trimmed.substring(0, 4)}...${trimmed.substring(trimmed.length - 4)}`;
+}
+
 /**
  * Utility function to acquire an ephemeral ElevenLabs conversation token
  * with an exponential backoff retry strategy and explicit logging of
@@ -92,20 +100,7 @@ export async function acquireElevenLabsTokenWithBackoff(
   } = options;
 
   const rawKey = (apiKey || '').trim();
-  const hasValidKeyPrefix = rawKey.startsWith('sk_');
-  let useApiKey = hasValidKeyPrefix ? rawKey : undefined;
-
-  if (rawKey && !hasValidKeyPrefix) {
-    console.warn(
-      `[ElevenLabs:Token:Warning] Provided API key does not start with "sk_". ` +
-      `ElevenLabs requires secret keys starting with "sk_". ` +
-      `Attempting token fetch using public agent credentials.`
-    );
-  }
-
-  const endpoint = `https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=${encodeURIComponent(
-    agentId
-  )}&source=js_sdk&version=0.0.8`;
+  let useApiKey = rawKey || undefined;
 
   let lastError: Error | null = null;
   const totalAttempts = maxRetries + 1;
@@ -113,15 +108,20 @@ export async function acquireElevenLabsTokenWithBackoff(
   for (let attempt = 1; attempt <= totalAttempts; attempt++) {
     const isFinalAttempt = attempt === totalAttempts;
 
+    const endpoint = useApiKey
+      ? `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${encodeURIComponent(agentId)}`
+      : `https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=${encodeURIComponent(
+          agentId
+        )}&source=js_sdk&version=0.0.8`;
+
     try {
       console.log(
-        `[ElevenLabs:Token:Fetch] [Attempt ${attempt}/${totalAttempts}] Requesting token for agent: "${agentId}" (authenticated: ${Boolean(
-          useApiKey
-        )})...`
+        `[ElevenLabs:Token:Fetch] [Attempt ${attempt}/${totalAttempts}] Outbound request to ${endpoint} | Headers: Accept="application/json", x-agent-id="${agentId}", xi-api-key="${maskApiKey(useApiKey)}"`
       );
 
       const headers: Record<string, string> = {
         Accept: 'application/json',
+        'x-agent-id': agentId,
       };
       if (useApiKey) {
         headers['xi-api-key'] = useApiKey;
@@ -131,6 +131,12 @@ export async function acquireElevenLabsTokenWithBackoff(
         method: 'GET',
         headers,
       });
+
+      const responseHeaderKeys = Array.from(response.headers.keys()).sort();
+      console.log(
+        `[ElevenLabs:Token:ResponseHeaders] [Attempt ${attempt}/${totalAttempts}] HTTP ${response.status} ${response.statusText} | ElevenLabs response header keys received (values excluded):`,
+        responseHeaderKeys
+      );
 
       const rawResponseBody = await response.text();
       let parsedBody: Record<string, unknown> | undefined;
@@ -148,7 +154,18 @@ export async function acquireElevenLabsTokenWithBackoff(
           parsedBody
         );
 
-        // Explicit HTTP error code and response body logging
+        // If the key was rejected (e.g. invalid key ID or revoked key), try falling back to public agent access immediately
+        if (useApiKey && category === 'authentication') {
+          console.warn(
+            `[ElevenLabs:Token:Fallback] API key was rejected by ElevenLabs (HTTP ${response.status} ${response.statusText}). Disabling API key header and retrying as public agent...`,
+            rawResponseBody
+          );
+          useApiKey = undefined;
+          // Continue loop immediately to retry without key
+          continue;
+        }
+
+        // Explicit HTTP error code and response body logging for unhandled errors
         console.error(`[ElevenLabs:Token:HttpError] [Attempt ${attempt}/${totalAttempts}] HTTP ${response.status} ${response.statusText}`, {
           status: response.status,
           statusText: response.statusText,
@@ -160,16 +177,6 @@ export async function acquireElevenLabsTokenWithBackoff(
           parsedBody,
         });
 
-        // If the key was rejected (e.g. invalid key ID or revoked key), try falling back to public agent access immediately
-        if (useApiKey && category === 'authentication') {
-          console.warn(
-            `[ElevenLabs:Token:Fallback] API key was rejected by ElevenLabs (HTTP ${response.status}). Disabling API key header and retrying as public agent...`
-          );
-          useApiKey = undefined;
-          // Continue loop immediately to retry without key
-          continue;
-        }
-
         const errorDetails: ElevenLabsHttpErrorDetails = {
           status: response.status,
           statusText: response.statusText,
@@ -180,6 +187,7 @@ export async function acquireElevenLabsTokenWithBackoff(
           parsedBody,
           category,
           isRetryable,
+          responseHeaderKeys,
         };
 
         const errorMsg =
@@ -197,10 +205,28 @@ export async function acquireElevenLabsTokenWithBackoff(
 
         lastError = tokenError;
       } else {
-        // Successfully retrieved token
-        if (!parsedBody?.token || typeof parsedBody.token !== 'string') {
-          console.error('[ElevenLabs:Token:InvalidPayload] Missing token property in successful response:', rawResponseBody);
-          throw new ElevenLabsTokenError('Missing token in ElevenLabs response payload', {
+        // Successfully retrieved token or signed URL
+        let extractedToken: string | undefined = typeof parsedBody?.token === 'string' ? parsedBody.token : undefined;
+        const conversationId: string | undefined = typeof parsedBody?.conversation_id === 'string' ? parsedBody.conversation_id : undefined;
+
+        if (!extractedToken && typeof parsedBody?.signed_url === 'string') {
+          try {
+            const urlObj = new URL(parsedBody.signed_url);
+            const tokenParam = urlObj.searchParams.get('token');
+            if (tokenParam) {
+              extractedToken = tokenParam;
+            } else {
+              extractedToken = parsedBody.signed_url;
+            }
+          } catch {
+            const match = parsedBody.signed_url.match(/token=([^&]+)/);
+            extractedToken = match?.[1] ? decodeURIComponent(match[1]) : parsedBody.signed_url;
+          }
+        }
+
+        if (!extractedToken) {
+          console.error('[ElevenLabs:Token:InvalidPayload] Missing token or signed_url property in successful response:', rawResponseBody);
+          throw new ElevenLabsTokenError('Missing token or signed_url in ElevenLabs response payload', {
             status: response.status,
             statusText: response.statusText,
             url: endpoint,
@@ -218,8 +244,8 @@ export async function acquireElevenLabsTokenWithBackoff(
         );
 
         return {
-          token: parsedBody.token,
-          conversationId: parsedBody.conversation_id as string | undefined,
+          token: extractedToken,
+          conversationId,
           attempts: attempt,
         };
       }

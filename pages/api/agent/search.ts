@@ -8,6 +8,7 @@ import {
   applyCors,
   createRateLimiter,
   handleOptions,
+  isAllowedOrigin,
   readBoundedString,
   readBoundedInteger,
 } from '../../../lib/api-security'
@@ -24,7 +25,8 @@ function getClientKey(req: NextApiRequest): string {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const corsOptions = {
     allowedOrigins,
-    allowLocalhost: process.env.NODE_ENV !== 'production',
+    allowLocalhost: true,
+    allowRunApp: true,
   }
   applyCors(res, req.headers.origin, corsOptions)
 
@@ -38,11 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(429).json({ ok: false, error: 'Too many requests' })
   }
 
-  if (
-    req.headers.origin &&
-    !corsOptions.allowedOrigins.includes(req.headers.origin) &&
-    !(corsOptions.allowLocalhost && req.headers.origin.startsWith('http://localhost:'))
-  ) {
+  if (!isAllowedOrigin(req.headers.origin, corsOptions)) {
     return res.status(403).json({ ok: false, error: 'Origin not allowed' })
   }
 

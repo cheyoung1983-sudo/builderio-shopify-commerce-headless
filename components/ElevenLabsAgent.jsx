@@ -57,6 +57,26 @@ async function storefrontFetch(query, variables = {}) {
   }
 }
 
+async function resolveWorkletUrl(path) {
+  if (typeof window === "undefined") return path;
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  const targetUrl = `${window.location.origin}${cleanPath}`;
+  
+  try {
+    const res = await fetch(targetUrl, { method: "HEAD" });
+    if (res.ok) {
+      console.log(`[ElevenLabsAgent] Worklet static asset verified: ${cleanPath}`);
+      return targetUrl;
+    }
+    console.warn(`[ElevenLabsAgent] Worklet asset not found (${res.status}) for ${cleanPath}.`);
+  } catch (err) {
+    console.warn(`[ElevenLabsAgent] Verification check for worklet asset at ${cleanPath} failed. Error:`, err);
+  }
+  
+  // Return original path as fallback
+  return cleanPath;
+}
+
 /**
  * Utility function to acquire an ElevenLabs conversation token with
  * an exponential backoff retry strategy and explicit logging of
@@ -261,6 +281,9 @@ export default function ElevenLabsAgent() {
     }
     return true;
   });
+  const [repairName, setRepairName] = useState("Display & Touchscreen Assembly");
+  const [serviceName, setServiceName] = useState("DisplayCellPros Express Technical Repair");
+  const [showDynamicVars, setShowDynamicVars] = useState(false);
   const startSessionRef = useRef(null);
 
   const endSession = useCallback(async () => {
@@ -371,15 +394,27 @@ export default function ElevenLabsAgent() {
         ? { conversationToken }
         : { agentId: AGENT_ID };
 
+      const rawWorkletUrl = await resolveWorkletUrl("/rawAudioProcessor.js");
+      const concatWorkletUrl = await resolveWorkletUrl("/audioConcatProcessor.js");
+
+      const activeDynamicVars = {
+        repair_name: repairName || "Display & Touchscreen Assembly",
+        service_name: serviceName || "DisplayCellPros Express Technical Repair",
+        ...(options.dynamicVariables || {}),
+      };
+
+      console.log("[ElevenLabsAgent:Init] Setting dynamic variables for session:", activeDynamicVars);
+
       const conversation = await Conversation.startSession({
         ...sessionParams,
+        dynamicVariables: activeDynamicVars,
         webRtc: {
           iceTransportPolicy: forceRelay ? "relay" : "all",
           singlePeerConnection: false,
         },
         workletPaths: {
-          rawAudioProcessor: "/rawAudioProcessor.js",
-          audioConcatProcessor: "/audioConcatProcessor.js",
+          rawAudioProcessor: rawWorkletUrl,
+          audioConcatProcessor: concatWorkletUrl,
         },
         onConnect: () => {
           console.log("[ElevenLabsAgent:Init] [Step 5/5 Success] ElevenLabs WebRTC connection established. Status: connected.");
@@ -626,9 +661,19 @@ export default function ElevenLabsAgent() {
         setErrorMessage(
           "Microphone access was denied. Please allow microphone permissions to speak with the agent."
         );
-      } else if (err?.message?.includes("rawAudioProcessor") || err?.message?.includes("AudioWorklet") || err?.message?.includes("audio capture")) {
+      } else if (
+        err?.message?.includes("rawAudioProcessor") ||
+        err?.message?.includes("audioConcatProcessor") ||
+        err?.message?.includes("AudioWorklet") ||
+        err?.message?.includes("audio capture") ||
+        err?.message?.includes("worklet")
+      ) {
+        console.warn(
+          `[ElevenLabsAgent] Audio worklet failed to load during session initialization: ${err?.message}. ` +
+          `Please manually verify that /public/rawAudioProcessor.js exists in the public directory structure and is accessible at the root level during dev and production.`
+        );
         setErrorMessage(
-          "Audio capture worklet could not be initialized in this browser. Self-hosted worklets have been configured, please refresh or allow microphone access."
+          "Audio capture worklet could not be initialized in this browser. Self-hosted worklets have been configured, please manually verify the /public directory structure."
         );
       } else if (
         err?.message?.includes("signal connection") ||
@@ -673,7 +718,7 @@ export default function ElevenLabsAgent() {
       }
       setStatus("error");
     }
-  }, [router, useRelayPolicy]);
+  }, [router, useRelayPolicy, repairName, serviceName]);
 
   useEffect(() => {
     startSessionRef.current = startSession;
@@ -1353,6 +1398,55 @@ export default function ElevenLabsAgent() {
                     </button>
                   </div>
                 )}
+
+                {/* Dynamic Variables Configuration for Testing */}
+                <div className="border border-neutral-200/80 rounded-xl p-2.5 bg-neutral-50/80 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowDynamicVars((prev) => !prev)}
+                    className="w-full flex items-center justify-between text-[11px] font-semibold text-neutral-700 hover:text-neutral-900 cursor-pointer"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Settings2 className="w-3.5 h-3.5 text-neutral-500" />
+                      Dynamic Agent Variables ({repairName ? 2 : 0})
+                    </span>
+                    <span className="text-[10px] text-neutral-500 font-mono">
+                      {showDynamicVars ? "Hide ▲" : "Configure ▼"}
+                    </span>
+                  </button>
+
+                  {showDynamicVars && (
+                    <div className="space-y-2 pt-1.5 border-t border-neutral-200/60 text-xs">
+                      <div>
+                        <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider mb-1">
+                          repair_name
+                        </label>
+                        <input
+                          type="text"
+                          value={repairName}
+                          onChange={(e) => setRepairName(e.target.value)}
+                          placeholder="e.g. Screen Replacement"
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider mb-1">
+                          service_name
+                        </label>
+                        <input
+                          type="text"
+                          value={serviceName}
+                          onChange={(e) => setServiceName(e.target.value)}
+                          placeholder="e.g. DisplayCellPros Tech Repair"
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                        />
+                      </div>
+                      <p className="text-[10px] text-neutral-500 leading-tight">
+                        These values populate your agent&apos;s dynamic template placeholders (<code className="font-mono text-[9px] bg-neutral-200 px-1 py-0.5 rounded">&#123;&#123;repair_name&#125;&#125;</code> &amp; <code className="font-mono text-[9px] bg-neutral-200 px-1 py-0.5 rounded">&#123;&#123;service_name&#125;&#125;</code>).
+                      </p>
+                    </div>
+                  )}
+                </div>
 
                 <div className="flex flex-col gap-2">
                   <button

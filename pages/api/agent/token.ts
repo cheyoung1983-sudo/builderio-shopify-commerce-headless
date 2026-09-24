@@ -7,8 +7,9 @@ import {
   applyCors,
   createRateLimiter,
   handleOptions,
+  isAllowedOrigin,
   readBoundedString,
-} from '../../lib/api-security/index';
+} from '@lib/api-security';
 
 interface TokenResponse {
   token?: string;
@@ -17,12 +18,14 @@ interface TokenResponse {
   iceServers?: Array<{ urls: string | string[] }>;
   error?: string;
   details?: string | Record<string, unknown>;
+  category?: string;
 }
 
 const allowedOrigins = [
   'https://displaycellpros.com',
   'https://www.displaycellpros.com',
 ];
+
 const rateLimiter = createRateLimiter({ maxRequests: 30, windowMs: 60_000 });
 
 function getClientKey(req: NextApiRequest): string {
@@ -37,7 +40,8 @@ export default async function handler(
 ) {
   const corsOptions = {
     allowedOrigins,
-    allowLocalhost: process.env.NODE_ENV !== 'production',
+    allowLocalhost: true,
+    allowRunApp: true,
   };
 
   applyCors(res, req.headers.origin, corsOptions);
@@ -52,11 +56,7 @@ export default async function handler(
     return res.status(429).json({ error: 'Too many requests' });
   }
 
-  if (
-    req.headers.origin &&
-    !corsOptions.allowedOrigins.includes(req.headers.origin) &&
-    !(corsOptions.allowLocalhost && req.headers.origin.startsWith('http://localhost:'))
-  ) {
+  if (!isAllowedOrigin(req.headers.origin, corsOptions)) {
     return res.status(403).json({ error: 'Origin not allowed' });
   }
 
@@ -64,20 +64,31 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Retrieve API Key: Prefer process.env.ELEVENLABS_API_KEY
+  const apiKey =
+    process.env.ELEVENLABS_API_KEY ||
+    (typeof req.headers['xi-api-key'] === 'string' ? req.headers['xi-api-key'] : undefined) ||
+    process.env.XI_API_KEY;
+
+  // Retrieve Agent ID: Check headers, body, query, or environment variables
+  const headerAgentId = typeof req.headers['x-agent-id'] === 'string' ? req.headers['x-agent-id'] : undefined;
   const requestedAgentId =
+    headerAgentId ||
     (req.body && req.body.agentId) ||
     req.query.agentId ||
+    process.env.ELEVENLABS_AGENT_ID ||
     process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID ||
-    'agent_3101m30qaxc1f3981zq05pp86ax1';
+    'agent_6301kqxr35beedj8n91eq7gz73d7';
 
-  const agentId = typeof requestedAgentId === 'string' 
-    ? readBoundedString(requestedAgentId.trim(), { maxLength: 100 }) || 'agent_3101m30qaxc1f3981zq05pp86ax1'
-    : 'agent_3101m30qaxc1f3981zq05pp86ax1';
+  const agentId =
+    typeof requestedAgentId === 'string'
+      ? readBoundedString(requestedAgentId.trim(), { maxLength: 100 }) || 'agent_6301kqxr35beedj8n91eq7gz73d7'
+      : 'agent_6301kqxr35beedj8n91eq7gz73d7';
 
   try {
     const result = await acquireElevenLabsTokenWithBackoff({
       agentId,
-      apiKey: process.env.ELEVENLABS_API_KEY,
+      apiKey,
       maxRetries: 3,
       initialDelayMs: 500,
       maxDelayMs: 3000,
@@ -94,9 +105,20 @@ export default async function handler(
     });
   } catch (error) {
     if (error instanceof ElevenLabsTokenError) {
-      const { status } = error.details;
+      const { status, responseBody, category, isRetryable, agentId: errAgentId } = error.details;
+      console.error(`[ElevenLabsTokenAPI:Error] Failed acquiring signed URL token from ElevenLabs API:`, {
+        status,
+        category,
+        isRetryable,
+        agentId: errAgentId,
+        responseBody,
+        message: error.message,
+      });
       return res.status(status).json({
         error: `ElevenLabs API error: ${status}`,
+        details: error.message,
+        category,
+        agentId: errAgentId,
       });
     }
 
@@ -104,6 +126,7 @@ export default async function handler(
     console.error('[ElevenLabsTokenAPI] Unexpected server error acquiring token:', err);
     return res.status(500).json({
       error: 'Failed to fetch conversation token from voice platform',
+      details: err.message,
     });
   }
 }

@@ -3,8 +3,9 @@ import {
   applyCors,
   createRateLimiter,
   handleOptions,
+  isAllowedOrigin,
   readBoundedString,
-} from '../../lib/api-security/index';
+} from '@lib/api-security';
 
 interface SignedUrlResponse {
   signedUrl?: string;
@@ -32,7 +33,8 @@ export default async function handler(
 ) {
   const corsOptions = {
     allowedOrigins,
-    allowLocalhost: process.env.NODE_ENV !== 'production',
+    allowLocalhost: true,
+    allowRunApp: true,
   };
 
   applyCors(res, req.headers.origin, corsOptions);
@@ -47,11 +49,7 @@ export default async function handler(
     return res.status(429).json({ error: 'Too many requests' });
   }
 
-  if (
-    req.headers.origin &&
-    !corsOptions.allowedOrigins.includes(req.headers.origin) &&
-    !(corsOptions.allowLocalhost && req.headers.origin.startsWith('http://localhost:'))
-  ) {
+  if (!isAllowedOrigin(req.headers.origin, corsOptions)) {
     return res.status(403).json({ error: 'Origin not allowed' });
   }
 

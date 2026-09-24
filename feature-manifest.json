@@ -1,0 +1,19 @@
+{
+  "features": {
+    "voice_transcript": {
+      "components": ["/components/TranscriptDisplay.tsx", "/components/VoiceTranscriptDisplay.jsx"],
+      "api_routes": [],
+      "status": "implemented"
+    },
+    "voice_avatar": {
+      "components": ["/components/VoicePulseAvatar.jsx"],
+      "api_routes": [],
+      "status": "implemented"
+    },
+    "cart": {
+      "components": ["/components/CartDrawer.jsx"],
+      "api_routes": [],
+      "status": "implemented"
+    }
+  }
+}
