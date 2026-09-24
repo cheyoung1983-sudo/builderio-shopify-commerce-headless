@@ -1,7 +1,7 @@
 import { defineConfig, globalIgnores } from 'eslint/config'
 import nextVitals from 'eslint-config-next/core-web-vitals'
 
-const eslintConfig = defineConfig([
+export default defineConfig([
   ...nextVitals,
   globalIgnores([
     '.next/**',
@@ -11,5 +11,3 @@ const eslintConfig = defineConfig([
     'node_modules/**',
   ]),
 ])
-
-export default eslintConfig

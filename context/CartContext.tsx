@@ -321,6 +321,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({
         // This is the sanctioned "sync with an external system on mount"
         // pattern: localStorage doesn't exist during SSR, so this can only
         // run post-mount, and there is no derived-state equivalent for it.
+         
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setItems(storedItems.map(toCartItem))
       }

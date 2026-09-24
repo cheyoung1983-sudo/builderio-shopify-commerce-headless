@@ -36,7 +36,7 @@ export function getShopifyApiVersion(): string {
 export function getStorefrontAccessToken(): string {
   const serverToken = process.env.SHOPIFY_STOREFRONT_API_TOKEN || process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN
   const publicToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_TOKEN || process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN
-  
+
   const token = isInvalid(serverToken) ? publicToken : serverToken
   return (token || '').trim()
 }

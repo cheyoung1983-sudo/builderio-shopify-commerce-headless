@@ -61,7 +61,7 @@ async function resolveWorkletUrl(path) {
   if (typeof window === "undefined") return path;
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   const targetUrl = `${window.location.origin}${cleanPath}`;
-  
+
   try {
     const res = await fetch(targetUrl, { method: "HEAD" });
     if (res.ok) {
@@ -72,7 +72,7 @@ async function resolveWorkletUrl(path) {
   } catch (err) {
     console.warn(`[ElevenLabsAgent] Verification check for worklet asset at ${cleanPath} failed. Error:`, err);
   }
-  
+
   // Return original path as fallback
   return cleanPath;
 }
@@ -1282,17 +1282,17 @@ export default function ElevenLabsAgent() {
 
                   <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider mt-2">
                     {agentStatus === "speaking" ? (
-                      <></></>
+                      <>
                         <Volume2 className="w-3.5 h-3.5 text-sky-600 animate-pulse"  />
                         <span className="text-sky-800">
                           Status: Speaking {outputVolume > 0.02 ? `(${Math.round(outputVolume * 100)}%)` : ""}
                         </span>
-                      <></></>
+                      </>
                     ) : (
-                      <></></>
+                      <>
                         <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse"  />
                         <span className="text-emerald-800">Status: Listening</span>
-                      <></></>
+                      </>
                     )}
                   </div>
                   <p
@@ -1456,15 +1456,15 @@ export default function ElevenLabsAgent() {
                     className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-semibold shadow-xs disabled:opacity-50 transition-colors cursor-pointer"
                   >
                     {isConnecting ? (
-                      <></></>
+                      <>
                         <Loader2 className="w-3.5 h-3.5 text-white animate-spin"  />
                         Connecting to Voice Agent...
-                      <></></>
+                      </>
                     ) : (
-                      <></></>
+                      <>
                         <Mic className="w-3.5 h-3.5 text-emerald-400"  />
                         Start Voice Call
-                      <></></>
+                      </>
                     )}
                   </button>
 

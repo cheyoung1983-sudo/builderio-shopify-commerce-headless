@@ -81,13 +81,13 @@ export async function getStaticPaths({ locales }: GetStaticPathsContext) {
     const paths = res.products.map((p) => `/product/${p.handle}`)
     return {
       paths: paths.length > 0 ? paths : [],
-      fallback: true,
+      fallback: 'blocking',
     }
   } catch (err) {
     console.error('Failed to get static paths for products:', err)
     return {
       paths: [],
-      fallback: true,
+      fallback: 'blocking',
     }
   }
 }
@@ -211,4 +211,3 @@ export default function Handle({
     </div>
   )
 }
-

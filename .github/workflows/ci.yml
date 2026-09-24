@@ -25,6 +25,8 @@ jobs:
         run: npm run check:ci-integrity
       - name: Check dependency health
         run: npm run check:dependency-health
+      - name: Check for unresolved merge conflicts
+        run: npm run check:merge-conflicts
       - name: Type-check
         run: npm run typecheck
       - name: Run ESLint
