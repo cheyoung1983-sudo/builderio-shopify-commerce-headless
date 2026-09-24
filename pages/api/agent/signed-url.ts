@@ -63,7 +63,8 @@ export default async function handler(
 ) {
   const corsOptions = {
     allowedOrigins,
-    allowLocalhost: process.env.NODE_ENV !== 'production',
+    allowLocalhost: true,
+    allowRunApp: true,
   }
   const securityRes = createSecurityResponse(res)
 

@@ -70,9 +70,9 @@ function serializeMetadata(value: unknown): string | undefined {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const corsOptions = {
-    allowedOrigins: ALLOWED_ORIGINS,
-    allowedMethods: ['POST', 'OPTIONS'],
-    allowLocalhost: process.env.NODE_ENV !== 'production',
+    allowedOrigins,
+    allowLocalhost: true,
+    allowRunApp: true,
   }
   const securityRes = createSecurityResponse(res)
 
