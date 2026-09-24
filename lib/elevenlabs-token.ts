@@ -100,7 +100,7 @@ export async function acquireElevenLabsTokenWithBackoff(
   } = options;
 
   const rawKey = (apiKey || '').trim();
-  let useApiKey = rawKey || undefined;
+  let useApiKey = (rawKey.startsWith('sk_') && rawKey.length > 10) ? rawKey : undefined;
 
   let lastError: Error | null = null;
   const totalAttempts = maxRetries + 1;

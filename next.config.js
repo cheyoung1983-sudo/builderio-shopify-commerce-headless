@@ -77,7 +77,7 @@ const nextConfig = {
               // ws://localhost:* is for next dev's Fast Refresh websocket.
               "connect-src 'self' https://cdn.builder.io https://builder.io https://*.builder.io https://*.myshopify.com https://vercel.live https://*.vercel.live wss://*.pusher.com https://vitals.vercel-insights.com ws://localhost:* https://ais-dev-jexmzfsqsgf4mbwujko5hx-367327296310.us-west2.run.app https://ai.studio https://api.elevenlabs.io https://*.elevenlabs.io wss://api.elevenlabs.io wss://*.elevenlabs.io https://*.rtc.elevenlabs.io wss://*.rtc.elevenlabs.io https://*.rtc.eu.residency.elevenlabs.io wss://*.rtc.eu.residency.elevenlabs.io https://*.livekit.cloud wss://*.livekit.cloud",
               // img-src: mirrors the remotePatterns allowed by next/image above.
-              "img-src 'self' data: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://via.placeholder.com https://vercel.live",
+              "img-src 'self' data: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://via.placeholder.com https://vercel.live https://vercel.com https://*.vercel-insights.com",
               "font-src 'self' data: https://vercel.live",
             ].join('; '),
           },

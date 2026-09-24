@@ -40,15 +40,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(429).json({ ok: false, error: 'Too many requests' })
   }
 
-  if (!isAllowedOrigin(req.headers.origin, corsOptions)) {
-    return res.status(403).json({ ok: false, error: 'Origin not allowed' })
-  }
-
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({
       ok: false,
       error: 'Method not allowed. Use GET or POST.',
     })
+  }
+
+  if (req.headers.origin && !isAllowedOrigin(req.headers.origin, corsOptions)) {
+    return res.status(403).json({ ok: false, error: 'Origin not allowed' })
   }
 
   try {
@@ -62,9 +62,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ? req.body?.first ?? req.query?.first
         : req.query?.first
 
-    const query = rawQuery === undefined
+    const rawSearchQuery = rawQuery === undefined
       ? ''
       : readBoundedString(rawQuery, { maxLength: 200 })
+    const query = typeof rawSearchQuery === 'string' ? rawSearchQuery.slice(0, 200) : ''
     const first = rawFirst === undefined
       ? 5
       : readBoundedInteger(rawFirst, { min: 1, max: 25 }) || 5

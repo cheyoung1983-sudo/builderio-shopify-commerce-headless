@@ -12,7 +12,6 @@ export const useAcceptCookies = () => {
     // post-mount if needed. No derived-state equivalent exists.
     if (!Cookies.get(COOKIE_NAME)) {
       builder.canTrack = false
-       
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setAcceptedCookies(false)
     }

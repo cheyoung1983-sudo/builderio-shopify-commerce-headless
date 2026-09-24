@@ -5,8 +5,7 @@ export interface AllowedOriginsOptions {
 }
 
 export function isAllowedOrigin(origin: string | undefined, options: AllowedOriginsOptions = { allowedOrigins: [] }): boolean {
-  if (origin === undefined) return false;
-  if (!origin) return true;
+  if (!origin) return false;
 
   if (options.allowLocalhost !== false) {
     if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:') || origin === 'http://localhost' || origin === 'http://127.0.0.1') {
@@ -27,7 +26,7 @@ export function isAllowedOrigin(origin: string | undefined, options: AllowedOrig
 }
 
 export function applyCors(res: any, origin: string | undefined, options: AllowedOriginsOptions): void {
-  if (isAllowedOrigin(origin, options)) {
+  if (origin && isAllowedOrigin(origin, options)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
   }
@@ -36,10 +35,10 @@ export function applyCors(res: any, origin: string | undefined, options: Allowed
 export function handleOptions(req: any, res: any, options: AllowedOriginsOptions): boolean {
   if (req.method === 'OPTIONS') {
     const origin = req.headers.origin;
-    if (isAllowedOrigin(origin, options)) {
+    if (origin && isAllowedOrigin(origin, options)) {
       applyCors(res, origin, options);
       res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, xi-api-key, X-Requested-With');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
       res.status(204).send();
       return true;
     }

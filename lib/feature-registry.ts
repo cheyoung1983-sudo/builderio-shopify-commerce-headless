@@ -11,7 +11,17 @@ export class FeatureRegistry {
     'webhook-handler',
     'admin-dashboard',
     'agent-dashboard',
-    'config-dashboard'
+    'config-dashboard',
+    'tts',
+    'stt',
+    'realtime-stt',
+    'agents',
+    'speech-engine',
+    'sound-effects',
+    'music',
+    'voice-changer',
+    'voice-isolator',
+    'setup-api-key'
   ];
 
   /**

@@ -36,7 +36,7 @@ export function getShopifyApiVersion(): string {
 export function getStorefrontAccessToken(): string {
   const serverToken = process.env.SHOPIFY_STOREFRONT_API_TOKEN || process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN
   const publicToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_TOKEN || process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN
-
+  
   const token = isInvalid(serverToken) ? publicToken : serverToken
   return (token || '').trim()
 }
@@ -55,8 +55,8 @@ export function getShopifyClientSecret(): string {
 
 // Safety check for private tokens in public variables
 if (typeof window === 'undefined') {
-  const publicToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_TOKEN || process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN
-  if (isPrivateToken(publicToken)) {
+  const publicStorefrontAccessToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_TOKEN || process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN
+  if (isPrivateToken(publicStorefrontAccessToken)) {
     console.warn(
       '[config/shopify] Security Warning: NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN looks like a private token (shpat_/shpua_). Use a public Storefront API token for browser access to avoid credential leakage.'
     )

@@ -39,15 +39,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(429).json({ ok: false, error: 'Too many requests' })
   }
 
-  if (!isAllowedOrigin(req.headers.origin, corsOptions)) {
-    return res.status(403).json({ ok: false, error: 'Origin not allowed' })
-  }
-
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({
       ok: false,
       error: 'Method not allowed. Use GET or POST.',
     })
+  }
+
+  if (req.headers.origin && !isAllowedOrigin(req.headers.origin, corsOptions)) {
+    return res.status(403).json({ ok: false, error: 'Origin not allowed' })
   }
 
   try {
@@ -65,10 +65,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       rawModel === undefined
         ? 'page'
         : readBoundedString(rawModel, { maxLength: 100, truncate: false })
-    const query =
+    const boundedQuery =
       rawQuery === undefined
         ? ''
         : readBoundedString(rawQuery, { maxLength: 120, truncate: false })
+    const query = typeof boundedQuery === 'string' ? boundedQuery.slice(0, 120) : undefined
 
     if (!model || query === undefined) {
       return res.status(400).json({ ok: false, error: 'Invalid model or query', results: [] })

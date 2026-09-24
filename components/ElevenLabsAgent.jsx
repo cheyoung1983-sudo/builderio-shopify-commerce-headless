@@ -24,7 +24,7 @@ import {
   Settings2,
 } from "lucide-react";
 import VoiceTranscriptDisplay from "./VoiceTranscriptDisplay";
-import Orb from "./ui/Orb";
+import VoicePulseAvatar from "./VoicePulseAvatar";
 import shopifyConfig from "../config/shopify";
 
 const SHOP_DOMAIN = shopifyConfig.domain;
@@ -61,7 +61,7 @@ async function resolveWorkletUrl(path) {
   if (typeof window === "undefined") return path;
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   const targetUrl = `${window.location.origin}${cleanPath}`;
-
+  
   try {
     const res = await fetch(targetUrl, { method: "HEAD" });
     if (res.ok) {
@@ -72,7 +72,7 @@ async function resolveWorkletUrl(path) {
   } catch (err) {
     console.warn(`[ElevenLabsAgent] Verification check for worklet asset at ${cleanPath} failed. Error:`, err);
   }
-
+  
   // Return original path as fallback
   return cleanPath;
 }
@@ -186,11 +186,11 @@ export async function fetchVoiceTokenWithBackoff(agentId, options = {}) {
           `HTTP ${responseStatus} (${responseStatusText})`;
 
         const customError = new Error(String(errorMsg));
-        customError.status = responseStatus;
-        customError.statusText = responseStatusText;
-        customError.responseBody = responseBody || rawText;
-        customError.category = failureCategory;
-        customError.isAuthError = isAuth;
+        (customError).status = responseStatus;
+        (customError).statusText = responseStatusText;
+        (customError).responseBody = responseBody || rawText;
+        (customError).category = failureCategory;
+        (customError).isAuthError = isAuth;
         throw customError;
       }
 
@@ -272,6 +272,9 @@ export default function ElevenLabsAgent() {
   const [isOpen, setIsOpen] = useState(false);
   const conversationRef = useRef(null);
   const [useRelayPolicy, setUseRelayPolicy] = useState(false);
+  const [connectionMode, setConnectionMode] = useState("webrtc"); // "webrtc" | "websocket"
+  const connectionModeRef = useRef("webrtc");
+  const retryAttemptRef = useRef(0);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [isSendingText, setIsSendingText] = useState(false);
@@ -309,8 +312,23 @@ export default function ElevenLabsAgent() {
   }, []);
 
   const startSession = useCallback(async (options = {}) => {
+    if (options.isUserInitiated) {
+      retryAttemptRef.current = 0;
+    }
+    const transportMode = options.connectionMode || connectionModeRef.current || "webrtc";
+    connectionModeRef.current = transportMode;
+    setConnectionMode(transportMode);
+
     const forceRelay = options.forceRelay !== undefined ? options.forceRelay : useRelayPolicy;
     try {
+      if (conversationRef.current) {
+        try {
+          await conversationRef.current.endSession().catch(() => {});
+        } catch {
+          // ignore cleanup errors on prior session
+        }
+        conversationRef.current = null;
+      }
       setStatus("connecting");
       setErrorMessage("");
       setIsMicPermissionDenied(false);
@@ -375,24 +393,24 @@ export default function ElevenLabsAgent() {
         return;
       }
 
-      // Step 4: Acquire conversation token via backend proxy route with retry & fallback
-      console.log("[ElevenLabsAgent:Init] [Step 4/5] Acquiring conversation token from proxy endpoint /api/agent/token...");
+      // Step 4: Acquire conversation token via backend proxy route if in WebRTC mode
       let conversationToken = null;
-      try {
-        conversationToken = await getVoiceToken(AGENT_ID);
-      } catch (tokenErr) {
-        console.warn("[ElevenLabsAgent:Init] Proxy token acquisition failed, attempting direct startSession fallback:", tokenErr?.message);
+      if (transportMode === "webrtc") {
+        console.log("[ElevenLabsAgent:Init] [Step 4/5] Acquiring conversation token from proxy endpoint /api/agent/token...");
+        try {
+          conversationToken = await getVoiceToken(AGENT_ID);
+        } catch (tokenErr) {
+          console.warn("[ElevenLabsAgent:Init] Proxy token acquisition failed, attempting direct startSession fallback:", tokenErr?.message);
+        }
       }
 
       console.log("[ElevenLabsAgent:Init] [Step 4/5] Initiating ElevenLabs Conversation.startSession...", {
         agentId: AGENT_ID,
+        transportMode,
+        forceRelay,
         hasExplicitToken: Boolean(conversationToken),
-        targetEndpoint: "wss://api.elevenlabs.io",
+        targetEndpoint: transportMode === "webrtc" ? "wss://livekit.rtc.elevenlabs.io" : "wss://api.elevenlabs.io",
       });
-
-      const sessionParams = conversationToken
-        ? { conversationToken }
-        : { agentId: AGENT_ID };
 
       const rawWorkletUrl = await resolveWorkletUrl("/rawAudioProcessor.js");
       const concatWorkletUrl = await resolveWorkletUrl("/audioConcatProcessor.js");
@@ -406,20 +424,29 @@ export default function ElevenLabsAgent() {
       console.log("[ElevenLabsAgent:Init] Setting dynamic variables for session:", activeDynamicVars);
 
       const conversation = await Conversation.startSession({
-        ...sessionParams,
         dynamicVariables: activeDynamicVars,
-        webRtc: {
-          iceTransportPolicy: forceRelay ? "relay" : "all",
-          singlePeerConnection: false,
-        },
         workletPaths: {
           rawAudioProcessor: rawWorkletUrl,
           audioConcatProcessor: concatWorkletUrl,
         },
+        ...(transportMode === "websocket"
+          ? {
+              agentId: AGENT_ID,
+              connectionType: "websocket",
+            }
+          : {
+              ...(conversationToken ? { conversationToken } : { agentId: AGENT_ID }),
+              connectionType: "webrtc",
+              webRtc: {
+                iceTransportPolicy: forceRelay ? "relay" : "all",
+                singlePeerConnection: true,
+              },
+            }),
         onConnect: () => {
-          console.log("[ElevenLabsAgent:Init] [Step 5/5 Success] ElevenLabs WebRTC connection established. Status: connected.");
+          console.log(`[ElevenLabsAgent:Init] [Step 5/5 Success] ElevenLabs connection established via ${transportMode}. Status: connected.`);
           setStatus("connected");
           setShowDiagnostics(false);
+          retryAttemptRef.current = 0;
         },
         onDisconnect: () => {
           console.log("[ElevenLabsAgent:Session] ElevenLabs session disconnected.");
@@ -433,21 +460,37 @@ export default function ElevenLabsAgent() {
           console.warn("[ElevenLabsAgent:Session] ElevenLabs runtime session error/warning:", {
             message: err?.message,
             error: err,
+            transportMode,
+            forceRelay,
           });
           const isWebRtcError =
             err?.name === "ConnectionError" ||
             err?.reasonName === "WebSocket" ||
             err?.code === 1 ||
             err?.message?.includes("signal connection") ||
-            err?.message?.includes("signal stream");
+            err?.message?.includes("signal stream") ||
+            err?.message?.includes("WebSocket");
 
-          if (isWebRtcError && !forceRelay) {
-            console.warn("[ElevenLabsAgent:Session] WebRTC stream error during active session, auto-retrying with TURN relay...");
-            setUseRelayPolicy(true);
-            setTimeout(() => {
-              startSessionRef.current?.({ forceRelay: true });
-            }, 500);
-            return;
+          if (isWebRtcError && transportMode === "webrtc") {
+            if (retryAttemptRef.current === 0 && !forceRelay) {
+              retryAttemptRef.current = 1;
+              console.warn("[ElevenLabsAgent:Session] WebRTC stream error during active session, auto-retrying with TURN relay...");
+              setUseRelayPolicy(true);
+              setTimeout(() => {
+                startSessionRef.current?.({ forceRelay: true, connectionMode: "webrtc" });
+              }, 500);
+              return;
+            } else if (retryAttemptRef.current <= 1) {
+              retryAttemptRef.current = 2;
+              console.warn("[ElevenLabsAgent:Session] WebRTC stream error persisted. Auto-recovering via direct WebSocket audio stream...");
+              connectionModeRef.current = "websocket";
+              setConnectionMode("websocket");
+              setErrorMessage("WebRTC signal stream dropped. Auto-reconnecting via direct WebSocket stream...");
+              setTimeout(() => {
+                startSessionRef.current?.({ connectionMode: "websocket" });
+              }, 500);
+              return;
+            }
           }
 
           const errorMsg =
@@ -473,16 +516,16 @@ export default function ElevenLabsAgent() {
         },
         onMessage: (payload) => {
           console.log("[ElevenLabsAgent:Session] Transcript message event received:", payload);
-          if (payload && (payload.message || payload.text)) {
-            const text = payload.message || payload.text;
+          if (payload && ((payload).message || (payload).text)) {
+            const text = (payload).message || (payload).text;
             const role =
-              payload.role === "agent" || payload.source === "ai"
+              payload.role === "agent" || (payload).source === "ai"
                 ? "agent"
                 : "user";
             setTranscript((prev) => [
               ...prev,
               {
-                id: payload.event_id || `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                id: (payload).event_id || `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
                 sender: role,
                 text,
                 timestamp: new Date(),
@@ -492,11 +535,11 @@ export default function ElevenLabsAgent() {
         },
         onAgentResponseCorrection: (correctionEvent) => {
           console.log("[ElevenLabsAgent:Session] Agent response correction:", correctionEvent);
-          if (correctionEvent?.original_event_id && correctionEvent?.corrected_agent_response) {
+          if ((correctionEvent)?.original_event_id && (correctionEvent)?.corrected_agent_response) {
             setTranscript((prev) =>
               prev.map((msg) =>
-                msg.id === correctionEvent.original_event_id
-                  ? { ...msg, text: correctionEvent.corrected_agent_response, isCorrected: true }
+                msg.id === (correctionEvent).original_event_id
+                  ? { ...msg, text: (correctionEvent).corrected_agent_response, isCorrected: true }
                   : msg
               )
             );
@@ -538,16 +581,10 @@ export default function ElevenLabsAgent() {
               ]);
 
               if (products.length === 0) {
-                return { found: false, message: "No products found." };
+                return JSON.stringify({ found: false, message: "No products found." });
               }
 
-              if (router && typeof router.push === "function") {
-                router.push(`/search?q=${encodeURIComponent(query)}`);
-              } else {
-                Router.push(`/search?q=${encodeURIComponent(query)}`);
-              }
-
-              return {
+              const result = {
                 found: true,
                 count: products.length,
                 products: products.map((p) => ({
@@ -559,27 +596,28 @@ export default function ElevenLabsAgent() {
                   available: p.variants?.edges?.[0]?.node?.availableForSale,
                 })),
               };
+              return JSON.stringify(result);
             } catch (error) {
               console.error("[ElevenLabsAgent] search_catalog error:", error);
-              return { found: false, error: error?.message };
+              return JSON.stringify({ found: false, error: (error).message });
             }
           },
 
           navigate_to_page: ({ path }) => {
-            if (!path) return { success: false };
+            if (!path) return JSON.stringify({ success: false });
             if (router && typeof router.push === "function") {
               router.push(path);
             } else {
               Router.push(path);
             }
-            return { success: true, path };
+            return JSON.stringify({ success: true, path });
           },
 
           open_cart: () => {
             if (typeof document !== "undefined") {
               document.dispatchEvent(new CustomEvent("open-cart"));
             }
-            return { success: true };
+            return JSON.stringify({ success: true });
           },
 
           add_to_cart: async ({ variantId, quantity = 1 }) => {
@@ -600,7 +638,7 @@ export default function ElevenLabsAgent() {
                 if (typeof document !== "undefined") {
                   document.dispatchEvent(new CustomEvent("open-cart"));
                 }
-                return { success: false, message: "Could not initialize cart" };
+                return JSON.stringify({ success: false, message: "Could not initialize cart" });
               }
 
               const addLine = `
@@ -630,13 +668,13 @@ export default function ElevenLabsAgent() {
                     timestamp: new Date(),
                   },
                 ]);
-                return { success: true, totalQuantity: cart.totalQuantity };
+                return JSON.stringify({ success: true, totalQuantity: cart.totalQuantity });
               }
 
-              return { success: false };
+              return JSON.stringify({ success: false });
             } catch (error) {
               console.error("[ElevenLabsAgent] add_to_cart error:", error);
-              return { success: false, error: error?.message };
+              return JSON.stringify({ success: false, error: (error).message });
             }
           },
         },
@@ -682,17 +720,28 @@ export default function ElevenLabsAgent() {
         err?.reasonName === "WebSocket" ||
         err?.code === 1
       ) {
-        if (!forceRelay) {
+        if (transportMode === "webrtc" && !forceRelay && retryAttemptRef.current === 0) {
+          retryAttemptRef.current = 1;
           console.warn("[ElevenLabsAgent:Init] WebRTC direct signal stream failed, auto-retrying with TURN relay...");
           setErrorMessage("Direct WebRTC signal stream dropped. Retrying with TURN relay...");
           setUseRelayPolicy(true);
           setTimeout(() => {
-            startSessionRef.current?.({ forceRelay: true });
+            startSessionRef.current?.({ forceRelay: true, connectionMode: "webrtc" });
+          }, 450);
+          return;
+        } else if (transportMode === "webrtc" && retryAttemptRef.current <= 1) {
+          retryAttemptRef.current = 2;
+          console.warn("[ElevenLabsAgent:Init] WebRTC transport blocked or failed. Auto-recovering via direct WebSocket stream...");
+          setErrorMessage("WebRTC signal dropped. Reconnecting via direct WebSocket audio stream...");
+          connectionModeRef.current = "websocket";
+          setConnectionMode("websocket");
+          setTimeout(() => {
+            startSessionRef.current?.({ connectionMode: "websocket" });
           }, 450);
           return;
         }
         setErrorMessage(
-          "Could not establish WebRTC signal connection with ElevenLabs. Network UDP or WebSocket signaling may be blocked by a firewall, VPN, or ad-blocker."
+          "Could not establish voice connection with ElevenLabs. Network UDP or WebSocket signaling may be blocked by a firewall, VPN, or ad-blocker."
         );
         setShowDiagnostics(true);
       } else if (err?.status === 401 || err?.status === 403 || err?.isAuthError) {
@@ -936,6 +985,344 @@ export default function ElevenLabsAgent() {
 
   const currentConfig = STATUS_CONFIG[agentStatus] || STATUS_CONFIG.offline;
 
+  // Component helper to render the appropriate view based on active state and connection status
+  const renderBodyContent = () => {
+    if (activeView === "chat") {
+      return (
+        <div id="elevenlabs-chat-view-container" className="space-y-2.5">
+          <div className="p-2 rounded-xl bg-emerald-50/80 border border-emerald-200/70 text-xs text-emerald-800 flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="font-semibold">Text Assistant Mode</span>
+            </div>
+            <span className="text-[10px] text-emerald-800 uppercase font-bold tracking-wider">
+              Spokane Catalog Live
+            </span>
+          </div>
+
+          <VoiceTranscriptDisplay
+            transcript={transcript}
+            isSpeaking={false}
+            isConnected={false}
+            status={status}
+            onClearTranscript={() => setTranscript([])}
+            maxHeight="max-h-56 sm:max-h-64"
+          />
+
+          <form onSubmit={handleSendTextMessage} className="flex items-center gap-2 pt-1">
+            <input
+              type="text"
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              placeholder="Ask about iPhone repairs, screens, parts..."
+              disabled={isSendingText}
+              className="flex-1 px-3 py-2 text-xs rounded-xl border border-neutral-300 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 bg-white shadow-inner"
+            />
+            <button
+              type="submit"
+              disabled={isSendingText || !textInput.trim()}
+              className="flex items-center justify-center px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              title="Send message"
+            >
+              {isSendingText ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+            </button>
+          </form>
+        </div>
+      );
+    }
+
+    if (activeView === "transcript") {
+      return (
+        <div id="elevenlabs-transcript-view-container" className="space-y-2.5">
+          {/* Compact active status banner if currently in call */}
+          {isConnected && (
+            <div className="flex items-center justify-between p-2 rounded-xl bg-neutral-100 border border-neutral-200/80 text-xs">
+              <div className="flex items-center gap-2">
+                <VoicePulseAvatar
+                  volume={outputVolume}
+                  isSpeaking={isSpeaking}
+                  isListening={agentStatus === "listening"}
+                  isConnected={isConnected}
+                  status={agentStatus}
+                  size="sm"
+                  showVolumeMeter={false}
+                />
+                <span className="font-semibold text-neutral-800">
+                  {isSpeaking
+                    ? `Agent Speaking (${Math.round(outputVolume * 100)}%)`
+                    : "Agent Listening"}
+                </span>
+              </div>
+              <button
+                id="elevenlabs-transcript-end-call-btn"
+                type="button"
+                onClick={endSession}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold transition-colors cursor-pointer"
+              >
+                <PhoneOff className="w-3 h-3" />
+                <span>End Call</span>
+              </button>
+            </div>
+          )}
+
+          {/* Main Scrollable Transcript Component */}
+          <VoiceTranscriptDisplay
+            transcript={transcript}
+            isSpeaking={isSpeaking}
+            isConnected={isConnected}
+            status={status}
+            onClearTranscript={() => setTranscript([])}
+            maxHeight="max-h-72 sm:max-h-80"
+          />
+
+          {!isConnected && (
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                id="elevenlabs-transcript-reconnect-btn"
+                type="button"
+                onClick={() => {
+                  setActiveView("call");
+                  startSession({ isUserInitiated: true });
+                }}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-semibold transition-colors cursor-pointer"
+              >
+                <Mic className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Start New Call</span>
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (isConnected) {
+      return (
+        <div id="elevenlabs-call-active-container" className="flex flex-col space-y-3">
+          {/* Visual Status Visualizer with Dynamic Audio-Volume Reactive Avatar */}
+          <div
+            id="elevenlabs-active-status-visualizer"
+            className={`w-full flex flex-col items-center justify-center py-4 px-3 rounded-xl border transition-all duration-200 ${
+              agentStatus === "speaking"
+                ? "bg-sky-50/70 border-sky-200/80 shadow-xs"
+                : "bg-emerald-50/70 border-emerald-200/80 shadow-xs"
+            }`}
+          >
+            <VoicePulseAvatar
+              volume={outputVolume}
+              isSpeaking={isSpeaking}
+              isListening={agentStatus === "listening"}
+              isConnected={isConnected}
+              status={agentStatus}
+              size="lg"
+              showVolumeMeter={true}
+              className="my-1"
+            />
+
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider mt-2">
+              {agentStatus === "speaking" ? (
+                <>
+                  <Volume2 className="w-3.5 h-3.5 text-sky-600 animate-pulse" />
+                  <span className="text-sky-800">
+                    Status: Speaking {outputVolume > 0.02 ? `(${Math.round(outputVolume * 100)}%)` : ""}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                  <span className="text-emerald-800">Status: Listening</span>
+                </>
+              )}
+            </div>
+            <p
+              className={`text-[11px] text-center mt-0.5 ${
+                agentStatus === "speaking"
+                  ? "text-sky-700/90"
+                  : "text-emerald-700/90"
+              }`}
+            >
+              {agentStatus === "speaking"
+                ? "AI agent speaking — avatar pulse scales with voice audio volume."
+                : "Microphone active. Ask about Spokane repairs, parts, or cart."}
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <VoiceTranscriptDisplay
+              transcript={transcript}
+              isSpeaking={isSpeaking}
+              isConnected={isConnected}
+              status={status}
+              onClearTranscript={() => setTranscript([])}
+              maxHeight="max-h-40 sm:max-h-48"
+            />
+            {transcript.length > 0 && (
+              <button
+                id="elevenlabs-expand-transcript-btn"
+                type="button"
+                onClick={() => setActiveView("transcript")}
+                className="w-full text-center text-[11px] font-medium text-neutral-500 hover:text-neutral-900 py-1 transition-colors cursor-pointer"
+              >
+                Open full transcript view ({transcript.length} messages) →
+              </button>
+            )}
+          </div>
+
+          <button
+            id="elevenlabs-end-call-btn"
+            onClick={endSession}
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+          >
+            <PhoneOff className="w-3.5 h-3.5" />
+            End Voice Conversation
+          </button>
+        </div>
+      );
+    }
+
+    // Default View: Idle / Disconnected State
+    return (
+      <div id="elevenlabs-call-idle-container" className="space-y-3">
+        <div
+          id="elevenlabs-idle-status-indicator"
+          className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all duration-200 ${currentConfig.bannerBg}`}
+        >
+          <VoicePulseAvatar
+            volume={0}
+            isSpeaking={false}
+            isListening={false}
+            isConnected={false}
+            status={agentStatus}
+            size="md"
+            showVolumeMeter={false}
+            className="mb-1.5"
+          />
+          <div className="flex items-center gap-1.5 text-xs font-bold">
+            <span className="relative flex h-2 w-2">
+              {currentConfig.dotPing && (
+                <span
+                  className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${currentConfig.dotClass}`}
+                />
+              )}
+              <span
+                className={`relative inline-flex rounded-full h-2 w-2 ${currentConfig.dotClass}`}
+              />
+            </span>
+            <span>Status: {currentConfig.label}</span>
+          </div>
+          <p className="text-[11px] opacity-80 mt-0.5">
+            {currentConfig.subtext}
+          </p>
+        </div>
+
+        <p className="text-xs text-neutral-600 leading-relaxed">
+          Talk directly with our live AI Specialist to find replacement parts, get Spokane repair pricing, or manage your cart hands-free.
+        </p>
+
+        {transcript.length > 0 && (
+          <div
+            id="elevenlabs-saved-transcript-alert"
+            className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-100 border border-neutral-200 text-xs"
+          >
+            <div className="flex items-center gap-1.5 text-neutral-700 font-medium">
+              <MessageSquare className="w-3.5 h-3.5 text-neutral-500" />
+              <span>{transcript.length} transcript messages saved</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveView("transcript")}
+              className="text-[11px] font-semibold text-neutral-900 hover:underline cursor-pointer"
+            >
+              View →
+            </button>
+          </div>
+        )}
+
+        <div className="border border-neutral-200/80 rounded-xl p-2.5 bg-neutral-50/80 space-y-2">
+          <button
+            type="button"
+            onClick={() => setShowDynamicVars((prev) => !prev)}
+            className="w-full flex items-center justify-between text-[11px] font-semibold text-neutral-700 hover:text-neutral-900 cursor-pointer"
+          >
+            <span className="flex items-center gap-1.5">
+              <Settings2 className="w-3.5 h-3.5 text-neutral-500" />
+              Dynamic Agent Variables ({repairName ? 2 : 0})
+            </span>
+            <span className="text-[10px] text-neutral-500 font-mono">
+              {showDynamicVars ? "Hide ▲" : "Configure ▼"}
+            </span>
+          </button>
+
+          {showDynamicVars && (
+            <div className="space-y-2 pt-1.5 border-t border-neutral-200/60 text-xs">
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider mb-1">
+                  repair_name
+                </label>
+                <input
+                  type="text"
+                  value={repairName}
+                  onChange={(e) => setRepairName(e.target.value)}
+                  placeholder="e.g. Screen Replacement"
+                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider mb-1">
+                  service_name
+                </label>
+                <input
+                  type="text"
+                  value={serviceName}
+                  onChange={(e) => setServiceName(e.target.value)}
+                  placeholder="e.g. DisplayCellPros Tech Repair"
+                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                />
+              </div>
+              <p className="text-[10px] text-neutral-500 leading-tight">
+                These values populate your agent&apos;s dynamic template placeholders (<code className="font-mono text-[9px] bg-neutral-200 px-1 py-0.5 rounded">&#123;&#123;repair_name&#125;&#125;</code> &amp; <code className="font-mono text-[9px] bg-neutral-200 px-1 py-0.5 rounded">&#123;&#123;service_name&#125;&#125;</code>).
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <button
+            id="elevenlabs-start-call-btn"
+            onClick={() => startSession({ isUserInitiated: true })}
+            disabled={isConnecting}
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-semibold shadow-xs disabled:opacity-50 transition-colors cursor-pointer"
+          >
+            {isConnecting ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                Connecting to Voice Agent...
+              </>
+            ) : (
+              <>
+                <Mic className="w-3.5 h-3.5 text-emerald-400" />
+                Start Voice Call
+              </>
+            )}
+          </button>
+
+          <button
+            id="elevenlabs-switch-text-btn"
+            type="button"
+            onClick={() => setActiveView("chat")}
+            className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-semibold transition-colors cursor-pointer"
+          >
+            <Send className="w-3.5 h-3.5 text-neutral-600" />
+            <span>Prefer text? Chat with Assistant</span>
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div
       id="elevenlabs-voice-agent-container"
@@ -955,7 +1342,6 @@ export default function ElevenLabsAgent() {
                   <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-900">
                     Voice Support Agent
                   </h3>
-                  {/* Visual Status Indicator Pill */}
                   <span
                     id="elevenlabs-header-status-indicator"
                     role="status"
@@ -966,11 +1352,11 @@ export default function ElevenLabsAgent() {
                       {currentConfig.dotPing && (
                         <span
                           className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${currentConfig.dotClass}`}
-                         />
+                        />
                       )}
                       <span
                         className={`relative inline-flex rounded-full h-2 w-2 ${currentConfig.dotClass}`}
-                       />
+                      />
                     </span>
                     {currentConfig.label}
                   </span>
@@ -989,7 +1375,6 @@ export default function ElevenLabsAgent() {
             </button>
           </div>
 
-          {/* Navigation Tabs */}
           <div
             id="elevenlabs-card-tabs"
             className="flex items-center gap-1 p-1 mt-2.5 bg-neutral-100/90 rounded-xl text-xs border border-neutral-200/70"
@@ -1004,7 +1389,7 @@ export default function ElevenLabsAgent() {
                   : "text-neutral-500 hover:text-neutral-900"
               }`}
             >
-              <Radio className="w-3.5 h-3.5"  />
+              <Radio className="w-3.5 h-3.5" />
               <span>Voice Call</span>
             </button>
             <button
@@ -1017,7 +1402,7 @@ export default function ElevenLabsAgent() {
                   : "text-neutral-500 hover:text-neutral-900"
               }`}
             >
-              <Send className="w-3.5 h-3.5"  />
+              <Send className="w-3.5 h-3.5" />
               <span>Text Chat</span>
             </button>
             <button
@@ -1030,7 +1415,7 @@ export default function ElevenLabsAgent() {
                   : "text-neutral-500 hover:text-neutral-900"
               }`}
             >
-              <MessageSquare className="w-3.5 h-3.5"  />
+              <MessageSquare className="w-3.5 h-3.5" />
               <span>Transcript</span>
               {transcript.length > 0 && (
                 <span
@@ -1043,12 +1428,11 @@ export default function ElevenLabsAgent() {
             </button>
           </div>
 
-          {/* Body Content */}
           <div className="py-2.5">
             {errorMessage && (
               <div className="flex flex-col gap-2.5 p-3 mb-3 bg-red-50/95 border border-red-200 rounded-xl text-xs text-red-800 shadow-xs">
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600"  />
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
                   <div className="flex-1">
                     <span className="font-semibold block text-red-900">
                       {errorMessage.includes("WebRTC") || errorMessage.includes("signal")
@@ -1061,436 +1445,69 @@ export default function ElevenLabsAgent() {
                   </div>
                 </div>
 
-                {/* Targeted Fixes & Diagnostics Accordion / Section */}
                 {(showDiagnostics || errorMessage.includes("WebRTC") || errorMessage.includes("signal") || errorMessage.includes("WebSocket")) && (
                   <div className="mt-1 pt-2 border-t border-red-200/80 space-y-2 text-[11px]">
                     <div className="font-semibold text-red-900 flex items-center gap-1.5">
-                      <ShieldAlert className="w-3.5 h-3.5 text-red-600"  />
+                      <ShieldAlert className="w-3.5 h-3.5 text-red-600" />
                       <span>Targeted Connection Fixes:</span>
                     </div>
-
                     <ul className="space-y-1.5 pl-1 text-neutral-700">
                       <li className="flex items-start gap-1.5">
                         <span className="font-bold text-red-600 shrink-0">•</span>
                         <span>
-                          <strong>Network & Firewall:</strong> WebRTC requires UDP & WebSocket traffic. Disable active VPNs, NextDNS, AdGuard, or Brave Shields, or retry on unrestricted Wi-Fi.
+                          <strong>Network & Firewall:</strong> WebRTC requires UDP & WebSocket traffic. Disable active VPNs, retry on unrestricted Wi-Fi.
                         </span>
                       </li>
                       <li className="flex items-start gap-1.5">
                         <span className="font-bold text-red-600 shrink-0">•</span>
                         <span>
-                          <strong>Microphone Permissions:</strong> Ensure your browser has granted microphone access.
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-1.5">
-                        <span className="font-bold text-red-600 shrink-0">•</span>
-                        <span>
-                          <strong>Browser Compatibility:</strong> Standard Chrome or Safari is recommended over embedded in-app webviews.
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-1.5">
-                        <span className="font-bold text-red-600 shrink-0">•</span>
-                        <span>
-                          <strong>Environment:</strong> {isSecureEnv ? "✓ Secure Context (HTTPS/localhost)" : "⚠ Insecure HTTP - WebRTC requires HTTPS"}
+                          <strong>Permissions:</strong> Ensure browser microphone access is granted.
                         </span>
                       </li>
                     </ul>
 
-                    {/* Action Buttons for User & Developer */}
                     <div className="flex flex-wrap items-center gap-2 pt-1.5">
                       <button
                         type="button"
                         onClick={() => {
-                          setUseRelayPolicy(true);
-                          startSession({ forceRelay: true });
+                          connectionModeRef.current = "websocket";
+                          setConnectionMode("websocket");
+                          startSession({ connectionMode: "websocket", isUserInitiated: true });
                         }}
-                        className="flex-1 min-w-[130px] flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-700 hover:bg-red-800 text-white font-semibold text-[11px] transition-colors cursor-pointer"
+                        className="flex-1 min-w-[130px] flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[11px] transition-colors cursor-pointer"
                       >
-                        <RefreshCw className="w-3 h-3"  />
-                        <span>Retry with TURN Relay</span>
+                        <RefreshCw className="w-3 h-3" />
+                        <span>Use WebSocket</span>
                       </button>
-
                       <button
                         type="button"
                         onClick={() => {
-                          setUseRelayPolicy(false);
-                          startSession({ forceRelay: false });
+                          setUseRelayPolicy(true);
+                          connectionModeRef.current = "webrtc";
+                          setConnectionMode("webrtc");
+                          startSession({ forceRelay: true, connectionMode: "webrtc", isUserInitiated: true });
                         }}
-                        className="flex-1 min-w-[110px] flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-900 text-white font-semibold text-[11px] transition-colors cursor-pointer"
+                        className="flex-1 min-w-[130px] flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-700 hover:bg-red-800 text-white font-semibold text-[11px] transition-colors cursor-pointer"
                       >
-                        <RefreshCw className="w-3 h-3"  />
-                        <span>Retry Standard</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setActiveView("chat")}
-                        className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-[11px] transition-colors cursor-pointer"
-                      >
-                        <Send className="w-3 h-3"  />
-                        <span>Chat with Text Assistant Instead</span>
+                        <RefreshCw className="w-3 h-3" />
+                        <span>Retry Relay</span>
                       </button>
                     </div>
                   </div>
                 )}
-
-                {isMicPermissionDenied && isInIframe && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (typeof window !== "undefined") {
-                        window.open(window.location.href, "_blank");
-                      }
-                    }}
-                    className="mt-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold transition-colors cursor-pointer"
-                  >
-                    Open in New Tab for Mic Access
-                  </button>
-                )}
               </div>
             )}
 
-            {/* View 1: Text Chat Assistant View */}
-            {activeView === "chat" ? (
-              <div id="elevenlabs-chat-view-container" className="space-y-2.5">
-                <div className="p-2 rounded-xl bg-emerald-50/80 border border-emerald-200/70 text-xs text-emerald-800 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0"  />
-                    <span className="font-semibold">Text Assistant Mode</span>
-                  </div>
-                  <span className="text-[10px] text-emerald-800 uppercase font-bold tracking-wider">
-                    Spokane Catalog Live
-                  </span>
-                </div>
-
-                <VoiceTranscriptDisplay
-                  transcript={transcript}
-                  isSpeaking={false}
-                  isConnected={false}
-                  status={status}
-                  onClearTranscript={() => setTranscript([])}
-                  maxHeight="max-h-56 sm:max-h-64"
-                 />
-
-                <form onSubmit={handleSendTextMessage} className="flex items-center gap-2 pt-1">
-                  <input
-                    type="text"
-                    value={textInput}
-                    onChange={(e) => setTextInput(e.target.value)}
-                    placeholder="Ask about iPhone repairs, screens, parts..."
-                    disabled={isSendingText}
-                    className="flex-1 px-3 py-2 text-xs rounded-xl border border-neutral-300 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 bg-white shadow-inner"
-                   />
-                  <button
-                    type="submit"
-                    disabled={isSendingText || !textInput.trim()}
-                    className="flex items-center justify-center px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-                    title="Send message"
-                  >
-                    {isSendingText ? (
-                      <Loader2 className="w-4 h-4 animate-spin"  />
-                    ) : (
-                      <Send className="w-4 h-4"  />
-                    )}
-                  </button>
-                </form>
-              </div>
-            ) : activeView === "transcript" ? (
-              /* View 2: Transcript Dedicated View */
-              <div id="elevenlabs-transcript-view-container" className="space-y-2.5">
-                {/* Compact active status banner if currently in call */}
-                {isConnected && (
-                  <div className="flex items-center justify-between p-2 rounded-xl bg-neutral-100 border border-neutral-200/80 text-xs">
-                    <div className="flex items-center gap-2">
-                      <Orb
-                        volume={outputVolume}
-                        isSpeaking={isSpeaking}
-                        isListening={agentStatus === "listening"}
-                        isConnected={isConnected}
-                        status={agentStatus}
-                        size="sm"
-                        showVolumeMeter={false}
-                       />
-                      <span className="font-semibold text-neutral-800">
-                        {isSpeaking
-                          ? `Agent Speaking (${Math.round(outputVolume * 100)}%)`
-                          : "Agent Listening"}
-                      </span>
-                    </div>
-                    <button
-                      id="elevenlabs-transcript-end-call-btn"
-                      type="button"
-                      onClick={endSession}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold transition-colors cursor-pointer"
-                    >
-                      <PhoneOff className="w-3 h-3"  />
-                      <span>End Call</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* Main Scrollable Transcript Component */}
-                <VoiceTranscriptDisplay
-                  transcript={transcript}
-                  isSpeaking={isSpeaking}
-                  isConnected={isConnected}
-                  status={status}
-                  onClearTranscript={() => setTranscript([])}
-                  maxHeight="max-h-72 sm:max-h-80"
-                 />
-
-                {!isConnected && (
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      id="elevenlabs-transcript-reconnect-btn"
-                      type="button"
-                      onClick={() => {
-                        setActiveView("call");
-                        startSession();
-                      }}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-semibold transition-colors cursor-pointer"
-                    >
-                      <Mic className="w-3.5 h-3.5 text-emerald-400"  />
-                      <span>Start New Call</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : isConnected ? (
-              /* View 3: Active Call with Live Audio Visualizer + Real-time Scrollable Transcript */
-              <div id="elevenlabs-call-active-container" className="flex flex-col space-y-3">
-                {/* Visual Status Visualizer with Dynamic Audio-Volume Reactive Avatar */}
-                <div
-                  id="elevenlabs-active-status-visualizer"
-                  className={`w-full flex flex-col items-center justify-center py-4 px-3 rounded-xl border transition-all duration-200 ${
-                    agentStatus === "speaking"
-                      ? "bg-sky-50/70 border-sky-200/80 shadow-xs"
-                      : "bg-emerald-50/70 border-emerald-200/80 shadow-xs"
-                  }`}
-                >
-                  {/* Dynamic Voice Pulse Avatar that changes size based on audio output volume */}
-                  <Orb
-                    volume={outputVolume}
-                    isSpeaking={isSpeaking}
-                    isListening={agentStatus === "listening"}
-                    isConnected={isConnected}
-                    status={agentStatus}
-                    size="lg"
-                    showVolumeMeter={true}
-                    className="my-1"
-                   />
-
-                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider mt-2">
-                    {agentStatus === "speaking" ? (
-                      <>
-                        <Volume2 className="w-3.5 h-3.5 text-sky-600 animate-pulse"  />
-                        <span className="text-sky-800">
-                          Status: Speaking {outputVolume > 0.02 ? `(${Math.round(outputVolume * 100)}%)` : ""}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse"  />
-                        <span className="text-emerald-800">Status: Listening</span>
-                      </>
-                    )}
-                  </div>
-                  <p
-                    className={`text-[11px] text-center mt-0.5 ${
-                      agentStatus === "speaking"
-                        ? "text-sky-700/90"
-                        : "text-emerald-700/90"
-                    }`}
-                  >
-                    {agentStatus === "speaking"
-                      ? "AI agent speaking — avatar pulse scales with voice audio volume."
-                      : "Microphone active. Ask about Spokane repairs, parts, or cart."}
-                  </p>
-                </div>
-
-                {/* Live Transcript Display - Scrollable in Call view */}
-                <div className="space-y-1.5">
-                  <VoiceTranscriptDisplay
-                    transcript={transcript}
-                    isSpeaking={isSpeaking}
-                    isConnected={isConnected}
-                    status={status}
-                    onClearTranscript={() => setTranscript([])}
-                    maxHeight="max-h-40 sm:max-h-48"
-                   />
-                  {transcript.length > 0 && (
-                    <button
-                      id="elevenlabs-expand-transcript-btn"
-                      type="button"
-                      onClick={() => setActiveView("transcript")}
-                      className="w-full text-center text-[11px] font-medium text-neutral-500 hover:text-neutral-900 py-1 transition-colors cursor-pointer"
-                    >
-                      Open full transcript view ({transcript.length} messages) →
-                    </button>
-                  )}
-                </div>
-
-                <button
-                  id="elevenlabs-end-call-btn"
-                  onClick={endSession}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-                >
-                  <PhoneOff className="w-3.5 h-3.5"  />
-                  End Voice Conversation
-                </button>
-              </div>
-            ) : (
-              /* View 4: Idle / Disconnected State */
-              <div id="elevenlabs-call-idle-container" className="space-y-3">
-                {/* Visual Status Indicator Banner when Offline / Connecting */}
-                <div
-                  id="elevenlabs-idle-status-indicator"
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all duration-200 ${currentConfig.bannerBg}`}
-                >
-                  <Orb
-                    volume={0}
-                    isSpeaking={false}
-                    isListening={false}
-                    isConnected={false}
-                    status={agentStatus}
-                    size="md"
-                    showVolumeMeter={false}
-                    className="mb-1.5"
-                   />
-                  <div className="flex items-center gap-1.5 text-xs font-bold">
-                    <span className="relative flex h-2 w-2">
-                      {currentConfig.dotPing && (
-                        <span
-                          className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${currentConfig.dotClass}`}
-                         />
-                      )}
-                      <span
-                        className={`relative inline-flex rounded-full h-2 w-2 ${currentConfig.dotClass}`}
-                       />
-                    </span>
-                    <span>Status: {currentConfig.label}</span>
-                  </div>
-                  <p className="text-[11px] opacity-80 mt-0.5">
-                    {currentConfig.subtext}
-                  </p>
-                </div>
-
-                <p className="text-xs text-neutral-600 leading-relaxed">
-                  Talk directly with our live AI Specialist to find replacement parts, get Spokane repair pricing, or manage your cart hands-free.
-                </p>
-
-                {/* History Notification if transcript exists */}
-                {transcript.length > 0 && (
-                  <div
-                    id="elevenlabs-saved-transcript-alert"
-                    className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-100 border border-neutral-200 text-xs"
-                  >
-                    <div className="flex items-center gap-1.5 text-neutral-700 font-medium">
-                      <MessageSquare className="w-3.5 h-3.5 text-neutral-500"  />
-                      <span>{transcript.length} transcript messages saved</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setActiveView("transcript")}
-                      className="text-[11px] font-semibold text-neutral-900 hover:underline cursor-pointer"
-                    >
-                      View →
-                    </button>
-                  </div>
-                )}
-
-                {/* Dynamic Variables Configuration for Testing */}
-                <div className="border border-neutral-200/80 rounded-xl p-2.5 bg-neutral-50/80 space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowDynamicVars((prev) => !prev)}
-                    className="w-full flex items-center justify-between text-[11px] font-semibold text-neutral-700 hover:text-neutral-900 cursor-pointer"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <Settings2 className="w-3.5 h-3.5 text-neutral-500"  />
-                      Dynamic Agent Variables ({repairName ? 2 : 0})
-                    </span>
-                    <span className="text-[10px] text-neutral-500 font-mono">
-                      {showDynamicVars ? "Hide ▲" : "Configure ▼"}
-                    </span>
-                  </button>
-
-                  {showDynamicVars && (
-                    <div className="space-y-2 pt-1.5 border-t border-neutral-200/60 text-xs">
-                      <div>
-                        <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider mb-1">
-                          repair_name
-                        </label>
-                        <input
-                          type="text"
-                          value={repairName}
-                          onChange={(e) => setRepairName(e.target.value)}
-                          placeholder="e.g. Screen Replacement"
-                          className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
-                         />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider mb-1">
-                          service_name
-                        </label>
-                        <input
-                          type="text"
-                          value={serviceName}
-                          onChange={(e) => setServiceName(e.target.value)}
-                          placeholder="e.g. DisplayCellPros Tech Repair"
-                          className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
-                         />
-                      </div>
-                      <p className="text-[10px] text-neutral-500 leading-tight">
-                        These values populate your agent&apos;s dynamic template placeholders (<code className="font-mono text-[9px] bg-neutral-200 px-1 py-0.5 rounded">&#123;&#123;repair_name&#125;&#125;</code> &amp; <code className="font-mono text-[9px] bg-neutral-200 px-1 py-0.5 rounded">&#123;&#123;service_name&#125;&#125;</code>).
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <button
-                    id="elevenlabs-start-call-btn"
-                    onClick={() => startSession()}
-                    disabled={isConnecting}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-semibold shadow-xs disabled:opacity-50 transition-colors cursor-pointer"
-                  >
-                    {isConnecting ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 text-white animate-spin"  />
-                        Connecting to Voice Agent...
-                      </>
-                    ) : (
-                      <>
-                        <Mic className="w-3.5 h-3.5 text-emerald-400"  />
-                        Start Voice Call
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    id="elevenlabs-switch-text-btn"
-                    type="button"
-                    onClick={() => setActiveView("chat")}
-                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-semibold transition-colors cursor-pointer"
-                  >
-                    <Send className="w-3.5 h-3.5 text-neutral-600"  />
-                    <span>Prefer text? Chat with Assistant</span>
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* View Content Area */}
+            {renderBodyContent()}
           </div>
         </div>
       )}
 
-      {/* Floating Toggle Button with Real-Time Visual Status Indicator */}
+      {/* Floating Toggle Button */}
       <button
         id="elevenlabs-agent-toggle-btn"
-        onClick={() => {
-          setIsOpen((prev) => !prev);
-        }}
-        aria-label={`Voice Agent - Status: ${currentConfig.label}`}
+        onClick={() => setIsOpen((prev) => !prev)}
         className={`pointer-events-auto group relative flex items-center gap-2.5 px-3.5 py-2.5 rounded-full shadow-xl backdrop-blur-sm transition-all duration-200 cursor-pointer ${currentConfig.toggleBg}`}
       >
         <span className="relative flex items-center justify-center">
@@ -1499,69 +1516,15 @@ export default function ElevenLabsAgent() {
               className="relative flex items-center justify-center transition-transform duration-75"
               style={{ transform: `scale(${1 + outputVolume * 0.35})` }}
             >
-              <span
-                className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-60"
-                style={{ transform: `scale(${1 + outputVolume * 0.7})` }}
-               />
-              <Volume2 className="relative w-4 h-4 text-white"  />
+              <Volume2 className="relative w-4 h-4 text-white" />
             </span>
-          ) : agentStatus === "listening" ? (
-            <span className="relative flex items-center justify-center">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white/40"  />
-              <Mic className="relative w-4 h-4 text-white"  />
-            </span>
-          ) : agentStatus === "connecting" ? (
-            <Loader2 className="w-4 h-4 text-white animate-spin"  />
           ) : (
-            <Mic className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform"  />
+            <Mic className={`w-4 h-4 ${agentStatus === "listening" ? "text-white" : "text-emerald-400"}`} />
           )}
         </span>
-
-        <span className="text-xs font-semibold tracking-wide">
-          Voice Agent
-        </span>
-
-        {transcript.length > 0 && !isOpen && (
-          <span
-            id="elevenlabs-toggle-transcript-count"
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-bold text-white border border-white/30"
-            title={`${transcript.length} transcript messages`}
-          >
-            <MessageSquare className="w-2.5 h-2.5"  />
-            <span>{transcript.length}</span>
-          </span>
-        )}
-
-        {/* Visual Status Indicator Pill on Toggle Button */}
-        <span
-          id="elevenlabs-toggle-status-indicator"
-          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${currentConfig.toggleBadgeClass}`}
-        >
-          {isSpeaking ? (
-            <span
-              className="inline-block rounded-full bg-white transition-transform duration-75"
-              style={{
-                width: "6px",
-                height: "6px",
-                transform: `scale(${1 + outputVolume * 1.1})`,
-              }}
-             />
-          ) : (
-            <span className="relative flex h-1.5 w-1.5">
-              {currentConfig.dotPing && (
-                <span
-                  className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${currentConfig.dotClass}`}
-                 />
-              )}
-              <span
-                className={`relative inline-flex rounded-full h-1.5 w-1.5 ${currentConfig.dotClass}`}
-               />
-            </span>
-          )}
-          <span>{currentConfig.label}</span>
-          {isSpeaking && outputVolume > 0.05 && (
-            <span className="font-mono text-[9px] opacity-90">{Math.round(outputVolume * 100)}%</span>
-          )}
+        <span className="text-xs font-semibold tracking-wide">Voice Agent</span>
+        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${currentConfig.toggleBadgeClass}`}>
+          {currentConfig.label}
         </span>
       </button>
     </div>

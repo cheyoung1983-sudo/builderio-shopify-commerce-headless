@@ -29,7 +29,6 @@ export const ScrollToTop: React.FC<ScrollToTopProps> = ({
   // Ensure hydration safety: this must run once after the client-side
   // render, not before, so there's no derived-state equivalent.
   useEffect(() => {
-     
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true)
   }, [])
@@ -84,7 +83,6 @@ export const ScrollToTop: React.FC<ScrollToTopProps> = ({
     // computing it earlier (e.g. a lazy useState initializer) would read
     // different scroll/layout state on the server vs. the client and
     // cause a hydration mismatch.
-     
     // eslint-disable-next-line react-hooks/set-state-in-effect
     checkScrollPosition()
 

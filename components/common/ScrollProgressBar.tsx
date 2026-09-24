@@ -33,7 +33,6 @@ export const ScrollProgressBar: React.FC<ScrollProgressBarProps> = ({
     // Intentional hydration-safe mount flag: this must run once after the
     // client-side render to distinguish it from SSR output. There is no
     // derived-state equivalent that preserves that distinction.
-
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true)
   }, [])
@@ -49,7 +48,6 @@ export const ScrollProgressBar: React.FC<ScrollProgressBarProps> = ({
   // configured) — the rule below is only a forward-looking advisory that the
   // compiler couldn't verify this manual useCallback boundary, not a
   // correctness bug in the callback itself.
-
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const calculateScrollProgress = useCallback(() => {
     if (typeof window === 'undefined') return
@@ -94,7 +92,6 @@ export const ScrollProgressBar: React.FC<ScrollProgressBarProps> = ({
     // Initial calculation on mount or route change — must measure real
     // scroll/layout state, which only exists post-mount; same sanctioned
     // pattern as ScrollToTop's checkScrollPosition().
-
     // eslint-disable-next-line react-hooks/set-state-in-effect
     calculateScrollProgress()
 
@@ -130,7 +127,7 @@ export const ScrollProgressBar: React.FC<ScrollProgressBarProps> = ({
   return (
     <div
       id="viewport-scroll-progress-container"
-      className="fixed top-0 left-0 right-0 z-100 pointer-events-none select-none transition-opacity duration-300"
+      className="fixed top-0 left-0 right-0 z-[100] pointer-events-none select-none transition-opacity duration-300"
       style={{ opacity: isVisible ? 1 : 0 }}
       role="progressbar"
       aria-valuenow={roundedProgress}
@@ -143,7 +140,7 @@ export const ScrollProgressBar: React.FC<ScrollProgressBarProps> = ({
         {/* Animated Progress Bar */}
         <div
           id="viewport-scroll-progress-bar"
-          className="h-full bg-linear-to-r from-primary-600 via-primary-500 to-secondary-500 transition-[width] duration-100 ease-out relative"
+          className="h-full bg-gradient-to-r from-primary-600 via-primary-500 to-secondary-500 transition-[width] duration-100 ease-out relative"
           style={{ width: `${scrollProgress}%` }}
         >
           {/* Luminous Glow Dot at the leading tip */}

@@ -126,7 +126,6 @@ export async function updateShopifyCustomerTribalStatus(params: {
           query: CUSTOMER_UPDATE_MUTATION,
           variables: { input },
         }),
-        signal: AbortSignal.timeout(10000),
       })
 
       if (res.ok) {

@@ -7,8 +7,8 @@ import shopifyConfig, {
   getShopifyClientSecret,
   getAdminAccessToken,
 } from '../config/shopify.ts'
-import { startLoading, stopLoading } from '../lib/progress.ts'
-import { formatForShopifyGraphQL } from '../lib/shopify-search-syntax.ts'
+import { startLoading, stopLoading } from '../lib/progress'
+import { formatForShopifyGraphQL } from '../lib/shopify-search-syntax'
 
 /**
  * Shopify Storefront API Configuration

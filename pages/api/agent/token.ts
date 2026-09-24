@@ -2,14 +2,14 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import {
   acquireElevenLabsTokenWithBackoff,
   ElevenLabsTokenError,
-} from '@lib/elevenlabs-token';
+} from '../../../lib/elevenlabs-token.ts';
 import {
   applyCors,
   createRateLimiter,
   handleOptions,
   isAllowedOrigin,
   readBoundedString,
-} from '@lib/api-security';
+} from '../../../lib/api-security/index.ts';
 
 interface TokenResponse {
   token?: string;
@@ -34,6 +34,14 @@ function getClientKey(req: NextApiRequest): string {
   return address?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
 }
 
+function sanitizeErrorMessage(msg?: string): string {
+  if (!msg) return 'Voice platform service error';
+  return msg
+    .replace(/sk_[a-zA-Z0-9_-]+/g, '[REDACTED_KEY]')
+    .replace(/key\s*[:=]\s*['"]?[a-zA-Z0-9_-]+['"]?/gi, 'key: [REDACTED_KEY]')
+    .replace(/xi-api-key/gi, '[REDACTED_HEADER]');
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<TokenResponse>
@@ -56,7 +64,7 @@ export default async function handler(
     return res.status(429).json({ error: 'Too many requests' });
   }
 
-  if (!isAllowedOrigin(req.headers.origin, corsOptions)) {
+  if (req.headers.origin && !isAllowedOrigin(req.headers.origin, corsOptions)) {
     return res.status(403).json({ error: 'Origin not allowed' });
   }
 
@@ -64,11 +72,27 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Retrieve API Key: Prefer process.env.ELEVENLABS_API_KEY
-  const apiKey =
-    process.env.ELEVENLABS_API_KEY ||
-    (typeof req.headers['xi-api-key'] === 'string' ? req.headers['xi-api-key'] : undefined) ||
-    process.env.XI_API_KEY;
+  // Security Check: Prohibit client requests from providing ElevenLabs API key in request headers
+  const clientKeyHeader =
+    (typeof req.headers['xi-api-key'] === 'string' && req.headers['xi-api-key'].trim()) ||
+    (typeof req.headers['x-api-key'] === 'string' && req.headers['x-api-key'].trim());
+
+  if (clientKeyHeader) {
+    return res.status(400).json({
+      error: 'Security violation: ElevenLabs API key must not be passed in client request headers. Handle API keys securely on the server-side only.',
+    });
+  }
+
+  // Security Check: Prohibit client requests from providing API key in request body
+  if (req.body && typeof req.body === 'object' && ('apiKey' in req.body || 'xi-api-key' in req.body || 'x-api-key' in req.body)) {
+    return res.status(400).json({
+      error: 'Security violation: ElevenLabs API key must not be passed in client request body. Handle API keys securely on the server-side only.',
+    });
+  }
+
+  // Retrieve API Key: Exclusively from server-side environment variables
+  const rawApiKey = (process.env.ELEVENLABS_API_KEY || process.env.XI_API_KEY || '').trim();
+  const apiKey = rawApiKey.length > 0 ? rawApiKey : undefined;
 
   // Retrieve Agent ID: Check headers, body, query, or environment variables
   const headerAgentId = typeof req.headers['x-agent-id'] === 'string' ? req.headers['x-agent-id'] : undefined;
@@ -78,12 +102,12 @@ export default async function handler(
     req.query.agentId ||
     process.env.ELEVENLABS_AGENT_ID ||
     process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID ||
-    'agent_6301kqxr35beedj8n91eq7gz73d7';
+    'agent_3101m30qaxc1f3981zq05pp86ax1';
 
   const agentId =
     typeof requestedAgentId === 'string'
-      ? readBoundedString(requestedAgentId.trim(), { maxLength: 100 }) || 'agent_6301kqxr35beedj8n91eq7gz73d7'
-      : 'agent_6301kqxr35beedj8n91eq7gz73d7';
+      ? readBoundedString(requestedAgentId.trim(), { maxLength: 100 }) || 'agent_3101m30qaxc1f3981zq05pp86ax1'
+      : 'agent_3101m30qaxc1f3981zq05pp86ax1';
 
   try {
     const result = await acquireElevenLabsTokenWithBackoff({
@@ -116,7 +140,7 @@ export default async function handler(
       });
       return res.status(status).json({
         error: `ElevenLabs API error: ${status}`,
-        details: error.message,
+        details: sanitizeErrorMessage(error.message),
         category,
         agentId: errAgentId,
       });
@@ -126,7 +150,7 @@ export default async function handler(
     console.error('[ElevenLabsTokenAPI] Unexpected server error acquiring token:', err);
     return res.status(500).json({
       error: 'Failed to fetch conversation token from voice platform',
-      details: err.message,
+      details: 'An unexpected internal error occurred while acquiring voice token',
     });
   }
 }
