@@ -14,7 +14,7 @@ interface SignedUrlResponse {
   message?: string
 }
 
-const ALLOWED_ORIGINS = [
+const allowedOrigins = [
   'https://displaycellpros.com',
   'https://www.displaycellpros.com',
 ]
@@ -23,7 +23,9 @@ const AGENT_ID_PATTERN = /^agent_[a-zA-Z0-9]{20,64}$/
 const rateLimiter = createRateLimiter({ maxRequests: 30, windowMs: 60_000 })
 
 function getClientKey(req: NextApiRequest): string {
-  return req.socket.remoteAddress || 'unknown'
+  const forwarded = req.headers['x-forwarded-for']
+  const address = Array.isArray(forwarded) ? forwarded[0] : forwarded
+  return address?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
 }
 
 function createSecurityResponse(res: NextApiResponse) {
@@ -54,13 +56,14 @@ function getAgentId(req: NextApiRequest): string | undefined {
   const requestedAgentId = bodyAgentId ?? req.query.agentId ?? process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID ?? DEFAULT_AGENT_ID
   return readBoundedString(requestedAgentId, { maxLength: 70, truncate: false })
 }
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<SignedUrlResponse>
 ) {
   const corsOptions = {
-    allowedOrigins: ALLOWED_ORIGINS,
-    allowLocalhost: process.env.NODE_ENV === 'development',
+    allowedOrigins,
+    allowLocalhost: process.env.NODE_ENV !== 'production',
   }
   const securityRes = createSecurityResponse(res)
 

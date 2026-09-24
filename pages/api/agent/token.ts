@@ -16,9 +16,11 @@ interface TokenResponse {
   agentId?: string
   iceServers?: Array<{ urls: string | string[] }>
   error?: string
+  details?: string | Record<string, unknown>
+  category?: string
 }
 
-const ALLOWED_ORIGINS = [
+const allowedOrigins = [
   'https://displaycellpros.com',
   'https://www.displaycellpros.com',
 ]
@@ -27,7 +29,9 @@ const AGENT_ID_PATTERN = /^agent_[a-zA-Z0-9]{20,64}$/
 const rateLimiter = createRateLimiter({ maxRequests: 30, windowMs: 60_000 })
 
 function getClientKey(req: NextApiRequest): string {
-  return req.socket.remoteAddress || 'unknown'
+  const forwarded = req.headers['x-forwarded-for']
+  const address = Array.isArray(forwarded) ? forwarded[0] : forwarded
+  return address?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
 }
 
 function createSecurityResponse(res: NextApiResponse) {
@@ -58,13 +62,14 @@ function getAgentId(req: NextApiRequest): string | undefined {
   const requestedAgentId = bodyAgentId ?? req.query.agentId ?? process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID ?? DEFAULT_AGENT_ID
   return readBoundedString(requestedAgentId, { maxLength: 70, truncate: false })
 }
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<TokenResponse>
 ) {
   const corsOptions = {
-    allowedOrigins: ALLOWED_ORIGINS,
-    allowLocalhost: process.env.NODE_ENV === 'development',
+    allowedOrigins,
+    allowLocalhost: process.env.NODE_ENV !== 'production',
   }
   const securityRes = createSecurityResponse(res)
 
@@ -90,10 +95,15 @@ export default async function handler(
     return res.status(400).json({ error: 'Invalid agent ID' })
   }
 
+  const apiKey =
+    process.env.ELEVENLABS_API_KEY ||
+    (typeof req.headers['xi-api-key'] === 'string' ? req.headers['xi-api-key'] : undefined) ||
+    process.env.XI_API_KEY
+
   try {
     const result = await acquireElevenLabsTokenWithBackoff({
       agentId,
-      apiKey: process.env.ELEVENLABS_API_KEY,
+      apiKey,
       maxRetries: 3,
       initialDelayMs: 500,
       maxDelayMs: 3000,
@@ -110,9 +120,21 @@ export default async function handler(
     })
   } catch (error) {
     if (error instanceof ElevenLabsTokenError) {
-      console.error('[ElevenLabsTokenAPI] Upstream token request failed:', error.details.status)
-    } else {
-      console.error('[ElevenLabsTokenAPI] Unexpected server error acquiring token:', error)
+      const { status, responseBody, category, isRetryable, agentId: errAgentId } = error.details
+      console.error(`[ElevenLabsTokenAPI:Error] Failed acquiring signed URL token from ElevenLabs API:`, {
+        status,
+        category,
+        isRetryable,
+        agentId: errAgentId,
+        responseBody,
+        message: error.message,
+      })
+      return res.status(status).json({
+        error: `ElevenLabs API error: ${status}`,
+        details: error.message,
+        category,
+        agentId: errAgentId,
+      })
     }
     return res.status(502).json({
       error: 'Failed to fetch conversation token from voice platform',

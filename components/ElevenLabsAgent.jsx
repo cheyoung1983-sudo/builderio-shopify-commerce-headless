@@ -24,7 +24,7 @@ import {
   Settings2,
 } from "lucide-react";
 import VoiceTranscriptDisplay from "./VoiceTranscriptDisplay";
-import VoicePulseAvatar from "./VoicePulseAvatar";
+import Orb from "./ui/Orb";
 import shopifyConfig from "../config/shopify";
 
 const SHOP_DOMAIN = shopifyConfig.domain;
@@ -55,6 +55,26 @@ async function storefrontFetch(query, variables = {}) {
     console.error("[ElevenLabsAgent] Storefront fetch failed:", err);
     return { data: null, errors: [{ message: err?.message || "Network error" }] };
   }
+}
+
+async function resolveWorkletUrl(path) {
+  if (typeof window === "undefined") return path;
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  const targetUrl = `${window.location.origin}${cleanPath}`;
+
+  try {
+    const res = await fetch(targetUrl, { method: "HEAD" });
+    if (res.ok) {
+      console.log(`[ElevenLabsAgent] Worklet static asset verified: ${cleanPath}`);
+      return targetUrl;
+    }
+    console.warn(`[ElevenLabsAgent] Worklet asset not found (${res.status}) for ${cleanPath}.`);
+  } catch (err) {
+    console.warn(`[ElevenLabsAgent] Verification check for worklet asset at ${cleanPath} failed. Error:`, err);
+  }
+
+  // Return original path as fallback
+  return cleanPath;
 }
 
 /**
@@ -261,6 +281,9 @@ export default function ElevenLabsAgent() {
     }
     return true;
   });
+  const [repairName, setRepairName] = useState("Display & Touchscreen Assembly");
+  const [serviceName, setServiceName] = useState("DisplayCellPros Express Technical Repair");
+  const [showDynamicVars, setShowDynamicVars] = useState(false);
   const startSessionRef = useRef(null);
 
   const endSession = useCallback(async () => {
@@ -371,15 +394,27 @@ export default function ElevenLabsAgent() {
         ? { conversationToken }
         : { agentId: AGENT_ID };
 
+      const rawWorkletUrl = await resolveWorkletUrl("/rawAudioProcessor.js");
+      const concatWorkletUrl = await resolveWorkletUrl("/audioConcatProcessor.js");
+
+      const activeDynamicVars = {
+        repair_name: repairName || "Display & Touchscreen Assembly",
+        service_name: serviceName || "DisplayCellPros Express Technical Repair",
+        ...(options.dynamicVariables || {}),
+      };
+
+      console.log("[ElevenLabsAgent:Init] Setting dynamic variables for session:", activeDynamicVars);
+
       const conversation = await Conversation.startSession({
         ...sessionParams,
+        dynamicVariables: activeDynamicVars,
         webRtc: {
           iceTransportPolicy: forceRelay ? "relay" : "all",
           singlePeerConnection: false,
         },
         workletPaths: {
-          rawAudioProcessor: "/rawAudioProcessor.js",
-          audioConcatProcessor: "/audioConcatProcessor.js",
+          rawAudioProcessor: rawWorkletUrl,
+          audioConcatProcessor: concatWorkletUrl,
         },
         onConnect: () => {
           console.log("[ElevenLabsAgent:Init] [Step 5/5 Success] ElevenLabs WebRTC connection established. Status: connected.");
@@ -626,9 +661,19 @@ export default function ElevenLabsAgent() {
         setErrorMessage(
           "Microphone access was denied. Please allow microphone permissions to speak with the agent."
         );
-      } else if (err?.message?.includes("rawAudioProcessor") || err?.message?.includes("AudioWorklet") || err?.message?.includes("audio capture")) {
+      } else if (
+        err?.message?.includes("rawAudioProcessor") ||
+        err?.message?.includes("audioConcatProcessor") ||
+        err?.message?.includes("AudioWorklet") ||
+        err?.message?.includes("audio capture") ||
+        err?.message?.includes("worklet")
+      ) {
+        console.warn(
+          `[ElevenLabsAgent] Audio worklet failed to load during session initialization: ${err?.message}. ` +
+          `Please manually verify that /public/rawAudioProcessor.js exists in the public directory structure and is accessible at the root level during dev and production.`
+        );
         setErrorMessage(
-          "Audio capture worklet could not be initialized in this browser. Self-hosted worklets have been configured, please refresh or allow microphone access."
+          "Audio capture worklet could not be initialized in this browser. Self-hosted worklets have been configured, please manually verify the /public directory structure."
         );
       } else if (
         err?.message?.includes("signal connection") ||
@@ -673,7 +718,7 @@ export default function ElevenLabsAgent() {
       }
       setStatus("error");
     }
-  }, [router, useRelayPolicy]);
+  }, [router, useRelayPolicy, repairName, serviceName]);
 
   useEffect(() => {
     startSessionRef.current = startSession;
@@ -921,11 +966,11 @@ export default function ElevenLabsAgent() {
                       {currentConfig.dotPing && (
                         <span
                           className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${currentConfig.dotClass}`}
-                        />
+                         />
                       )}
                       <span
                         className={`relative inline-flex rounded-full h-2 w-2 ${currentConfig.dotClass}`}
-                      />
+                       />
                     </span>
                     {currentConfig.label}
                   </span>
@@ -959,7 +1004,7 @@ export default function ElevenLabsAgent() {
                   : "text-neutral-500 hover:text-neutral-900"
               }`}
             >
-              <Radio className="w-3.5 h-3.5" />
+              <Radio className="w-3.5 h-3.5"  />
               <span>Voice Call</span>
             </button>
             <button
@@ -972,7 +1017,7 @@ export default function ElevenLabsAgent() {
                   : "text-neutral-500 hover:text-neutral-900"
               }`}
             >
-              <Send className="w-3.5 h-3.5" />
+              <Send className="w-3.5 h-3.5"  />
               <span>Text Chat</span>
             </button>
             <button
@@ -985,7 +1030,7 @@ export default function ElevenLabsAgent() {
                   : "text-neutral-500 hover:text-neutral-900"
               }`}
             >
-              <MessageSquare className="w-3.5 h-3.5" />
+              <MessageSquare className="w-3.5 h-3.5"  />
               <span>Transcript</span>
               {transcript.length > 0 && (
                 <span
@@ -1003,7 +1048,7 @@ export default function ElevenLabsAgent() {
             {errorMessage && (
               <div className="flex flex-col gap-2.5 p-3 mb-3 bg-red-50/95 border border-red-200 rounded-xl text-xs text-red-800 shadow-xs">
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600"  />
                   <div className="flex-1">
                     <span className="font-semibold block text-red-900">
                       {errorMessage.includes("WebRTC") || errorMessage.includes("signal")
@@ -1020,7 +1065,7 @@ export default function ElevenLabsAgent() {
                 {(showDiagnostics || errorMessage.includes("WebRTC") || errorMessage.includes("signal") || errorMessage.includes("WebSocket")) && (
                   <div className="mt-1 pt-2 border-t border-red-200/80 space-y-2 text-[11px]">
                     <div className="font-semibold text-red-900 flex items-center gap-1.5">
-                      <ShieldAlert className="w-3.5 h-3.5 text-red-600" />
+                      <ShieldAlert className="w-3.5 h-3.5 text-red-600"  />
                       <span>Targeted Connection Fixes:</span>
                     </div>
 
@@ -1061,7 +1106,7 @@ export default function ElevenLabsAgent() {
                         }}
                         className="flex-1 min-w-[130px] flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-700 hover:bg-red-800 text-white font-semibold text-[11px] transition-colors cursor-pointer"
                       >
-                        <RefreshCw className="w-3 h-3" />
+                        <RefreshCw className="w-3 h-3"  />
                         <span>Retry with TURN Relay</span>
                       </button>
 
@@ -1073,7 +1118,7 @@ export default function ElevenLabsAgent() {
                         }}
                         className="flex-1 min-w-[110px] flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-900 text-white font-semibold text-[11px] transition-colors cursor-pointer"
                       >
-                        <RefreshCw className="w-3 h-3" />
+                        <RefreshCw className="w-3 h-3"  />
                         <span>Retry Standard</span>
                       </button>
 
@@ -1082,7 +1127,7 @@ export default function ElevenLabsAgent() {
                         onClick={() => setActiveView("chat")}
                         className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-[11px] transition-colors cursor-pointer"
                       >
-                        <Send className="w-3 h-3" />
+                        <Send className="w-3 h-3"  />
                         <span>Chat with Text Assistant Instead</span>
                       </button>
                     </div>
@@ -1110,7 +1155,7 @@ export default function ElevenLabsAgent() {
               <div id="elevenlabs-chat-view-container" className="space-y-2.5">
                 <div className="p-2 rounded-xl bg-emerald-50/80 border border-emerald-200/70 text-xs text-emerald-800 flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0"  />
                     <span className="font-semibold">Text Assistant Mode</span>
                   </div>
                   <span className="text-[10px] text-emerald-800 uppercase font-bold tracking-wider">
@@ -1125,7 +1170,7 @@ export default function ElevenLabsAgent() {
                   status={status}
                   onClearTranscript={() => setTranscript([])}
                   maxHeight="max-h-56 sm:max-h-64"
-                />
+                 />
 
                 <form onSubmit={handleSendTextMessage} className="flex items-center gap-2 pt-1">
                   <input
@@ -1135,7 +1180,7 @@ export default function ElevenLabsAgent() {
                     placeholder="Ask about iPhone repairs, screens, parts..."
                     disabled={isSendingText}
                     className="flex-1 px-3 py-2 text-xs rounded-xl border border-neutral-300 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 bg-white shadow-inner"
-                  />
+                   />
                   <button
                     type="submit"
                     disabled={isSendingText || !textInput.trim()}
@@ -1143,9 +1188,9 @@ export default function ElevenLabsAgent() {
                     title="Send message"
                   >
                     {isSendingText ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-4 h-4 animate-spin"  />
                     ) : (
-                      <Send className="w-4 h-4" />
+                      <Send className="w-4 h-4"  />
                     )}
                   </button>
                 </form>
@@ -1157,7 +1202,7 @@ export default function ElevenLabsAgent() {
                 {isConnected && (
                   <div className="flex items-center justify-between p-2 rounded-xl bg-neutral-100 border border-neutral-200/80 text-xs">
                     <div className="flex items-center gap-2">
-                      <VoicePulseAvatar
+                      <Orb
                         volume={outputVolume}
                         isSpeaking={isSpeaking}
                         isListening={agentStatus === "listening"}
@@ -1165,7 +1210,7 @@ export default function ElevenLabsAgent() {
                         status={agentStatus}
                         size="sm"
                         showVolumeMeter={false}
-                      />
+                       />
                       <span className="font-semibold text-neutral-800">
                         {isSpeaking
                           ? `Agent Speaking (${Math.round(outputVolume * 100)}%)`
@@ -1178,7 +1223,7 @@ export default function ElevenLabsAgent() {
                       onClick={endSession}
                       className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold transition-colors cursor-pointer"
                     >
-                      <PhoneOff className="w-3 h-3" />
+                      <PhoneOff className="w-3 h-3"  />
                       <span>End Call</span>
                     </button>
                   </div>
@@ -1192,7 +1237,7 @@ export default function ElevenLabsAgent() {
                   status={status}
                   onClearTranscript={() => setTranscript([])}
                   maxHeight="max-h-72 sm:max-h-80"
-                />
+                 />
 
                 {!isConnected && (
                   <div className="flex items-center gap-2 pt-1">
@@ -1205,7 +1250,7 @@ export default function ElevenLabsAgent() {
                       }}
                       className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-semibold transition-colors cursor-pointer"
                     >
-                      <Mic className="w-3.5 h-3.5 text-emerald-400" />
+                      <Mic className="w-3.5 h-3.5 text-emerald-400"  />
                       <span>Start New Call</span>
                     </button>
                   </div>
@@ -1224,7 +1269,7 @@ export default function ElevenLabsAgent() {
                   }`}
                 >
                   {/* Dynamic Voice Pulse Avatar that changes size based on audio output volume */}
-                  <VoicePulseAvatar
+                  <Orb
                     volume={outputVolume}
                     isSpeaking={isSpeaking}
                     isListening={agentStatus === "listening"}
@@ -1233,19 +1278,19 @@ export default function ElevenLabsAgent() {
                     size="lg"
                     showVolumeMeter={true}
                     className="my-1"
-                  />
+                   />
 
                   <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider mt-2">
                     {agentStatus === "speaking" ? (
                       <>
-                        <Volume2 className="w-3.5 h-3.5 text-sky-600 animate-pulse" />
+                        <Volume2 className="w-3.5 h-3.5 text-sky-600 animate-pulse"  />
                         <span className="text-sky-800">
                           Status: Speaking {outputVolume > 0.02 ? `(${Math.round(outputVolume * 100)}%)` : ""}
                         </span>
                       </>
                     ) : (
                       <>
-                        <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                        <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse"  />
                         <span className="text-emerald-800">Status: Listening</span>
                       </>
                     )}
@@ -1272,7 +1317,7 @@ export default function ElevenLabsAgent() {
                     status={status}
                     onClearTranscript={() => setTranscript([])}
                     maxHeight="max-h-40 sm:max-h-48"
-                  />
+                   />
                   {transcript.length > 0 && (
                     <button
                       id="elevenlabs-expand-transcript-btn"
@@ -1290,7 +1335,7 @@ export default function ElevenLabsAgent() {
                   onClick={endSession}
                   className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
                 >
-                  <PhoneOff className="w-3.5 h-3.5" />
+                  <PhoneOff className="w-3.5 h-3.5"  />
                   End Voice Conversation
                 </button>
               </div>
@@ -1302,7 +1347,7 @@ export default function ElevenLabsAgent() {
                   id="elevenlabs-idle-status-indicator"
                   className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all duration-200 ${currentConfig.bannerBg}`}
                 >
-                  <VoicePulseAvatar
+                  <Orb
                     volume={0}
                     isSpeaking={false}
                     isListening={false}
@@ -1311,17 +1356,17 @@ export default function ElevenLabsAgent() {
                     size="md"
                     showVolumeMeter={false}
                     className="mb-1.5"
-                  />
+                   />
                   <div className="flex items-center gap-1.5 text-xs font-bold">
                     <span className="relative flex h-2 w-2">
                       {currentConfig.dotPing && (
                         <span
                           className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${currentConfig.dotClass}`}
-                        />
+                         />
                       )}
                       <span
                         className={`relative inline-flex rounded-full h-2 w-2 ${currentConfig.dotClass}`}
-                      />
+                       />
                     </span>
                     <span>Status: {currentConfig.label}</span>
                   </div>
@@ -1341,7 +1386,7 @@ export default function ElevenLabsAgent() {
                     className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-100 border border-neutral-200 text-xs"
                   >
                     <div className="flex items-center gap-1.5 text-neutral-700 font-medium">
-                      <MessageSquare className="w-3.5 h-3.5 text-neutral-500" />
+                      <MessageSquare className="w-3.5 h-3.5 text-neutral-500"  />
                       <span>{transcript.length} transcript messages saved</span>
                     </div>
                     <button
@@ -1354,6 +1399,55 @@ export default function ElevenLabsAgent() {
                   </div>
                 )}
 
+                {/* Dynamic Variables Configuration for Testing */}
+                <div className="border border-neutral-200/80 rounded-xl p-2.5 bg-neutral-50/80 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowDynamicVars((prev) => !prev)}
+                    className="w-full flex items-center justify-between text-[11px] font-semibold text-neutral-700 hover:text-neutral-900 cursor-pointer"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Settings2 className="w-3.5 h-3.5 text-neutral-500"  />
+                      Dynamic Agent Variables ({repairName ? 2 : 0})
+                    </span>
+                    <span className="text-[10px] text-neutral-500 font-mono">
+                      {showDynamicVars ? "Hide ▲" : "Configure ▼"}
+                    </span>
+                  </button>
+
+                  {showDynamicVars && (
+                    <div className="space-y-2 pt-1.5 border-t border-neutral-200/60 text-xs">
+                      <div>
+                        <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider mb-1">
+                          repair_name
+                        </label>
+                        <input
+                          type="text"
+                          value={repairName}
+                          onChange={(e) => setRepairName(e.target.value)}
+                          placeholder="e.g. Screen Replacement"
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                         />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider mb-1">
+                          service_name
+                        </label>
+                        <input
+                          type="text"
+                          value={serviceName}
+                          onChange={(e) => setServiceName(e.target.value)}
+                          placeholder="e.g. DisplayCellPros Tech Repair"
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                         />
+                      </div>
+                      <p className="text-[10px] text-neutral-500 leading-tight">
+                        These values populate your agent&apos;s dynamic template placeholders (<code className="font-mono text-[9px] bg-neutral-200 px-1 py-0.5 rounded">&#123;&#123;repair_name&#125;&#125;</code> &amp; <code className="font-mono text-[9px] bg-neutral-200 px-1 py-0.5 rounded">&#123;&#123;service_name&#125;&#125;</code>).
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex flex-col gap-2">
                   <button
                     id="elevenlabs-start-call-btn"
@@ -1363,12 +1457,12 @@ export default function ElevenLabsAgent() {
                   >
                     {isConnecting ? (
                       <>
-                        <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                        <Loader2 className="w-3.5 h-3.5 text-white animate-spin"  />
                         Connecting to Voice Agent...
                       </>
                     ) : (
                       <>
-                        <Mic className="w-3.5 h-3.5 text-emerald-400" />
+                        <Mic className="w-3.5 h-3.5 text-emerald-400"  />
                         Start Voice Call
                       </>
                     )}
@@ -1380,7 +1474,7 @@ export default function ElevenLabsAgent() {
                     onClick={() => setActiveView("chat")}
                     className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-semibold transition-colors cursor-pointer"
                   >
-                    <Send className="w-3.5 h-3.5 text-neutral-600" />
+                    <Send className="w-3.5 h-3.5 text-neutral-600"  />
                     <span>Prefer text? Chat with Assistant</span>
                   </button>
                 </div>
@@ -1408,18 +1502,18 @@ export default function ElevenLabsAgent() {
               <span
                 className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-60"
                 style={{ transform: `scale(${1 + outputVolume * 0.7})` }}
-              />
-              <Volume2 className="relative w-4 h-4 text-white" />
+               />
+              <Volume2 className="relative w-4 h-4 text-white"  />
             </span>
           ) : agentStatus === "listening" ? (
             <span className="relative flex items-center justify-center">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white/40" />
-              <Mic className="relative w-4 h-4 text-white" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white/40"  />
+              <Mic className="relative w-4 h-4 text-white"  />
             </span>
           ) : agentStatus === "connecting" ? (
-            <Loader2 className="w-4 h-4 text-white animate-spin" />
+            <Loader2 className="w-4 h-4 text-white animate-spin"  />
           ) : (
-            <Mic className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+            <Mic className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform"  />
           )}
         </span>
 
@@ -1433,7 +1527,7 @@ export default function ElevenLabsAgent() {
             className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-bold text-white border border-white/30"
             title={`${transcript.length} transcript messages`}
           >
-            <MessageSquare className="w-2.5 h-2.5" />
+            <MessageSquare className="w-2.5 h-2.5"  />
             <span>{transcript.length}</span>
           </span>
         )}
@@ -1451,17 +1545,17 @@ export default function ElevenLabsAgent() {
                 height: "6px",
                 transform: `scale(${1 + outputVolume * 1.1})`,
               }}
-            />
+             />
           ) : (
             <span className="relative flex h-1.5 w-1.5">
               {currentConfig.dotPing && (
                 <span
                   className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${currentConfig.dotClass}`}
-                />
+                 />
               )}
               <span
                 className={`relative inline-flex rounded-full h-1.5 w-1.5 ${currentConfig.dotClass}`}
-              />
+               />
             </span>
           )}
           <span>{currentConfig.label}</span>

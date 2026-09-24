@@ -11,7 +11,9 @@ const allowedOrigins = ['https://displaycellpros.com', 'https://www.displaycellp
 const rateLimiter = createRateLimiter({ maxRequests: 30, windowMs: 60_000 })
 
 function getClientKey(req: NextApiRequest): string {
-  return req.socket.remoteAddress || 'unknown'
+  const forwarded = req.headers['x-forwarded-for']
+  const address = Array.isArray(forwarded) ? forwarded[0] : forwarded
+  return address?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
 }
 
 function hasOwn(value: unknown, key: string): boolean {

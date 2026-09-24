@@ -463,4 +463,3 @@ export const CUSTOMER_QUERY = /* GraphQL */ `
     }
   }
 `
-

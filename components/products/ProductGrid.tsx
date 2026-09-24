@@ -356,6 +356,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       // Fetch on mount when no server-provided products exist;
       // loadProducts sets a loading flag before its await, same
       // sanctioned pattern as the interactive sort/search path.
+       
       // eslint-disable-next-line react-hooks/set-state-in-effect
       loadProducts()
     } else {

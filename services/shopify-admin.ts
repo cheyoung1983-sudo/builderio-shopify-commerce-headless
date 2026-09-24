@@ -45,10 +45,12 @@ export async function shopifyAdminFetch<T = any>({
   accessToken,
   query,
   variables,
+  timeoutMs = 10000,
 }: {
   accessToken?: string
   query: string
   variables?: Record<string, any>
+  timeoutMs?: number
 }): Promise<{ data?: T; errors?: any[] }> {
   const config = getShopifyAdminConfig()
   const token = accessToken || process.env.SHOPIFY_ADMIN_ACCESS_TOKEN
@@ -80,13 +82,18 @@ export async function shopifyAdminFetch<T = any>({
         'X-Shopify-Access-Token': token,
       },
       body: JSON.stringify({ query, variables }),
+      signal: AbortSignal.timeout(timeoutMs),
     })
 
     const body = await res.json()
     return body
   } catch (error: any) {
+    const message = error.name === 'TimeoutError'
+      ? `Admin API request timed out after ${timeoutMs}ms`
+      : error?.message || 'Admin API fetch failed';
+
     return {
-      errors: [{ message: error?.message || 'Admin API fetch failed' }],
+      errors: [{ message }],
     }
   }
 }

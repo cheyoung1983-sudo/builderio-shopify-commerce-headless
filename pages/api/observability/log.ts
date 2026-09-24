@@ -19,6 +19,12 @@ const MAX_URL = 2048
 const MAX_USER_AGENT = 512
 const MAX_METADATA = 4096
 
+function getClientKey(req: NextApiRequest): string {
+  const forwarded = req.headers['x-forwarded-for']
+  const address = Array.isArray(forwarded) ? forwarded[0] : forwarded
+  return address?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
+}
+
 function createSecurityResponse(res: NextApiResponse) {
   return {
     setHeader(name: string, value: string) {
@@ -61,11 +67,12 @@ function serializeMetadata(value: unknown): string | undefined {
   }
   return readBoundedString(serialized, { maxLength: MAX_METADATA })
 }
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const corsOptions = {
     allowedOrigins: ALLOWED_ORIGINS,
     allowedMethods: ['POST', 'OPTIONS'],
-    allowLocalhost: process.env.NODE_ENV === 'development',
+    allowLocalhost: process.env.NODE_ENV !== 'production',
   }
   const securityRes = createSecurityResponse(res)
 
@@ -80,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ ok: false, error: 'Method not allowed. Use POST.' })
   }
 
-  const rateLimit = rateLimiter.check(req.socket.remoteAddress || 'unknown')
+  const rateLimit = rateLimiter.check(getClientKey(req))
   if (!rateLimit.allowed) {
     res.setHeader('Retry-After', String(rateLimit.retryAfterSeconds))
     return res.status(429).json({ ok: false, error: 'Too many requests' })

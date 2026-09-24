@@ -23,7 +23,7 @@
  *   - Exists query: tag:*, -published_at:*
  */
 
-import { ShopifyProductNode } from '../services/shopify'
+import type { ShopifyProductNode } from '../services/shopify.ts'
 
 export type SearchComparator = ':' | ':<' | ':>' | ':<=' | ':>='
 export type SearchConnective = 'AND' | 'OR'
