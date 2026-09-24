@@ -35,21 +35,148 @@ function getApiVersion(): string {
   return process.env.SHOPIFY_CUSTOMER_ACCOUNT_API_VERSION || '2025-10'
 }
 
+/** Normalizes allowed site origins and strips unsafe path data before using them in redirect URIs. */
+function toHeaderValue(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) {
+    return value[0]
+  }
+  return value
+}
+
+function isTruthy(value: string | undefined): boolean {
+  return ['1', 'true', 'yes', 'on'].includes((value || '').trim().toLowerCase())
+}
+
+function isLocalHost(hostname: string): boolean {
+  const normalized = hostname.trim().toLowerCase()
+  return (
+    normalized === 'localhost' ||
+    normalized === '127.0.0.1' ||
+    normalized === '::1' ||
+    normalized === '[::1]' ||
+    normalized.endsWith('.localhost') ||
+    normalized.startsWith('localhost:') ||
+    normalized.startsWith('127.0.0.1:') ||
+    normalized.startsWith('[::1]:')
+  )
+}
+
+function isHostNameSafe(hostname: string): boolean {
+  const normalized = hostname.trim().toLowerCase()
+  if (!normalized || normalized.includes(' ') || normalized.includes('/')) {
+    return false
+  }
+
+  if (normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1' || normalized === '[::1]') {
+    return true
+  }
+
+  if (/^\[[0-9a-f:]+\]$/i.test(normalized)) {
+    return true
+  }
+
+  if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(normalized)) {
+    return true
+  }
+
+  const labelPattern = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i
+  return labelPattern.test(normalized)
+}
+
+function normalizeSiteOrigin(candidate: string): string | null {
+  if (!candidate) {
+    return null
+  }
+
+  const trimmed = candidate.trim().replace(/\/+$/, '')
+  if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('/')) {
+    return null
+  }
+
+  const withScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed) ? trimmed : `https://${trimmed}`
+
+  try {
+    const url = new URL(withScheme)
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      return null
+    }
+    if (!isHostNameSafe(url.hostname)) {
+      return null
+    }
+    if (process.env.NODE_ENV === 'production' && url.protocol !== 'https:') {
+      return null
+    }
+    return `${url.protocol}//${url.host}`
+  } catch {
+    return null
+  }
+}
+
+function trustedForwardHeadersEnabled(req?: { headers: Record<string, string | string[] | undefined> }): boolean {
+  if (process.env.NODE_ENV !== 'production') {
+    const host = toHeaderValue(req?.headers?.host)
+    return !host || isLocalHost(host)
+  }
+
+  return (
+    isTruthy(process.env.TRUSTED_PROXY) ||
+    isTruthy(process.env.TRUSTED_PROXIES) ||
+    isTruthy(process.env.TRUSTED_FORWARDED_HEADERS) ||
+    isTruthy(process.env.ALLOW_FORWARDED_HEADERS)
+  )
+}
+
+function resolveForwardedOrigin(req?: { headers: Record<string, string | string[] | undefined> }): string | null {
+  if (!req || !trustedForwardHeadersEnabled(req)) {
+    return null
+  }
+
+  const forwardedProto = toHeaderValue(req.headers['x-forwarded-proto'])
+  const forwardedHost = toHeaderValue(req.headers['x-forwarded-host']) || toHeaderValue(req.headers.host)
+  if (!forwardedHost) {
+    return null
+  }
+
+  const proto = (forwardedProto || 'https').split(',')[0].trim().toLowerCase()
+  const host = forwardedHost.split(',')[0].trim()
+  if (!['http', 'https'].includes(proto)) {
+    return null
+  }
+  if (process.env.NODE_ENV === 'production' && proto !== 'https') {
+    return null
+  }
+
+  const normalizedHost = host.replace(/^https?:\/\//i, '').replace(/^\/+/, '')
+  if (!isHostNameSafe(normalizedHost)) {
+    return null
+  }
+
+  return `${proto}://${normalizedHost}`
+}
+
+/** Returns a relative-only path to keep callback redirects within the app origin. */
+export function sanitizeReturnTo(value: unknown): string {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) {
+    return '/account'
+  }
+  return value
+}
+
 /** Resolves the site's own origin used to build the OAuth redirect_uri. */
 export function getSiteUrl(req?: { headers: Record<string, string | string[] | undefined> }): string {
-  if (req) {
-    const forwardedProto = req.headers['x-forwarded-proto']
-    const proto = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto) || 'https'
-    const forwardedHost = req.headers['x-forwarded-host']
-    const rawHost = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost) || req.headers.host
-    if (rawHost) {
-      const host = Array.isArray(rawHost) ? rawHost[0] : rawHost
-      return `${proto}://${host}`
-    }
+  const configured = [process.env.NEXT_PUBLIC_SITE_URL, process.env.APP_URL, process.env.SITE_URL]
+    .map((value) => normalizeSiteOrigin(value || ''))
+    .find((value) => Boolean(value))
+
+  if (configured) {
+    return configured
   }
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, '')
+
+  const forwardedOrigin = resolveForwardedOrigin(req)
+  if (forwardedOrigin) {
+    return forwardedOrigin
   }
+
   return 'https://displaycellpros.com'
 }
 

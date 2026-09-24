@@ -4,22 +4,16 @@ import {
   exchangeCodeForTokens,
   getCallbackUrl,
   getCustomerAccountClientId,
-} from '../../../services/shopify-customer-account'
+  sanitizeReturnTo,
+} from '../../../services/shopify-customer-account.ts'
 import {
   appendCookie,
   clearPkceCookies,
   COOKIE,
   isHttpsRequest,
-} from '../../../lib/shopify/customer-account/cookies'
+} from '../../../lib/shopify/customer-account/cookies.ts'
 
 const REFRESH_TOKEN_MAX_AGE = 60 * 60 * 24 * 30 // 30 days
-
-function sanitizeReturnTo(value: unknown): string {
-  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) {
-    return '/account'
-  }
-  return value
-}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
