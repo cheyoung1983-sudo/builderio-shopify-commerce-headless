@@ -244,6 +244,11 @@ export default function ElevenLabsAgent() {
   });
   const [isOpen, setIsOpen] = useState(false);
   const conversationRef = useRef(null);
+  const connectingRef = useRef(false);
+  const mountedRef = useRef(true);
+  const generationRef = useRef(0);
+  const reconnectTimerRef = useRef(null);
+  const reconnectAttemptRef = useRef(0);
   const [useRelayPolicy, setUseRelayPolicy] = useState(false);
   const [connectionMode, setConnectionMode] = useState("webrtc"); // "webrtc" | "websocket"
   const connectionModeRef = useRef("webrtc");
@@ -270,6 +275,12 @@ export default function ElevenLabsAgent() {
   }, [searchMode]);
 
   const endSession = useCallback(async () => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+      console.log(`[ElevenLabs:LIFECYCLE] reconnect cancelled`);
+    }
+    generationRef.current++;
     try {
       if (volumeAnimFrameRef.current) {
         cancelAnimationFrame(volumeAnimFrameRef.current);
@@ -278,12 +289,14 @@ export default function ElevenLabsAgent() {
       setOutputVolume(0);
       smoothedVolumeRef.current = 0;
       if (conversationRef.current) {
-        await conversationRef.current.endSession();
+        const conv = conversationRef.current;
         conversationRef.current = null;
+        await conv.endSession();
       }
     } catch (e) {
       console.warn("[ElevenLabsAgent] Error ending session:", e);
     } finally {
+      connectingRef.current = false;
       setStatus("disconnected");
       setIsSpeaking(false);
       setOutputVolume(0);
@@ -292,8 +305,23 @@ export default function ElevenLabsAgent() {
   }, []);
 
   const startSession = useCallback(async (options = {}) => {
+    console.log(`[ElevenLabs:LIFECYCLE] start requested (gen: ${generationRef.current + 1})`);
+
+    if (connectingRef.current || conversationRef.current) {
+      console.log(`[ElevenLabs:LIFECYCLE] start ignored - already connecting (gen: ${generationRef.current})`);
+      return;
+    }
+
+    connectingRef.current = true;
+    const currentGen = ++generationRef.current;
+
     if (options.isUserInitiated) {
-      retryAttemptRef.current = 0;
+      reconnectAttemptRef.current = 0;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+        console.log(`[ElevenLabs:LIFECYCLE] reconnect cancelled`);
+      }
     }
     const transportMode = options.connectionMode || connectionModeRef.current || "webrtc";
     connectionModeRef.current = transportMode;
@@ -301,82 +329,13 @@ export default function ElevenLabsAgent() {
 
     const forceRelay = options.forceRelay !== undefined ? options.forceRelay : useRelayPolicy;
     try {
-      if (conversationRef.current) {
-        try {
-          await conversationRef.current.endSession().catch(() => {});
-        } catch {
-          // ignore cleanup errors on prior session
-        }
-        conversationRef.current = null;
-      }
       setStatus("connecting");
       setErrorMessage("");
       setIsMicPermissionDenied(false);
 
-      // Step 1: Check environment & MediaDevices support
-      console.log("[ElevenLabsAgent:Init] [Step 1/5] Checking browser MediaDevices compatibility...");
-      if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-        console.warn("[ElevenLabsAgent:Init] [Step 1/5 Failed] navigator.mediaDevices.getUserMedia is unavailable in this environment.");
-        setErrorMessage("Microphone access is not supported in this browser.");
-        setStatus("error");
-        return;
-      }
-      console.log("[ElevenLabsAgent:Init] [Step 1/5 Success] navigator.mediaDevices.getUserMedia is supported.");
-
-      // Step 2: Query navigator.permissions if available
-      try {
-        if (navigator.permissions && typeof navigator.permissions.query === "function") {
-          const perm = await navigator.permissions.query({ name: "microphone" });
-          console.log("[ElevenLabsAgent:Init] [Step 2/5] Browser permission query state:", perm.state);
-        } else {
-          console.log("[ElevenLabsAgent:Init] [Step 2/5] navigator.permissions.query for microphone not supported; proceeding directly to hardware trigger.");
-        }
-      } catch (permErr) {
-        console.log("[ElevenLabsAgent:Init] [Step 2/5] Permission query skipped/errored:", permErr?.message);
-      }
-
-      // Step 3: Trigger hardware permission and probe audio input stream
-      console.log("[ElevenLabsAgent:Init] [Step 3/5] Requesting hardware microphone access via getUserMedia({ audio: true })...");
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const tracks = stream.getTracks();
-        console.log(
-          `[ElevenLabsAgent:Init] [Step 3/5 Success] Hardware microphone granted. Acquired ${tracks.length} audio track(s):`,
-          tracks.map((t) => ({ label: t.label, enabled: t.enabled, readyState: t.readyState }))
-        );
-        // Release probe tracks immediately so the ElevenLabs Conversational SDK can acquire the device
-        tracks.forEach((track) => track.stop());
-        console.log("[ElevenLabsAgent:Init] [Step 3/5 Cleanup] Probe audio tracks stopped cleanly.");
-      } catch (micErr) {
-        console.warn(
-          "[ElevenLabsAgent:Init] [Step 3/5 Failed] Hardware microphone trigger rejected:",
-          {
-            name: micErr?.name,
-            message: micErr?.message,
-            stack: micErr?.stack,
-          }
-        );
-        setIsMicPermissionDenied(true);
-        if (
-          micErr?.name === "NotAllowedError" ||
-          micErr?.name === "PermissionDeniedError" ||
-          micErr?.message?.includes("Permission") ||
-          micErr?.message?.includes("denied")
-        ) {
-          setErrorMessage(
-            "Microphone access was denied. Please allow microphone permissions to speak with the agent."
-          );
-        } else {
-          setErrorMessage(micErr?.message || "Could not access microphone.");
-        }
-        setStatus("error");
-        return;
-      }
-
-      // Step 4: Acquire conversation token via backend proxy route if in WebRTC mode
+      // Acquire conversation token via backend proxy route if in WebRTC mode
       let conversationToken = null;
       if (transportMode === "webrtc") {
-        console.log("[ElevenLabsAgent:Init] [Step 4/5] Acquiring conversation token from proxy endpoint /api/agent/token...");
         try {
           conversationToken = await getVoiceToken(AGENT_ID);
         } catch (tokenErr) {
@@ -384,13 +343,11 @@ export default function ElevenLabsAgent() {
         }
       }
 
-      console.log("[ElevenLabsAgent:Init] [Step 4/5] Initiating ElevenLabs Conversation.startSession...", {
-        agentId: AGENT_ID,
-        transportMode,
-        forceRelay,
-        hasExplicitToken: Boolean(conversationToken),
-        targetEndpoint: transportMode === "webrtc" ? "wss://livekit.rtc.elevenlabs.io" : "wss://api.elevenlabs.io",
-      });
+      if (!mountedRef.current || currentGen !== generationRef.current) {
+        console.log(`[ElevenLabs:LIFECYCLE] stale session discarded (gen: ${currentGen})`);
+        connectingRef.current = false;
+        return;
+      }
 
       const rawWorkletUrl = await resolveWorkletUrl("/rawAudioProcessor.js");
       const concatWorkletUrl = await resolveWorkletUrl("/audioConcatProcessor.js");
@@ -400,8 +357,6 @@ export default function ElevenLabsAgent() {
         service_name: serviceName || "DisplayCellPros Express Technical Repair",
         ...(options.dynamicVariables || {}),
       };
-
-      console.log("[ElevenLabsAgent:Init] Setting dynamic variables for session:", activeDynamicVars);
 
       const conversation = await Conversation.startSession({
         dynamicVariables: activeDynamicVars,
@@ -545,7 +500,6 @@ export default function ElevenLabsAgent() {
               }
 
               if (!cartId) {
-                // Fallback: fire open-cart event anyway
                 if (typeof document !== "undefined") {
                   document.dispatchEvent(new CustomEvent("open-cart"));
                 }
@@ -685,70 +639,47 @@ export default function ElevenLabsAgent() {
               },
             }),
         onConnect: () => {
-          console.log(`[ElevenLabsAgent:Init] [Step 5/5 Success] ElevenLabs connection established via ${transportMode}. Status: connected.`);
+          if (!mountedRef.current || currentGen !== generationRef.current) return;
+          console.log(`[ElevenLabs:LIFECYCLE] connected (gen: ${currentGen})`);
           setStatus("connected");
           setShowDiagnostics(false);
-          retryAttemptRef.current = 0;
+          reconnectAttemptRef.current = 0;
         },
         onDisconnect: () => {
-          console.log("[ElevenLabsAgent:Session] ElevenLabs session disconnected.");
+          if (!mountedRef.current || currentGen !== generationRef.current) return;
+          console.log(`[ElevenLabs:LIFECYCLE] disconnected (gen: ${currentGen})`);
           setStatus("disconnected");
           setIsSpeaking(false);
           setOutputVolume(0);
           smoothedVolumeRef.current = 0;
-          conversationRef.current = null;
+          if (conversationRef.current === conversation) {
+            conversationRef.current = null;
+          }
+          connectingRef.current = false;
+
+          // Bounded exponential backoff recovery for genuine network loss
+          if (reconnectAttemptRef.current < 3 && !reconnectTimerRef.current && mountedRef.current) {
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttemptRef.current), 10000);
+            reconnectAttemptRef.current++;
+            console.log(`[ElevenLabs:LIFECYCLE] reconnect scheduled in ${delay}ms (attempt ${reconnectAttemptRef.current}, gen: ${currentGen})`);
+            reconnectTimerRef.current = setTimeout(() => {
+              reconnectTimerRef.current = null;
+              if (!mountedRef.current || connectingRef.current || conversationRef.current || currentGen !== generationRef.current) return;
+              startSessionRef.current?.({ isUserInitiated: false, connectionMode: connectionModeRef.current });
+            }, delay);
+          }
         },
         onError: (err) => {
-          console.warn("[ElevenLabsAgent:Session] ElevenLabs runtime session error/warning:", {
-            message: err?.message,
-            error: err,
-            transportMode,
-            forceRelay,
-          });
-          const isWebRtcError =
-            err?.name === "ConnectionError" ||
-            err?.reasonName === "WebSocket" ||
-            err?.code === 1 ||
-            err?.message?.includes("signal connection") ||
-            err?.message?.includes("signal stream") ||
-            err?.message?.includes("WebSocket");
-
-          if (isWebRtcError && transportMode === "webrtc") {
-            if (retryAttemptRef.current === 0 && !forceRelay) {
-              retryAttemptRef.current = 1;
-              console.warn("[ElevenLabsAgent:Session] WebRTC stream error during active session, auto-retrying with TURN relay...");
-              setUseRelayPolicy(true);
-              setTimeout(() => {
-                startSessionRef.current?.({ forceRelay: true, connectionMode: "webrtc" });
-              }, 500);
-              return;
-            } else if (retryAttemptRef.current <= 1) {
-              retryAttemptRef.current = 2;
-              console.warn("[ElevenLabsAgent:Session] WebRTC stream error persisted. Auto-recovering via direct WebSocket audio stream...");
-              connectionModeRef.current = "websocket";
-              setConnectionMode("websocket");
-              setErrorMessage("WebRTC signal stream dropped. Auto-reconnecting via direct WebSocket stream...");
-              setTimeout(() => {
-                startSessionRef.current?.({ connectionMode: "websocket" });
-              }, 500);
-              return;
-            }
-          }
-
-          const errorMsg =
-            err?.message ||
-            (err?.reasonName ? `Connection error: ${err.reasonName}` : null) ||
-            (typeof err === "string" ? err : "Connection error with voice platform");
-          setErrorMessage(errorMsg);
-          if (isWebRtcError) {
-            setShowDiagnostics(true);
-          }
+          if (!mountedRef.current || currentGen !== generationRef.current) return;
+          console.warn("[ElevenLabsAgent:Session] ElevenLabs runtime session error/warning:", err?.message);
+          setErrorMessage(err?.message || "Connection error with voice platform");
           setStatus("error");
           setOutputVolume(0);
           smoothedVolumeRef.current = 0;
+          connectingRef.current = false;
         },
         onModeChange: ({ mode }) => {
-          console.log("[ElevenLabsAgent:Session] Agent mode transitioned:", mode);
+          if (!mountedRef.current || currentGen !== generationRef.current) return;
           const speaking = mode === "speaking";
           setIsSpeaking(speaking);
           if (!speaking) {
@@ -757,17 +688,14 @@ export default function ElevenLabsAgent() {
           }
         },
         onMessage: (payload) => {
-          console.log("[ElevenLabsAgent:Session] Transcript message event received:", payload);
-          if (payload && ((payload).message || (payload).text)) {
-            const text = (payload).message || (payload).text;
-            const role =
-              payload.role === "agent" || (payload).source === "ai"
-                ? "agent"
-                : "user";
+          if (!mountedRef.current || currentGen !== generationRef.current) return;
+          if (payload && (payload.message || payload.text)) {
+            const text = payload.message || payload.text;
+            const role = payload.role === "agent" || payload.source === "ai" ? "agent" : "user";
             setTranscript((prev) => [
               ...prev,
               {
-                id: (payload).event_id || `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                id: payload.event_id || `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
                 sender: role,
                 text,
                 timestamp: new Date(),
@@ -776,12 +704,12 @@ export default function ElevenLabsAgent() {
           }
         },
         onAgentResponseCorrection: (correctionEvent) => {
-          console.log("[ElevenLabsAgent:Session] Agent response correction:", correctionEvent);
-          if ((correctionEvent)?.original_event_id && (correctionEvent)?.corrected_agent_response) {
+          if (!mountedRef.current || currentGen !== generationRef.current) return;
+          if (correctionEvent?.original_event_id && correctionEvent?.corrected_agent_response) {
             setTranscript((prev) =>
               prev.map((msg) =>
-                msg.id === (correctionEvent).original_event_id
-                  ? { ...msg, text: (correctionEvent).corrected_agent_response, isCorrected: true }
+                msg.id === correctionEvent.original_event_id
+                  ? { ...msg, text: correctionEvent.corrected_agent_response, isCorrected: true }
                   : msg
               )
             );
@@ -789,92 +717,27 @@ export default function ElevenLabsAgent() {
         },
       });
 
-      conversationRef.current = conversation;
-      console.log("[ElevenLabsAgent:Init] conversation instance assigned to ref successfully.");
-    } catch (err) {
-      console.warn("[ElevenLabsAgent:Init:Error] Caught exception during Conversation.startSession initialization:", {
-        name: err?.name,
-        message: err?.message,
-        stack: err?.stack,
-        details: err,
-      });
-      const isDenied =
-        err?.name === "NotAllowedError" ||
-        err?.name === "PermissionDeniedError" ||
-        err?.message?.includes("Permission") ||
-        err?.message?.includes("denied");
-      if (isDenied) {
-        setIsMicPermissionDenied(true);
-        setErrorMessage(
-          "Microphone access was denied. Please allow microphone permissions to speak with the agent."
-        );
-      } else if (
-        err?.message?.includes("rawAudioProcessor") ||
-        err?.message?.includes("audioConcatProcessor") ||
-        err?.message?.includes("AudioWorklet") ||
-        err?.message?.includes("audio capture") ||
-        err?.message?.includes("worklet")
-      ) {
-        console.warn(
-          `[ElevenLabsAgent] Audio worklet failed to load during session initialization: ${err?.message}. ` +
-          `Please manually verify that /public/rawAudioProcessor.js exists in the public directory structure and is accessible at the root level during dev and production.`
-        );
-        setErrorMessage(
-          "Audio capture worklet could not be initialized in this browser. Self-hosted worklets have been configured, please manually verify the /public directory structure."
-        );
-      } else if (
-        err?.message?.includes("signal connection") ||
-        err?.message?.includes("signal stream") ||
-        err?.name === "ConnectionError" ||
-        err?.reasonName === "WebSocket" ||
-        err?.code === 1
-      ) {
-        if (transportMode === "webrtc" && !forceRelay && retryAttemptRef.current === 0) {
-          retryAttemptRef.current = 1;
-          console.warn("[ElevenLabsAgent:Init] WebRTC direct signal stream failed, auto-retrying with TURN relay...");
-          setErrorMessage("Direct WebRTC signal stream dropped. Retrying with TURN relay...");
-          setUseRelayPolicy(true);
-          setTimeout(() => {
-            startSessionRef.current?.({ forceRelay: true, connectionMode: "webrtc" });
-          }, 450);
-          return;
-        } else if (transportMode === "webrtc" && retryAttemptRef.current <= 1) {
-          retryAttemptRef.current = 2;
-          console.warn("[ElevenLabsAgent:Init] WebRTC transport blocked or failed. Auto-recovering via direct WebSocket stream...");
-          setErrorMessage("WebRTC signal dropped. Reconnecting via direct WebSocket audio stream...");
-          connectionModeRef.current = "websocket";
-          setConnectionMode("websocket");
-          setTimeout(() => {
-            startSessionRef.current?.({ connectionMode: "websocket" });
-          }, 450);
-          return;
-        }
-        setErrorMessage(
-          "Could not establish voice connection with ElevenLabs. Network UDP or WebSocket signaling may be blocked by a firewall, VPN, or ad-blocker."
-        );
-        setShowDiagnostics(true);
-      } else if (err?.status === 401 || err?.status === 403 || err?.isAuthError) {
-        if (err?.message?.includes("API key ID used as API key")) {
-          setErrorMessage(
-            "An API key ID was configured instead of a secret API key. ElevenLabs secret keys start with 'sk_'. The app will connect using public agent access."
-          );
-        } else {
-          setErrorMessage(
-            `Voice agent authentication error: ${err.message}. Please verify that your ElevenLabs API Key starts with 'sk_' and agent permissions allow web widget access.`
-          );
-        }
-      } else if (err?.status === 404) {
-        setErrorMessage(
-          `Voice agent not found (HTTP 404). Please verify that Agent ID "${AGENT_ID}" is active and published in your ElevenLabs dashboard.`
-        );
-      } else if (err?.message?.includes("conversation token") || err?.message?.includes("Failed to fetch")) {
-        setErrorMessage(
-          "Could not fetch conversation token from voice platform. Please check your network connection or try again."
-        );
-      } else {
-        setErrorMessage(err?.message || "Failed to connect to voice agent.");
+      if (!mountedRef.current || currentGen !== generationRef.current) {
+        console.log(`[ElevenLabs:LIFECYCLE] stale session discarded (gen: ${currentGen})`);
+        conversation.endSession().catch(() => {});
+        return;
       }
-      setStatus("error");
+
+      if (conversationRef.current && conversationRef.current !== conversation) {
+        conversationRef.current.endSession().catch(() => {});
+      }
+
+      conversationRef.current = conversation;
+    } catch (err) {
+      console.warn("[ElevenLabsAgent:Init:Error] Caught exception during Conversation.startSession:", err);
+      if (mountedRef.current && currentGen === generationRef.current) {
+        setErrorMessage(err?.message || "Failed to connect to voice agent.");
+        setStatus("error");
+      }
+    } finally {
+      if (currentGen === generationRef.current) {
+        connectingRef.current = false;
+      }
     }
   }, [router, useRelayPolicy, repairName, serviceName]);
 
@@ -899,6 +762,30 @@ export default function ElevenLabsAgent() {
       setIsSendingText(true);
 
       try {
+        // First try the Gemini-powered conversational agent endpoint
+        const geminiRes = await fetch("/api/agent/gemini-chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: query }),
+        });
+
+        if (geminiRes.ok) {
+          const geminiData = await geminiRes.json();
+          if (geminiData.ok && geminiData.reply) {
+            setTranscript((prev) => [
+              ...prev,
+              {
+                id: `agent-${Date.now()}`,
+                sender: "agent",
+                text: geminiData.reply,
+                timestamp: new Date(),
+              },
+            ]);
+            return;
+          }
+        }
+
+        // Fallback: search storefront products directly
         const res = await fetch("/api/agent/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -950,14 +837,30 @@ export default function ElevenLabsAgent() {
   );
 
   useEffect(() => {
+    mountedRef.current = true;
+    generationRef.current++;
+    const gen = generationRef.current;
+    console.log(`[ElevenLabs:LIFECYCLE] cleanup setup (gen: ${gen})`);
+
     return () => {
+      mountedRef.current = false;
+      generationRef.current++;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+        console.log(`[ElevenLabs:LIFECYCLE] reconnect cancelled`);
+      }
       if (volumeAnimFrameRef.current) {
         cancelAnimationFrame(volumeAnimFrameRef.current);
         volumeAnimFrameRef.current = null;
       }
       if (conversationRef.current) {
-        conversationRef.current.endSession().catch(() => {});
+        const conv = conversationRef.current;
+        conversationRef.current = null;
+        conv.endSession().catch(() => {});
       }
+      connectingRef.current = false;
+      console.log(`[ElevenLabs:LIFECYCLE] cleanup`);
     };
   }, []);
 

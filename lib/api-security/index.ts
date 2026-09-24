@@ -5,7 +5,7 @@ export interface AllowedOriginsOptions {
 }
 
 export function isAllowedOrigin(origin: string | undefined, options: AllowedOriginsOptions = { allowedOrigins: [] }): boolean {
-  if (origin === undefined) return false
+  if (origin === undefined) return true
   if (!origin) return true
 
   if (options.allowLocalhost !== false) {
@@ -28,8 +28,12 @@ export function isAllowedOrigin(origin: string | undefined, options: AllowedOrig
 
 export function applyCors(res: any, origin: string | undefined, options: AllowedOriginsOptions): void {
   if (isAllowedOrigin(origin, options)) {
-    res.setHeader('Access-Control-Allow-Origin', origin)
-    res.setHeader('Vary', 'Origin')
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin)
+      res.setHeader('Vary', 'Origin')
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*')
+    }
   }
 }
 

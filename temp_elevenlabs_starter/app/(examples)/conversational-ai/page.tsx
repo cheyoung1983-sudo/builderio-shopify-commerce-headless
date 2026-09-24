@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { Separator } from '@/components/ui/separator';
 
 import AgentSelector from './components/agent-selector';
@@ -37,7 +38,9 @@ export default function Page() {
 
       <Separator className="mb-6" />
 
-      <ConversationUI />
+      <Suspense fallback={<div>Loading...</div>}>
+        <ConversationUI />
+      </Suspense>
     </div>
   );
 }

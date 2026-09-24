@@ -1,14 +1,25 @@
 import React, { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { Volume2, Play, Download, Sparkles, Settings, ArrowLeft } from 'lucide-react';
+import { Volume2, Play, Download, Sparkles, ArrowLeft, Trash2, Clock } from 'lucide-react';
+
+interface AudioCard {
+  id: string;
+  text: string;
+  voiceId: string;
+  modelId: string;
+  outputFormat: string;
+  audioUrl: string;
+  format: string;
+  createdAt: string;
+}
 
 export default function TextToSpeechPage() {
   const [text, setText] = useState('The first move is what sets everything in motion.');
   const [voiceId, setVoiceId] = useState('JBFqnCBsd6RMkjVDRZzb');
   const [modelId, setModelId] = useState('eleven_v3');
   const [outputFormat, setOutputFormat] = useState('mp3_44100_128');
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [history, setHistory] = useState<AudioCard[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,7 +28,6 @@ export default function TextToSpeechPage() {
     if (!text.trim()) return;
     setIsLoading(true);
     setError(null);
-    setAudioUrl(null);
 
     try {
       const res = await fetch('/api/tts/convert', {
@@ -32,7 +42,17 @@ export default function TextToSpeechPage() {
       });
       const data = await res.json();
       if (data.ok) {
-        setAudioUrl(data.audioBase64);
+        const newCard: AudioCard = {
+          id: Math.random().toString(36).substring(2, 9),
+          text,
+          voiceId,
+          modelId,
+          outputFormat,
+          audioUrl: data.audioBase64,
+          format: data.format || (outputFormat.startsWith('pcm') ? 'wav' : 'mp3'),
+          createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        };
+        setHistory((prev) => [newCard, ...prev]);
       } else {
         setError(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
       }
@@ -43,11 +63,19 @@ export default function TextToSpeechPage() {
     }
   };
 
+  const handleClearHistory = () => {
+    setHistory([]);
+  };
+
+  const handleDeleteCard = (id: string) => {
+    setHistory((prev) => prev.filter((item) => item.id !== id));
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
       <Head>
         <title>Text-to-Speech Generation | ElevenLabs</title>
-        <meta name="description" content="Generate speech from text using ElevenLabs eleven_v3 model." />
+        <meta name="description" content="Generate and download speech as WAV or MP3 from text using ElevenLabs models." />
       </Head>
 
       {/* Header */}
@@ -61,7 +89,7 @@ export default function TextToSpeechPage() {
               <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
                 ElevenLabs Text-to-Speech <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-medium">eleven_v3</span>
               </h1>
-              <p className="text-xs text-slate-400">Generate high-fidelity audio from text</p>
+              <p className="text-xs text-slate-400">Generate high-fidelity audio and download as WAV or MP3</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -77,7 +105,7 @@ export default function TextToSpeechPage() {
       </header>
 
       {/* Main Container */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl space-y-6">
           <div className="flex items-center justify-between pb-4 border-b border-slate-800">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -130,9 +158,11 @@ export default function TextToSpeechPage() {
                   onChange={(e) => setOutputFormat(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-purple-500 font-mono text-xs"
                 >
-                  <option value="mp3_44100_128">mp3_44100_128</option>
-                  <option value="mp3_22050_32">mp3_22050_32</option>
-                  <option value="pcm_16000">pcm_16000</option>
+                  <option value="mp3_44100_128">mp3_44100_128 (MP3)</option>
+                  <option value="mp3_22050_32">mp3_22050_32 (MP3)</option>
+                  <option value="pcm_16000">pcm_16000 (WAV)</option>
+                  <option value="pcm_22050">pcm_22050 (WAV)</option>
+                  <option value="pcm_44100">pcm_44100 (WAV)</option>
                 </select>
               </div>
             </div>
@@ -152,25 +182,62 @@ export default function TextToSpeechPage() {
               {typeof error === 'string' ? error : JSON.stringify(error)}
             </div>
           )}
-
-          {audioUrl && (
-            <div className="p-6 bg-slate-950 border border-slate-800 rounded-2xl space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-purple-400 flex items-center gap-2">
-                  <Play className="w-4 h-4" /> Synthesized Audio Ready
-                </span>
-                <a
-                  href={audioUrl}
-                  download="audio.mp3"
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium transition flex items-center gap-1.5"
-                >
-                  <Download className="w-3.5 h-3.5" /> Download MP3
-                </a>
-              </div>
-              <audio controls src={audioUrl} className="w-full" />
-            </div>
-          )}
         </div>
+
+        {/* Audio Generation Cards Section */}
+        {history.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-md font-semibold text-white flex items-center gap-2">
+                <Volume2 className="w-4 h-4 text-purple-400" /> Generated Audio Cards ({history.length})
+              </h3>
+              <button
+                onClick={handleClearHistory}
+                className="text-xs text-slate-400 hover:text-rose-400 transition flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Clear All
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {history.map((card) => (
+                <div key={card.id} className="p-6 bg-slate-900 border border-slate-800 rounded-2xl space-y-4 shadow-xl relative group">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-slate-200 line-clamp-2 italic">&ldquo;{card.text}&rdquo;</p>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400 font-mono pt-1">
+                        <span className="px-2 py-0.5 bg-slate-800 rounded-md text-purple-300">Voice: {card.voiceId.slice(0, 8)}...</span>
+                        <span className="px-2 py-0.5 bg-slate-800 rounded-md text-indigo-300">Model: {card.modelId}</span>
+                        <span className="px-2 py-0.5 bg-slate-800 rounded-md text-slate-300">Format: {card.format.toUpperCase()}</span>
+                        <span className="flex items-center gap-1 text-slate-500"><Clock className="w-3 h-3" /> {card.createdAt}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={card.audioUrl}
+                        download={`audio_${card.id}.${card.format}`}
+                        className="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-medium transition flex items-center gap-1.5 shadow-md"
+                      >
+                        <Download className="w-4 h-4" /> Download {card.format.toUpperCase()}
+                      </a>
+                      <button
+                        onClick={() => handleDeleteCard(card.id)}
+                        className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 rounded-xl transition"
+                        title="Delete card"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <audio controls src={card.audioUrl} className="w-full h-10 accent-purple-500" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

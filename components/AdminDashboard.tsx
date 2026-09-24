@@ -311,6 +311,57 @@ export default function AdminDashboard() {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white border rounded-2xl p-6 space-y-4 shadow-sm">
+              <h3 className="font-bold flex items-center gap-2 text-indigo-900">
+                <CreditCard className="w-5 h-5" />
+                Checkout Protocol & Errors
+              </h3>
+              <div className="space-y-3">
+                <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100">
+                  <p className="text-xs font-bold text-neutral-700 uppercase mb-1">Business Outcomes</p>
+                  <p className="text-[11px] text-neutral-600 leading-snug">
+                    Inspect <code className="text-indigo-600">ucp.status</code> and <code className="text-indigo-600">messages</code>. 
+                    Handle <code className="bg-red-50 px-1 rounded text-red-700">requires_escalation</code> by using the <code className="text-indigo-600">continue_url</code> to hand off to the buyer.
+                  </p>
+                </div>
+                <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100">
+                  <p className="text-xs font-bold text-neutral-700 uppercase mb-1">Common Error Codes</p>
+                  <ul className="text-[11px] text-neutral-600 list-disc list-inside space-y-1">
+                    <li><span className="font-semibold">out_of_stock:</span> Suggest alternatives or adjust quantity.</li>
+                    <li><span className="font-semibold">item_unavailable:</span> Remove/replace item and update checkout.</li>
+                    <li><span className="font-semibold">payment_failed:</span> Ask for different payment or use <code className="text-indigo-600">continue_url</code>.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white border rounded-2xl p-6 space-y-4 shadow-sm">
+              <h3 className="font-bold flex items-center gap-2 text-indigo-900">
+                <Shield className="w-5 h-5" />
+                Shop Pay Payment Handler
+              </h3>
+              <p className="text-[11px] text-neutral-600 leading-snug">
+                Accelerate checkout using <code className="text-emerald-600">dev.shopify.shop_pay</code>.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                  <p className="text-[10px] font-bold text-emerald-800 uppercase">Path A</p>
+                  <p className="text-[10px] text-emerald-700 mt-1">One-time payment request via Shop Pay interface.</p>
+                </div>
+                <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                  <p className="text-[10px] font-bold text-emerald-800 uppercase">Path B</p>
+                  <p className="text-[10px] text-emerald-700 mt-1">Identity-Linked payment tokens for autonomous checkout.</p>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-neutral-100">
+                <p className="text-[10px] text-neutral-500 italic">
+                  Ensure <code className="text-indigo-600">shop_id</code> is advertising in your merchant configuration to enable Shop Pay support.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-6">
             <h3 className="font-bold flex items-center gap-2 mb-4">
               <Shield className="text-indigo-600 w-5 h-5" />

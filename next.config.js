@@ -44,7 +44,7 @@ const nextConfig = {
               // that). cdn.builder.io/builder.io/*.builder.io covers the visual
               // editor's embed bridge script; vercel.live covers the Toolbar/
               // Live feedback widget on preview deployments.
-              `script-src 'self' blob: data: https://cdn.builder.io https://builder.io https://*.builder.io https://vercel.live${
+              `script-src 'self' blob: data: 'unsafe-inline' 'unsafe-eval' https://cdn.builder.io https://builder.io https://*.builder.io https://vercel.live https://www.googletagmanager.com https://tagmanager.google.com https://www.googleadservices.com https://www.google.com${
                 process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''
               }`,
               // worker-src: required for Web Workers and AudioWorklet processors (e.g. ElevenLabs conversational client)
@@ -55,7 +55,7 @@ const nextConfig = {
               // pin here without a much larger Emotion-cache/nonce migration.
               // This is a much smaller risk than the missing script-src above:
               // inline styles can't execute arbitrary JS.
-              "style-src 'self' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://tagmanager.google.com https://fonts.googleapis.com",
               // object-src 'none': blocks <object>/<embed>/<applet> entirely —
               // there's no legitimate use of any of them in this app, and they
               // were an unrestricted vector under the old policy.
@@ -68,17 +68,17 @@ const nextConfig = {
               // deployments renders its UI in an iframe from vercel.live —
               // without this, adding default-src 'self' above would silently
               // break it (it was unrestricted before this change).
-              "frame-src 'self' https://vercel.live",
+              "frame-src 'self' https://vercel.live https://www.googletagmanager.com https://*.fls.doubleclick.net",
               // connect-src: covers client-side fetches — Builder.io content API
               // (builder.get() calls from the browser, e.g. Navbar's announcement
               // bar), the shopify-buy SDK talking to the Storefront API directly
               // from the browser, and the Vercel Toolbar/Live feedback widget on
               // preview deployments (fixes the sw.js/geist.woff2 console noise).
               // ws://localhost:* is for next dev's Fast Refresh websocket.
-              "connect-src 'self' https://cdn.builder.io https://builder.io https://*.builder.io https://*.myshopify.com https://vercel.live https://*.vercel.live wss://*.pusher.com https://vitals.vercel-insights.com ws://localhost:* https://ais-dev-jexmzfsqsgf4mbwujko5hx-367327296310.us-west2.run.app https://ai.studio https://api.elevenlabs.io https://*.elevenlabs.io wss://api.elevenlabs.io wss://*.elevenlabs.io https://*.rtc.elevenlabs.io wss://*.rtc.elevenlabs.io https://*.rtc.eu.residency.elevenlabs.io wss://*.rtc.eu.residency.elevenlabs.io https://*.livekit.cloud wss://*.livekit.cloud",
+              "connect-src 'self' https://cdn.builder.io https://builder.io https://*.builder.io https://*.myshopify.com https://vercel.live https://*.vercel.live wss://*.pusher.com https://vitals.vercel-insights.com ws://localhost:* https://ais-dev-jexmzfsqsgf4mbwujko5hx-367327296310.us-west2.run.app https://ai.studio https://api.elevenlabs.io https://*.elevenlabs.io wss://api.elevenlabs.io wss://*.elevenlabs.io https://*.rtc.elevenlabs.io wss://*.rtc.elevenlabs.io https://*.rtc.eu.residency.elevenlabs.io wss://*.rtc.eu.residency.elevenlabs.io https://*.livekit.cloud wss://*.livekit.cloud https://www.googletagmanager.com https://www.google.com https://*.google-analytics.com https://*.google.com https://*.g.doubleclick.net https://pagead2.googlesyndication.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://ad.doubleclick.net https://*.merchant-center-analytics.goog",
               // img-src: mirrors the remotePatterns allowed by next/image above.
-              "img-src 'self' data: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://via.placeholder.com https://vercel.live https://vercel.com https://*.vercel-insights.com",
-              "font-src 'self' data: https://vercel.live",
+              "img-src 'self' data: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://via.placeholder.com https://vercel.live https://vercel.com https://*.vercel-insights.com https://www.googletagmanager.com https://ssl.gstatic.com https://www.gstatic.com https://*.google-analytics.com https://*.google.com https://*.g.doubleclick.net https://www.googleadservices.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://ad.doubleclick.net https://ade.googlesyndication.com https://adservice.google.com https://*.merchant-center-analytics.goog",
+              "font-src 'self' data: https://vercel.live https://fonts.gstatic.com",
             ].join('; '),
           },
           // X-Frame-Options is intentionally omitted: it can't express "allow
