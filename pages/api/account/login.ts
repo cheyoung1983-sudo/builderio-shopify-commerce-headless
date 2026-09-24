@@ -6,17 +6,11 @@ import {
   generateNonce,
   generateState,
   getCallbackUrl,
-} from '../../../services/shopify-customer-account'
-import { appendCookie, COOKIE, isHttpsRequest } from '../../../lib/shopify/customer-account/cookies'
+  sanitizeReturnTo,
+} from '../../../services/shopify-customer-account.ts'
+import { appendCookie, COOKIE, isHttpsRequest } from '../../../lib/shopify/customer-account/cookies.ts'
 
 const PKCE_COOKIE_MAX_AGE = 600 // 10 minutes: just long enough to complete the redirect round trip
-
-function sanitizeReturnTo(value: unknown): string {
-  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) {
-    return '/account'
-  }
-  return value
-}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {

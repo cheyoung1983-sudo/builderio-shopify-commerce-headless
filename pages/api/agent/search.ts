@@ -22,6 +22,10 @@ function getClientKey(req: NextApiRequest): string {
   return address?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
 }
 
+function hasOwn(value: unknown, key: string): boolean {
+  return typeof value === 'object' && value !== null && Object.prototype.hasOwnProperty.call(value, key)
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const corsOptions = {
     allowedOrigins,
@@ -40,6 +44,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(429).json({ ok: false, error: 'Too many requests' })
   }
 
+  if (!isAllowedOrigin(req.headers.origin, corsOptions)) {
+    return res.status(403).json({ ok: false, error: 'Origin not allowed' })
+  }
+
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({
       ok: false,
@@ -47,25 +55,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
   }
 
-  if (req.headers.origin && !isAllowedOrigin(req.headers.origin, corsOptions)) {
-    return res.status(403).json({ ok: false, error: 'Origin not allowed' })
-  }
-
   try {
+    const body = req.method === 'POST' ? req.body : undefined
+    if (
+      req.method === 'POST' &&
+      body !== undefined &&
+      (body === null || typeof body !== 'object' || Array.isArray(body))
+    ) {
+      return res.status(400).json({ ok: false, error: 'Invalid request body' })
+    }
+
     const rawQuery =
       req.method === 'POST'
-        ? req.body?.query ?? req.body?.q ?? req.query?.query ?? req.query?.q
+        ? hasOwn(body, 'query')
+          ? (body as any).query
+          : hasOwn(body, 'q')
+          ? (body as any).q
+          : req.query?.query ?? req.query?.q
         : req.query?.query ?? req.query?.q
 
     const rawFirst =
       req.method === 'POST'
-        ? req.body?.first ?? req.query?.first
+        ? hasOwn(body, 'first')
+          ? (body as any).first
+          : req.query?.first
         : req.query?.first
 
-    const rawSearchQuery = rawQuery === undefined
+    const query = rawQuery === undefined
       ? ''
       : readBoundedString(rawQuery, { maxLength: 200 })
-    const query = typeof rawSearchQuery === 'string' ? rawSearchQuery.slice(0, 200) : ''
     const first = rawFirst === undefined
       ? 5
       : readBoundedInteger(rawFirst, { min: 1, max: 25 }) || 5
@@ -81,6 +99,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           batchSize: Math.max(first, 10),
           onlyAvailable: true,
         })
+
+    if (result.ok === false || (result.errors && result.errors.length > 0)) {
+      console.error('[API /api/agent/search] Shopify returned errors:', result.errors)
+      return res.status(502).json({
+        ok: false,
+        error: 'Failed to search products',
+        products: [],
+      })
+    }
 
     const formattedProducts = (result.products || []).map((product) => {
       const primaryPrice =

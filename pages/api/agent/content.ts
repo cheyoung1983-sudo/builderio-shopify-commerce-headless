@@ -17,6 +17,10 @@ function getClientKey(req: NextApiRequest): string {
   return address?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
 }
 
+function hasOwn(value: unknown, key: string): boolean {
+  return typeof value === 'object' && value !== null && Object.prototype.hasOwnProperty.call(value, key)
+}
+
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
@@ -39,6 +43,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(429).json({ ok: false, error: 'Too many requests' })
   }
 
+  if (!isAllowedOrigin(req.headers.origin, corsOptions)) {
+    return res.status(403).json({ ok: false, error: 'Origin not allowed' })
+  }
+
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({
       ok: false,
@@ -46,30 +54,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
   }
 
-  if (req.headers.origin && !isAllowedOrigin(req.headers.origin, corsOptions)) {
-    return res.status(403).json({ ok: false, error: 'Origin not allowed' })
-  }
-
   try {
+    const body = req.method === 'POST' ? req.body : undefined
+    if (
+      req.method === 'POST' &&
+      body !== undefined &&
+      (body === null || typeof body !== 'object' || Array.isArray(body))
+    ) {
+      return res.status(400).json({ ok: false, error: 'Invalid request body', results: [] })
+    }
+
     const rawModel =
       req.method === 'POST'
-        ? req.body?.model ?? req.query?.model
+        ? hasOwn(body, 'model')
+          ? (body as any).model
+          : req.query?.model
         : req.query?.model
 
     const rawQuery =
       req.method === 'POST'
-        ? req.body?.query ?? req.query?.query
+        ? hasOwn(body, 'query')
+          ? (body as any).query
+          : req.query?.query
         : req.query?.query
 
     const model =
       rawModel === undefined
         ? 'page'
         : readBoundedString(rawModel, { maxLength: 100, truncate: false })
-    const boundedQuery =
+    const query =
       rawQuery === undefined
         ? ''
         : readBoundedString(rawQuery, { maxLength: 120, truncate: false })
-    const query = typeof boundedQuery === 'string' ? boundedQuery.slice(0, 120) : undefined
 
     if (!model || query === undefined) {
       return res.status(400).json({ ok: false, error: 'Invalid model or query', results: [] })
