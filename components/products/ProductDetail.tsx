@@ -508,7 +508,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                       key={idx}
                       id={`thumbnail-btn-${idx}`}
                       onClick={() => setSelectedImageIndex(idx)}
-                      className={`relative w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
+                      className={`relative w-20 h-20 shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
                         isSelected
                           ? 'border-emerald-600 shadow-sm ring-2 ring-emerald-500/20'
                           : 'border-neutral-200/80 hover:border-neutral-300 opacity-70 hover:opacity-100'
@@ -618,7 +618,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
             {/* Repair / Service Notice */}
             <div className="flex items-center gap-2 text-xs text-neutral-600 bg-amber-50/70 border border-amber-200/60 p-2.5 rounded-lg mb-5">
-              <Clock className="w-4 h-4 text-amber-600 flex-shrink-0" />
+              <Clock className="w-4 h-4 text-amber-600 shrink-0" />
               <span>
                 Includes professional installation labor. Typical turnaround:{' '}
                 <strong className="text-neutral-800">45–60 minutes</strong>.
@@ -713,7 +713,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : addSuccess ? (
                     <>
-                      <Check className="w-4 h-4 stroke-[3]" />
+                      <Check className="w-4 h-4 stroke-3" />
                       <span>Added to Cart!</span>
                     </>
                   ) : isAvailable ? (
@@ -857,21 +857,21 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               {activeTab === 'warranty' && (
                 <div id="tab-warranty-content" className="text-xs text-neutral-600 space-y-2.5 leading-relaxed">
                   <div className="flex items-start gap-2">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                     <div>
                       <strong className="text-neutral-900 block">90-Day Coverage</strong>
                       We stand behind all display screens and console components with a 90-day defect replacement warranty.
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Truck className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <Truck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                     <div>
                       <strong className="text-neutral-900 block">Fast Safe Shipping</strong>
                       Packed in shock-absorbent anti-static packaging with tracking included on every order.
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <RotateCcw className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <RotateCcw className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                     <div>
                       <strong className="text-neutral-900 block">30-Day Easy Returns</strong>
                       Unopened and uninstalled parts can be returned within 30 days of delivery.
@@ -928,7 +928,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             {/* Subtle Horizontal Scroll Progress Bar inside Modal */}
             <div className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-neutral-100/80 overflow-hidden pointer-events-none">
               <div
-                className="h-full bg-gradient-to-r from-primary-600 via-primary-500 to-secondary-500 transition-[width] duration-75 ease-out"
+                className="h-full bg-linear-to-r from-primary-600 via-primary-500 to-secondary-500 transition-[width] duration-75 ease-out"
                 style={{ width: `${modalScrollProgress}%` }}
               />
             </div>
