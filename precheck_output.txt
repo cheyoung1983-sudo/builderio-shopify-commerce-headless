@@ -1,0 +1,72 @@
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> nextjs-shopify@1.0.0 precheck
+> npm run check:node-version && npm run check:ci-integrity && npm run check:dependency-health && npm run check:security-cors && npm run typecheck && npm run lint && npm run check:secrets && npm run check:customer-account-auth-health && npm run check:xss-hardening
+
+npm warn Unknown env config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> nextjs-shopify@1.0.0 check:node-version
+> node scripts/check-node-version-consistency.js
+
+check-node-version-consistency: OK (4 source(s) agree on Node 24)
+npm warn Unknown env config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> nextjs-shopify@1.0.0 check:ci-integrity
+> node scripts/check-ci-integrity.js
+
+check-ci-integrity: OK — CI workflow and eslint config are intact
+npm warn Unknown env config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> nextjs-shopify@1.0.0 check:dependency-health
+> node scripts/check-dependency-health.js
+
+check-dependency-health: OK
+npm warn Unknown env config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> nextjs-shopify@1.0.0 check:security-cors
+> node scripts/check-security-and-cors-health.js
+
+🔍 Checking API CORS & Security Health across pages/api...
+
+✓ Worklet asset public/rawAudioProcessor.js is present.
+✓ Worklet asset public/audioConcatProcessor.js is present.
+
+----------------------------------------
+✅ Security & CORS Health Check PASSED (22 API files scanned, 0 fixed).
+npm warn Unknown env config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> nextjs-shopify@1.0.0 typecheck
+> tsc --noEmit
+
+npm warn Unknown env config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> nextjs-shopify@1.0.0 lint
+> eslint blocks components config context lib pages services
+
+npm warn Unknown env config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> nextjs-shopify@1.0.0 check:secrets
+> node scripts/check-hardcoded-secrets.js
+
+check-hardcoded-secrets: OK (814 files scanned)
+npm warn Unknown env config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> nextjs-shopify@1.0.0 check:customer-account-auth-health
+> node scripts/check-customer-account-auth-health.js
+
+check-customer-account-auth-health: OK
+npm warn Unknown env config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> nextjs-shopify@1.0.0 check:xss-hardening
+> node scripts/check-xss-hardening.js
+
+check-xss-hardening: OK
