@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net: Deny all by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Global Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    // Efficiency helpers for RBAC
+    function isAdminLevel() { 
+      return isVerified() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); 
+    }
+    
+    function isOwnerEmail() {
+      // Bootstrapped owner check based on runtime email
+      return isVerified() && request.auth.token.email == 'cheyoung1983@gmail.com';
+    }
+
+    // --- Validation Blueprints ---
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['uid', 'email', 'role', 'createdAt', 'updatedAt']) &&
+             data.uid == request.auth.uid &&
+             data.email == request.auth.token.email &&
+             data.role in ['owner', 'admin', 'technician'] &&
+             data.createdAt == request.time &&
+             data.updatedAt == request.time;
+    }
+
+    // --- Collection Rules ---
+
+    // 2. Users Collection
+    match /users/{uid} {
+      allow get: if isVerified() && (isOwner(uid) || isAdminLevel());
+      allow list: if isAdminLevel(); // Only admins can list all users
+      
+      allow create: if isVerified() && isValidId(uid) && isOwner(uid) && isValidUser(incoming()) && (
+        // Initial setup for the owner
+        (incoming().role == 'owner' && isOwnerEmail()) ||
+        // Standard registration (technician by default if not bootstrapping)
+        (incoming().role == 'technician')
+      );
+
+      allow update: if isVerified() && isValidId(uid) && (
+        // Action: Self-Profile Update (Limited fields)
+        (isOwner(uid) && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt']) &&
+         incoming().updatedAt == request.time) ||
+        
+        // Action: Admin Role Management
+        (isAdminLevel() &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['role', 'updatedAt']) &&
+         incoming().role in ['admin', 'technician'] &&
+         incoming().updatedAt == request.time)
+      );
+
+      allow delete: if isAdminLevel() && existing().role != 'owner'; // Owners cannot be deleted via dashboard
+    }
+
+    // 3. Admins Collection (Security index)
+    // Only the primary owner can manually add/remove from this O(1) check collection
+    match /admins/{uid} {
+      allow read: if isVerified();
+      allow write: if isVerified() && (isOwnerEmail() || isAdminLevel());
+    }
+  }
+}

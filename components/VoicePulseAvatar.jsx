@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Sparkles, Bot, Mic, Volume2 } from "lucide-react";
 
 /**
@@ -5,7 +6,7 @@ import { Sparkles, Bot, Mic, Volume2 } from "lucide-react";
  * An animated visual avatar and acoustic pulse indicator that dynamically
  * changes size, aura, and ripple effects based on the AI agent's audio output volume.
  */
-export default function VoicePulseAvatar({
+const VoicePulseAvatar = memo(function VoicePulseAvatar({
   volume = 0, // Normalized 0.0 to 1.0
   isSpeaking = false,
   isListening = false,
@@ -218,4 +219,6 @@ export default function VoicePulseAvatar({
       )}
     </div>
   );
-}
+});
+
+export default VoicePulseAvatar;

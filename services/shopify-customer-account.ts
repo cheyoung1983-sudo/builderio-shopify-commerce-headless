@@ -216,6 +216,136 @@ export function decodeIdTokenPayload(idToken: string): Record<string, any> | nul
 }
 
 // ---------------------------------------------------------------------------
+// UCP Delegated IdP Flow (Buyer-Linked Tokens)
+// ---------------------------------------------------------------------------
+
+export interface BuyerLinkedTokenParams {
+  shopAccessToken: string;
+  clientId: string;
+  clientSecret: string;
+  scope?: string;
+  resourceServer?: string; // e.g. 'https://catalog.shopify.com' or 'https://snowdevil.myshopify.com'
+}
+
+/**
+ * Discovery 1: find the authorization server from the resource server's
+ * OAuth protected resource metadata, then read its token endpoint.
+ */
+export async function discoverShopifyAuthServer(resourceServer: string) {
+  const res = await fetch(`${resourceServer}/.well-known/oauth-protected-resource`);
+  if (!res.ok) throw new Error(`${res.status} fetching protected resource metadata from ${resourceServer}`);
+  
+  const { authorization_servers } = await res.json();
+  const issuer = new URL(authorization_servers[0]);
+  const path = issuer.pathname === '/' ? '' : issuer.pathname;
+  
+  const metadataRes = await fetch(`${issuer.origin}/.well-known/oauth-authorization-server${path}`);
+  if (!metadataRes.ok) throw new Error(`${metadataRes.status} fetching auth server metadata from ${issuer.origin}`);
+  
+  const metadata = await metadataRes.json();
+  
+  // The grant's audience: Shopify's global authorization server is
+  // identified by its host, and a merchant store by the store's domain.
+  const audience = path ? new URL(resourceServer).host : issuer.host;
+  
+  return { audience, tokenEndpoint: metadata.token_endpoint };
+}
+
+/**
+ * Discovery 2: find Shop as the delegated IdP from the identity linking
+ * capability in Shopify's UCP business profile.
+ */
+export async function discoverShopAuthUrl(resourceServer: string) {
+  const res = await fetch(`${resourceServer}/.well-known/ucp`);
+  if (!res.ok) throw new Error(`${res.status} fetching UCP business profile from ${resourceServer}`);
+  
+  const { ucp } = await res.json();
+  const [identityLinking] = ucp.capabilities['dev.ucp.common.identity_linking'];
+  const [provider] = Object.values(identityLinking.config.providers as Record<string, any[]>)
+    .flat()
+    .filter((p) => p.type === 'oauth2');
+    
+  return provider.auth_url; // https://accounts.shop.app
+}
+
+/**
+ * Discovery 3: read Shop's OAuth endpoints from its authorization server metadata.
+ */
+export async function discoverShopEndpoints(shopAuthUrl: string) {
+  const res = await fetch(`${shopAuthUrl}/.well-known/oauth-authorization-server`);
+  if (!res.ok) throw new Error(`${res.status} fetching Shop auth server metadata`);
+  return res.json();
+}
+
+/**
+ * Step 2: exchange the Shop access token for a JWT authorization grant (RFC 8693).
+ */
+export async function getAuthorizationGrant(params: {
+  tokenEndpoint: string;
+  audience: string;
+  shopAccessToken: string;
+  clientId: string;
+  clientSecret: string;
+}) {
+  const res = await fetch(params.tokenEndpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+      subject_token: params.shopAccessToken,
+      subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
+      requested_token_type: 'urn:ietf:params:oauth:token-type:jwt',
+      audience: params.audience,
+      client_id: params.clientId,
+      client_secret: params.clientSecret,
+    }),
+  });
+  
+  const json = await res.json();
+  if (!res.ok || json.error) {
+    throw new Error(`Token exchange failed: ${json.error || res.status}`);
+  }
+  return json.access_token; // the JWT authorization grant
+}
+
+/**
+ * Step 3: discover every endpoint, then redeem the grant for a buyer-linked token (RFC 7523).
+ */
+export async function getBuyerLinkedToken(params: BuyerLinkedTokenParams): Promise<string> {
+  const resourceServer = params.resourceServer || 'https://catalog.shopify.com';
+  
+  const shopify = await discoverShopifyAuthServer(resourceServer);
+  const shopAuthUrl = await discoverShopAuthUrl(resourceServer);
+  const { token_endpoint: shopTokenEndpoint } = await discoverShopEndpoints(shopAuthUrl);
+
+  const assertion = await getAuthorizationGrant({
+    tokenEndpoint: shopTokenEndpoint,
+    audience: shopify.audience,
+    shopAccessToken: params.shopAccessToken,
+    clientId: params.clientId,
+    clientSecret: params.clientSecret,
+  });
+
+  const res = await fetch(shopify.tokenEndpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion,
+      client_id: params.clientId,
+      client_secret: params.clientSecret,
+      scope: params.scope || 'dev.ucp.shopping.catalog.search:read',
+    }),
+  });
+  
+  const json = await res.json();
+  if (!res.ok || json.error) {
+    throw new Error(`Buyer-linked token redemption failed: ${json.error || res.status}`);
+  }
+  return json.access_token; // buyer-linked token, valid ~60 minutes
+}
+
+// ---------------------------------------------------------------------------
 // GraphQL
 // ---------------------------------------------------------------------------
 

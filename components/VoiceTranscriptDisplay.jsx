@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, memo } from "react";
 import {
   MessageSquare,
   Bot,
@@ -17,7 +17,7 @@ import {
  * Renders the live scrollable text transcript of the voice conversation between the user
  * and the ElevenLabs AI agent, allowing users to scroll back and review what was said.
  */
-export default function VoiceTranscriptDisplay({
+const VoiceTranscriptDisplay = memo(function VoiceTranscriptDisplay({
   transcript = [],
   isSpeaking = false,
   isConnected = false,
@@ -353,4 +353,6 @@ export default function VoiceTranscriptDisplay({
       </div>
     </div>
   );
-}
+});
+
+export default VoiceTranscriptDisplay;

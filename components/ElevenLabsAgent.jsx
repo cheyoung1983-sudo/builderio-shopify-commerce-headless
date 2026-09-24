@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import Router, { useRouter } from "next/router";
 import { Conversation } from "@elevenlabs/client";
 import {
@@ -26,36 +26,9 @@ import {
 import VoiceTranscriptDisplay from "./VoiceTranscriptDisplay";
 import VoicePulseAvatar from "./VoicePulseAvatar";
 import shopifyConfig from "../config/shopify";
+import { storefrontFetch } from "../services/shopify";
 
-const SHOP_DOMAIN = shopifyConfig.domain;
-const API_URL = `https://${SHOP_DOMAIN}/api/${shopifyConfig.apiVersion || "2024-01"}/graphql.json`;
 const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || "agent_3101m30qaxc1f3981zq05pp86ax1";
-
-async function storefrontFetch(query, variables = {}) {
-  const token =
-    process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_TOKEN ||
-    shopifyConfig.storefrontAccessToken ||
-    "";
-
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { "X-Shopify-Storefront-Access-Token": token } : {}),
-      },
-      body: JSON.stringify({ query, variables }),
-    });
-
-    if (!res.ok) {
-      console.warn(`[ElevenLabsAgent] Storefront HTTP status ${res.status}`);
-    }
-    return await res.json();
-  } catch (err) {
-    console.error("[ElevenLabsAgent] Storefront fetch failed:", err);
-    return { data: null, errors: [{ message: err?.message || "Network error" }] };
-  }
-}
 
 async function resolveWorkletUrl(path) {
   if (typeof window === "undefined") return path;
@@ -289,6 +262,13 @@ export default function ElevenLabsAgent() {
   const [showDynamicVars, setShowDynamicVars] = useState(false);
   const startSessionRef = useRef(null);
 
+  const [searchMode, setSearchMode] = useState("local"); // "local" | "global"
+  const searchModeRef = useRef("local");
+  
+  useEffect(() => {
+    searchModeRef.current = searchMode;
+  }, [searchMode]);
+
   const endSession = useCallback(async () => {
     try {
       if (volumeAnimFrameRef.current) {
@@ -429,6 +409,268 @@ export default function ElevenLabsAgent() {
           rawAudioProcessor: rawWorkletUrl,
           audioConcatProcessor: concatWorkletUrl,
         },
+        clientTools: {
+          search_catalog: async ({ query }) => {
+            try {
+              if (searchModeRef.current === "global") {
+                const res = await fetch("/api/search/global", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ query }),
+                });
+                const data = await res.json();
+                const products = data?.products || [];
+                
+                setTranscript((prev) => [
+                  ...prev,
+                  {
+                    id: `sys-${Date.now()}`,
+                    sender: "system",
+                    text: `Global Discovery: Found ${products.length} matches across Shopify ecosystem for "${query}"`,
+                    timestamp: new Date(),
+                  },
+                ]);
+
+                if (products.length === 0) {
+                  return JSON.stringify({ found: false, message: "No products found in Global Catalog." });
+                }
+
+                return JSON.stringify({
+                  found: true,
+                  count: products.length,
+                  scope: "global",
+                  products: products.map((p) => ({
+                    title: p.title,
+                    merchant: p.seller?.domain,
+                    price: p.price,
+                    currency: p.currency,
+                    buyUrl: p.buyUrl
+                  })),
+                });
+              }
+
+              // Local Search
+              const gql = `
+                query SearchProducts($query: String!) {
+                  products(first: 5, query: $query) {
+                    edges {
+                      node {
+                        id
+                        title
+                        handle
+                        priceRange {
+                          minVariantPrice { amount currencyCode }
+                        }
+                        variants(first: 1) {
+                          edges { node { id availableForSale } }
+                        }
+                      }
+                    }
+                  }
+                }
+              `;
+              const data = await storefrontFetch({ query: gql, variables: { query } });
+              const products = data?.data?.products?.edges?.map((e) => e.node) ?? [];
+
+              setTranscript((prev) => [
+                ...prev,
+                {
+                  id: `sys-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                  sender: "system",
+                  text: `Local Discovery: Searched Spokane catalog for "${query}" (${products.length} found)`,
+                  timestamp: new Date(),
+                },
+              ]);
+
+              if (products.length === 0) {
+                return JSON.stringify({ found: false, message: "No products found in Spokane inventory." });
+              }
+
+              const result = {
+                found: true,
+                count: products.length,
+                scope: "local",
+                products: products.map((p) => ({
+                  title: p.title,
+                  handle: p.handle,
+                  price: p.priceRange?.minVariantPrice?.amount,
+                  currency: p.priceRange?.minVariantPrice?.currencyCode,
+                  variantId: p.variants?.edges?.[0]?.node?.id,
+                  available: p.variants?.edges?.[0]?.node?.availableForSale,
+                })),
+              };
+              return JSON.stringify(result);
+            } catch (error) {
+              console.error("[ElevenLabsAgent] search_catalog error:", error);
+              return JSON.stringify({ found: false, error: (error).message });
+            }
+          },
+
+          switch_search_mode: ({ mode }) => {
+            if (mode === "global" || mode === "local") {
+              setSearchMode(mode);
+              return JSON.stringify({ success: true, mode });
+            }
+            return JSON.stringify({ success: false, message: "Invalid mode. Use 'local' or 'global'." });
+          },
+
+          navigate_to_page: ({ path }) => {
+            if (!path) return JSON.stringify({ success: false });
+            if (router && typeof router.push === "function") {
+              router.push(path);
+            } else {
+              Router.push(path);
+            }
+            return JSON.stringify({ success: true, path });
+          },
+
+          open_cart: () => {
+            if (typeof document !== "undefined") {
+              document.dispatchEvent(new CustomEvent("open-cart"));
+            }
+            return JSON.stringify({ success: true });
+          },
+
+          add_to_cart: async ({ variantId, quantity = 1 }) => {
+            try {
+              let cartId = typeof localStorage !== "undefined" ? localStorage.getItem("cartId") : null;
+
+              if (!cartId) {
+                const createCart = `mutation { cartCreate { cart { id } } }`;
+                const res = await storefrontFetch({ query: createCart });
+                cartId = res?.data?.cartCreate?.cart?.id;
+                if (cartId && typeof localStorage !== "undefined") {
+                  localStorage.setItem("cartId", cartId);
+                }
+              }
+
+              if (!cartId) {
+                // Fallback: fire open-cart event anyway
+                if (typeof document !== "undefined") {
+                  document.dispatchEvent(new CustomEvent("open-cart"));
+                }
+                return JSON.stringify({ success: false, message: "Could not initialize cart" });
+              }
+
+              const addLine = `
+                mutation AddToCart($cartId: ID!, $lines: [CartLineInput!]!) {
+                  cartLinesAdd(cartId: $cartId, lines: $lines) {
+                    cart { id totalQuantity checkoutUrl }
+                  }
+                }
+              `;
+
+              const data = await storefrontFetch({
+                query: addLine,
+                variables: {
+                  cartId,
+                  lines: [{ merchandiseId: variantId, quantity: Number(quantity) || 1 }],
+                },
+              });
+
+              const cart = data?.data?.cartLinesAdd?.cart;
+              if (cart) {
+                if (typeof document !== "undefined") {
+                  document.dispatchEvent(new CustomEvent("open-cart"));
+                }
+                setTranscript((prev) => [
+                  ...prev,
+                  {
+                    id: `sys-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                    sender: "system",
+                    text: `Cart Updated: Added item (Total items: ${cart.totalQuantity})`,
+                    timestamp: new Date(),
+                  },
+                ]);
+                return JSON.stringify({ 
+                  success: true, 
+                  totalQuantity: cart.totalQuantity,
+                  checkoutUrl: cart.checkoutUrl 
+                });
+              }
+
+              return JSON.stringify({ success: false });
+            } catch (error) {
+              console.error("[ElevenLabsAgent] add_to_cart error:", error);
+              return JSON.stringify({ success: false, error: (error).message });
+            }
+          },
+
+          get_cart_info: async () => {
+            try {
+              let cartId = typeof localStorage !== "undefined" ? localStorage.getItem("cartId") : null;
+              if (!cartId) return JSON.stringify({ success: false, message: "Cart is currently empty." });
+
+              const query = `
+                query GetCart($cartId: ID!) {
+                  cart(id: $cartId) {
+                    id
+                    totalQuantity
+                    checkoutUrl
+                    cost { totalAmount { amount currencyCode } }
+                    lines(first: 10) {
+                      edges {
+                        node {
+                          quantity
+                          merchandise { ... on ProductVariant { product { title } } }
+                        }
+                      }
+                    }
+                  }
+                }
+              `;
+              const res = await storefrontFetch({ query, variables: { cartId } });
+              const cart = res?.data?.cart;
+              if (cart) {
+                return JSON.stringify({
+                  success: true,
+                  totalQuantity: cart.totalQuantity,
+                  checkoutUrl: cart.checkoutUrl,
+                  totalAmount: cart.cost.totalAmount.amount,
+                  currency: cart.cost.totalAmount.currencyCode,
+                  items: cart.lines.edges.map(e => `${e.node.quantity}x ${e.node.merchandise.product.title}`)
+                });
+              }
+              return JSON.stringify({ success: false, message: "Cart not found." });
+            } catch (error) {
+              return JSON.stringify({ success: false, error: error.message });
+            }
+          },
+
+          track_order: async ({ orderId, email }) => {
+            try {
+              const res = await fetch("/api/orders/track", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ orderId, email }),
+              });
+              const data = await res.json();
+              if (data.success && data.order) {
+                const order = data.order;
+                setTranscript((prev) => [
+                  ...prev,
+                  {
+                    id: `sys-${Date.now()}`,
+                    sender: "system",
+                    text: `Order Tracking: ${order.orderNumber} is ${order.statusLabel.toUpperCase()}`,
+                    timestamp: new Date(),
+                  },
+                ]);
+                return JSON.stringify({
+                  success: true,
+                  orderNumber: order.orderNumber,
+                  status: order.statusLabel,
+                  statusMessage: order.statusMessage,
+                  estimatedDelivery: order.estimatedDeliveryDate,
+                  items: order.items.map(i => i.title),
+                });
+              }
+              return JSON.stringify({ success: false, error: data.error || "Order not found. Please verify Order ID and Email." });
+            } catch (error) {
+              return JSON.stringify({ success: false, error: error.message });
+            }
+          },
+        },
         ...(transportMode === "websocket"
           ? {
               agentId: AGENT_ID,
@@ -544,139 +786,6 @@ export default function ElevenLabsAgent() {
               )
             );
           }
-        },
-        clientTools: {
-          search_catalog: async ({ query }) => {
-            try {
-              const gql = `
-                query SearchProducts($query: String!) {
-                  products(first: 5, query: $query) {
-                    edges {
-                      node {
-                        id
-                        title
-                        handle
-                        priceRange {
-                          minVariantPrice { amount currencyCode }
-                        }
-                        variants(first: 1) {
-                          edges { node { id availableForSale } }
-                        }
-                      }
-                    }
-                  }
-                }
-              `;
-              const data = await storefrontFetch(gql, { query });
-              const products = data?.data?.products?.edges?.map((e) => e.node) ?? [];
-
-              setTranscript((prev) => [
-                ...prev,
-                {
-                  id: `sys-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                  sender: "system",
-                  text: `Searched catalog for "${query}" (${products.length} found)`,
-                  timestamp: new Date(),
-                },
-              ]);
-
-              if (products.length === 0) {
-                return JSON.stringify({ found: false, message: "No products found." });
-              }
-
-              const result = {
-                found: true,
-                count: products.length,
-                products: products.map((p) => ({
-                  title: p.title,
-                  handle: p.handle,
-                  price: p.priceRange?.minVariantPrice?.amount,
-                  currency: p.priceRange?.minVariantPrice?.currencyCode,
-                  variantId: p.variants?.edges?.[0]?.node?.id,
-                  available: p.variants?.edges?.[0]?.node?.availableForSale,
-                })),
-              };
-              return JSON.stringify(result);
-            } catch (error) {
-              console.error("[ElevenLabsAgent] search_catalog error:", error);
-              return JSON.stringify({ found: false, error: (error).message });
-            }
-          },
-
-          navigate_to_page: ({ path }) => {
-            if (!path) return JSON.stringify({ success: false });
-            if (router && typeof router.push === "function") {
-              router.push(path);
-            } else {
-              Router.push(path);
-            }
-            return JSON.stringify({ success: true, path });
-          },
-
-          open_cart: () => {
-            if (typeof document !== "undefined") {
-              document.dispatchEvent(new CustomEvent("open-cart"));
-            }
-            return JSON.stringify({ success: true });
-          },
-
-          add_to_cart: async ({ variantId, quantity = 1 }) => {
-            try {
-              let cartId = typeof localStorage !== "undefined" ? localStorage.getItem("cartId") : null;
-
-              if (!cartId) {
-                const createCart = `mutation { cartCreate { cart { id } } }`;
-                const res = await storefrontFetch(createCart);
-                cartId = res?.data?.cartCreate?.cart?.id;
-                if (cartId && typeof localStorage !== "undefined") {
-                  localStorage.setItem("cartId", cartId);
-                }
-              }
-
-              if (!cartId) {
-                // Fallback: fire open-cart event anyway
-                if (typeof document !== "undefined") {
-                  document.dispatchEvent(new CustomEvent("open-cart"));
-                }
-                return JSON.stringify({ success: false, message: "Could not initialize cart" });
-              }
-
-              const addLine = `
-                mutation AddToCart($cartId: ID!, $lines: [CartLineInput!]!) {
-                  cartLinesAdd(cartId: $cartId, lines: $lines) {
-                    cart { id totalQuantity checkoutUrl }
-                  }
-                }
-              `;
-
-              const data = await storefrontFetch(addLine, {
-                cartId,
-                lines: [{ merchandiseId: variantId, quantity: Number(quantity) || 1 }],
-              });
-
-              const cart = data?.data?.cartLinesAdd?.cart;
-              if (cart) {
-                if (typeof document !== "undefined") {
-                  document.dispatchEvent(new CustomEvent("open-cart"));
-                }
-                setTranscript((prev) => [
-                  ...prev,
-                  {
-                    id: `sys-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                    sender: "system",
-                    text: `Added item to cart (Total in cart: ${cart.totalQuantity})`,
-                    timestamp: new Date(),
-                  },
-                ]);
-                return JSON.stringify({ success: true, totalQuantity: cart.totalQuantity });
-              }
-
-              return JSON.stringify({ success: false });
-            } catch (error) {
-              console.error("[ElevenLabsAgent] add_to_cart error:", error);
-              return JSON.stringify({ success: false, error: (error).message });
-            }
-          },
         },
       });
 
@@ -898,7 +1007,11 @@ export default function ElevenLabsAgent() {
       const clamped = Math.min(1, Math.max(0, next));
       smoothedVolumeRef.current = clamped;
 
-      setOutputVolume(Math.round(clamped * 100) / 100);
+      const rounded = Math.round(clamped * 100) / 100;
+      setOutputVolume((prev) => {
+        if (Math.abs(prev - rounded) < 0.01) return prev;
+        return rounded;
+      });
 
       volumeAnimFrameRef.current = requestAnimationFrame(tick);
     };
@@ -1361,9 +1474,19 @@ export default function ElevenLabsAgent() {
                     {currentConfig.label}
                   </span>
                 </div>
-                <p className="text-[11px] text-neutral-500 mt-0.5">
-                  {currentConfig.subtext}
-                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-[10px] text-neutral-500 font-medium">Search Scope:</p>
+                  <button
+                    onClick={() => setSearchMode(searchMode === "local" ? "global" : "local")}
+                    className={`px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase transition-colors cursor-pointer ${
+                      searchMode === "global" 
+                        ? "bg-indigo-100 text-indigo-700 border-indigo-200" 
+                        : "bg-emerald-100 text-emerald-700 border-emerald-200"
+                    }`}
+                  >
+                    {searchMode === "global" ? "Global Shopify" : "Local Spokane"}
+                  </button>
+                </div>
               </div>
             </div>
             <button

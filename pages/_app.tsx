@@ -9,6 +9,7 @@ import { startLoading, stopLoading, forceStopLoading } from '../lib/progress'
 import { useScrollRestoration } from '../lib/scroll-restoration'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Analytics } from '@vercel/analytics/next'
+import { AuthProvider } from '../hooks/useAuth'
 
 if (builderConfig.apiKey) {
   builder.init(builderConfig.apiKey)
@@ -51,13 +52,15 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   }, [])
 
   return (
-    <ErrorBoundary boundaryName="app-root-layout">
-      <Layout pageProps={pageProps}>
-        <Component {...pageProps} />
-      </Layout>
-      <SpeedInsights />
-      <Analytics />
-    </ErrorBoundary>
+    <AuthProvider>
+      <ErrorBoundary boundaryName="app-root-layout">
+        <Layout pageProps={pageProps}>
+          <Component {...pageProps} />
+        </Layout>
+        <SpeedInsights />
+        <Analytics />
+      </ErrorBoundary>
+    </AuthProvider>
   )
 }
 

@@ -1,0 +1,40 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Store user roles and basic profile information for RBAC.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email", "description": "Verified user email" },
+        "role": { 
+          "type": "string", 
+          "enum": ["owner", "admin", "technician"], 
+          "description": "Access level" 
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role", "createdAt", "updatedAt"]
+    },
+    "AdminRef": {
+      "title": "Admin Reference",
+      "description": "Simple document presence indicating admin status for fast security rule checks.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" }
+      },
+      "required": ["uid"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "User",
+      "description": "User profiles with role-based access control."
+    },
+    "/admins/{uid}": {
+      "schema": "AdminRef",
+      "description": "Helper collection for O(1) exists() checks in security rules."
+    }
+  }
+}

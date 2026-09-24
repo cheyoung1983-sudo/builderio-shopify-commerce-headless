@@ -260,9 +260,29 @@ export function getShopifyBuyClient() {
 // Helper: sleep utility for backoff
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
+// -------------------------------------------------------------------------
+// Cache Configuration
+// -------------------------------------------------------------------------
+
+const STOREFRONT_CACHE = new Map<string, { data: any; expiry: number }>()
+const DEFAULT_CACHE_TTL = 60000 // 60 seconds
+
+/**
+ * Generates a cache key for a GraphQL request
+ */
+function getCacheKey(options: StorefrontFetchOptions<any>): string {
+  return JSON.stringify({
+    query: options.query,
+    variables: options.variables,
+    domain: options.domain,
+    apiVersion: options.apiVersion,
+  })
+}
+
 /**
  * Robust fetch utility to execute GraphQL queries and mutations against Shopify Storefront API.
  * Features:
+ * - In-memory caching for performance
  * - Dynamic domain & token resolution with custom overrides
  * - Automatic authentication header selection (private vs public storefront token)
  * - Request timeout via AbortController
@@ -309,6 +329,16 @@ export async function storefrontFetch<TData = any, TVariables = Record<string, a
       ok: false,
       status: 400,
       errors: [{ message: error.message }],
+    }
+  }
+
+  // Check Cache for GET-like queries (non-mutations)
+  const isMutation = query.trim().startsWith('mutation')
+  const cacheKey = getCacheKey(options)
+  if (!isMutation && !cache && !next) {
+    const cached = STOREFRONT_CACHE.get(cacheKey)
+    if (cached && cached.expiry > Date.now()) {
+      return cached.data
     }
   }
 
@@ -419,13 +449,23 @@ export async function storefrontFetch<TData = any, TVariables = Record<string, a
           })
         }
 
-        return {
+        const result: StorefrontFetchResult<TData> = {
           ok: !hasGraphQLErrors,
           status: response.status,
           data: json.data,
           errors,
           extensions: json.extensions,
         }
+
+        // Cache successful results for non-mutations
+        if (!isMutation && !cache && !next && result.ok) {
+          STOREFRONT_CACHE.set(cacheKey, {
+            data: result,
+            expiry: Date.now() + DEFAULT_CACHE_TTL,
+          })
+        }
+
+        return result
       } catch (err: any) {
         clearTimeout(timeoutId)
         lastError = err
@@ -1205,6 +1245,77 @@ export const CART_LINES_REMOVE_MUTATION = /* GraphQL */ `
     }
   }
 `
+
+// -------------------------------------------------------------------------
+// Global Catalog (UCP Agentic Commerce)
+// -------------------------------------------------------------------------
+
+export interface GlobalCatalogSearchOptions {
+  query: string;
+  country?: string;
+  profile?: string;
+}
+
+/**
+ * Searches the global Shopify Catalog across all merchants using the UCP Catalog interface.
+ * Note: This implements the "Agent Profile" auth path (no API key required).
+ */
+export async function searchGlobalCatalog(options: GlobalCatalogSearchOptions) {
+  const { 
+    query, 
+    country = 'US', 
+    profile = 'https://shopify.dev/ucp/agent-profiles/2026-08-25/valid-with-capabilities.json' 
+  } = options;
+
+  const endpoint = 'https://catalog.shopify.com/api/ucp/mcp';
+  
+  const body = {
+    jsonrpc: '2.0',
+    method: 'tools/call',
+    id: `search-${Date.now()}`,
+    params: {
+      name: 'search_catalog',
+      arguments: {
+        meta: {
+          'ucp-agent': { profile }
+        },
+        catalog: {
+          query,
+          filters: {
+            ships_to: { country },
+            available: true
+          }
+        }
+      }
+    }
+  };
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    const json = await res.json();
+    
+    if (!res.ok || json.error) {
+      console.error('[Shopify Global Catalog] Search failed:', json.error);
+      return { ok: false, error: json.error?.message || 'Global catalog search failed' };
+    }
+
+    // Process results (clustering by UPID)
+    const result = json.result;
+    return {
+      ok: true,
+      products: result.catalog?.products || [],
+      messages: result.messages || []
+    };
+  } catch (error) {
+    console.error('[Shopify Global Catalog] Network error:', error);
+    return { ok: false, error: (error as Error).message };
+  }
+}
 
 // -------------------------------------------------------------------------
 // Query & Mutation Service Methods
