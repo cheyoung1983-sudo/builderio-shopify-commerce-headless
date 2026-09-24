@@ -37,19 +37,30 @@ function getApiVersion(): string {
 
 /** Resolves the site's own origin used to build the OAuth redirect_uri. */
 export function getSiteUrl(req?: { headers: Record<string, string | string[] | undefined> }): string {
-  if (req) {
+  const siteUrlEnv = process.env.NEXT_PUBLIC_SITE_URL;
+  const trustedProxy = process.env.TRUSTED_PROXY === 'true';
+  const isProd = process.env.NODE_ENV === 'production';
+
+  if (req && trustedProxy) {
     const forwardedProto = req.headers['x-forwarded-proto']
     const proto = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto) || 'https'
     const forwardedHost = req.headers['x-forwarded-host']
     const rawHost = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost) || req.headers.host
     if (rawHost) {
       const host = Array.isArray(rawHost) ? rawHost[0] : rawHost
-      return `${proto}://${host}`
+      const finalProto = isProd && proto === 'http' ? 'https' : proto;
+      return `${finalProto}://${host}`
     }
   }
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, '')
+
+  if (siteUrlEnv) {
+    const normalized = siteUrlEnv.replace(/\/+$/, '');
+    if (isProd && normalized.startsWith('http://')) {
+      return normalized.replace('http://', 'https://');
+    }
+    return normalized;
   }
+
   return 'https://displaycellpros.com'
 }
 
@@ -225,6 +236,62 @@ export async function customerAccountFetch<T = any>(params: {
   return res.json()
 }
 
+export interface CustomerAddress {
+  address1?: string | null
+  address2?: string | null
+  city?: string | null
+  province?: string | null
+  zip?: string | null
+  country?: string | null
+}
+
+export interface CustomerOrderLineItem {
+  id: string
+  title: string
+  quantity: number
+  variantTitle?: string | null
+  image?: {
+    url: string
+    altText?: string | null
+  } | null
+  price?: {
+    amount: string
+    currencyCode: string
+  } | null
+}
+
+export interface CustomerOrder {
+  id: string
+  name: string
+  number?: number | string | null
+  processedAt: string
+  financialStatus?: string | null
+  fulfillmentStatus?: string | null
+  totalPrice?: {
+    amount: string
+    currencyCode: string
+  } | null
+  lineItems?: {
+    edges: Array<{
+      node: CustomerOrderLineItem
+    }>
+  } | null
+}
+
+export interface CustomerAccountProfile {
+  id: string
+  firstName?: string | null
+  lastName?: string | null
+  emailAddress?: { emailAddress?: string | null } | null
+  phoneNumber?: { phoneNumber?: string | null } | null
+  defaultAddress?: CustomerAddress | null
+  orders?: {
+    edges: Array<{
+      node: CustomerOrder
+    }>
+  } | null
+}
+
 export const CUSTOMER_QUERY = /* GraphQL */ `
   query getCustomer {
     customer {
@@ -234,6 +301,9 @@ export const CUSTOMER_QUERY = /* GraphQL */ `
       emailAddress {
         emailAddress
       }
+      phoneNumber {
+        phoneNumber
+      }
       defaultAddress {
         address1
         address2
@@ -242,6 +312,39 @@ export const CUSTOMER_QUERY = /* GraphQL */ `
         zip
         country
       }
+      orders(first: 25, sortKey: PROCESSED_AT, reverse: true) {
+        edges {
+          node {
+            id
+            name
+            number
+            processedAt
+            financialStatus
+            fulfillmentStatus
+            totalPrice {
+              amount
+              currencyCode
+            }
+            lineItems(first: 10) {
+              edges {
+                node {
+                  id
+                  title
+                  quantity
+                  image {
+                    url
+                  }
+                  price {
+                    amount
+                    currencyCode
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 `
+

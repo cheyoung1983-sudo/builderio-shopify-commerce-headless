@@ -34,6 +34,8 @@ import { useAddItemToCart } from '../../lib/shopify/storefront-data-hooks/src/ho
 import { CartContext } from '../../context/CartContext'
 import { useWishlist } from '../../context'
 import { ProductDetailSkeleton } from './ProductDetailSkeleton'
+import { SocialShareButtons } from './SocialShareButtons'
+import { ProductImageZoom } from './ProductImageZoom'
 import { Breadcrumbs } from '../common/Breadcrumbs'
 import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
 import { sanitizeRichText } from '../../lib/sanitize-html'
@@ -168,7 +170,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const images = useMemo(() => {
     if (!product) return []
     const list: Array<{ url: string; altText?: string | null; width?: number | null; height?: number | null }> = []
-    
+
     // Check featuredImage
     if (product.featuredImage?.url) {
       list.push(product.featuredImage)
@@ -208,10 +210,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // Pricing calculations
   const priceAmount = selectedVariant
     ? selectedVariant.price.amount
-    : product?.priceRange.minVariantPrice.amount || '0'
+    : product?.priceRange?.minVariantPrice?.amount || '0'
   const currencyCode = selectedVariant
     ? selectedVariant.price.currencyCode
-    : product?.priceRange.minVariantPrice.currencyCode || 'USD'
+    : product?.priceRange?.minVariantPrice?.currencyCode || 'USD'
 
   const compareAtPriceAmount = selectedVariant?.compareAtPrice?.amount
     ? selectedVariant.compareAtPrice.amount
@@ -299,10 +301,24 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     }
   }
 
-  // Copy product link to clipboard
-  const handleShare = () => {
+  // Share product handler (uses Web Share API if available, else copies link)
+  const handleShare = async () => {
     if (typeof window !== 'undefined' && product?.handle) {
       const url = `${window.location.origin}${productBaseUrl}/${product.handle}`
+      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        try {
+          await navigator.share({
+            title: product.title,
+            text: product.description
+              ? `${product.title} — ${product.description.slice(0, 100)}...`
+              : product.title,
+            url,
+          })
+          return
+        } catch (err: any) {
+          if (err?.name === 'AbortError') return
+        }
+      }
       navigator.clipboard.writeText(url).then(() => {
         setCopiedLink(true)
         setTimeout(() => setCopiedLink(false), 2000)
@@ -310,23 +326,33 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     }
   }
 
+  const previousActiveElementRef = useRef<HTMLElement | null>(null)
+
   // Keyboard navigation & Esc key listener for modal
   useEffect(() => {
     if (!asModal || !isOpen) return
 
+    previousActiveElementRef.current = document.activeElement as HTMLElement | null
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && onClose) {
+        e.preventDefault()
+        e.stopPropagation()
         onClose()
+        if (previousActiveElementRef.current) {
+          previousActiveElementRef.current.focus()
+          previousActiveElementRef.current = null
+        }
       }
     }
 
-    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown, { capture: true })
     // Prevent body scrolling while modal is open
     const originalStyle = document.body.style.overflow
     document.body.style.overflow = 'hidden'
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keydown', handleKeyDown, { capture: true })
       document.body.style.overflow = originalStyle
     }
   }, [asModal, isOpen, onClose])
@@ -398,102 +424,110 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
     return (
       <div id="product-detail-content" className="p-6 md:p-8 lg:p-10">
+        {showBreadcrumbs && !asModal && (
+          <div className="mb-6">
+            <Breadcrumbs
+              id="product-detail-inner-breadcrumbs"
+              product={product}
+              variant="contained"
+              showHomeIcon={true}
+              showBackOnMobile={true}
+            />
+          </div>
+        )}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
           {/* LEFT: Multi-Image Gallery */}
           <div className="lg:col-span-7 flex flex-col gap-4">
-            {/* Main Active Image Box */}
-            <div className="relative aspect-square w-full bg-neutral-100/80 rounded-2xl overflow-hidden border border-neutral-200/80 group">
-              {currentImage.url ? (
-                <Image
-                  src={currentImage.url}
-                  alt={currentImage.altText || product.title}
-                  fill
-                  priority
-                  placeholder="blur"
-                  blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
-                  sizes={RESPONSIVE_IMAGE_SIZES.productDetail}
-                  quality={90}
-                  className="object-contain p-4 transition-transform duration-300 group-hover:scale-105"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-neutral-500 gap-3">
-                  <PackageOpen className="w-16 h-16 stroke-[1.2]" />
-                  <span className="text-sm font-medium">No Image Available</span>
+            {/* Main Active Image Box with Interactive Hover-to-Zoom */}
+            {currentImage.url ? (
+              <ProductImageZoom
+                src={currentImage.url}
+                alt={currentImage.altText || product.title}
+                priority
+                blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+                sizes={RESPONSIVE_IMAGE_SIZES.productDetail}
+                zoomScales={[1.8, 2.5, 3.2]}
+                allowModalInspection={true}
+              >
+                {/* Status Badges Overlay */}
+                <div className="absolute top-4 left-4 flex flex-col gap-2 z-10 pointer-events-none">
+                  {hasDiscount && (
+                    <span className="bg-red-600 text-white text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md shadow-sm">
+                      Save {discountPercent}%
+                    </span>
+                  )}
+                  {product.productType && (
+                    <span className="bg-neutral-900/85 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-md shadow-sm">
+                      {product.productType}
+                    </span>
+                  )}
                 </div>
-              )}
 
-              {/* Status Badges Overlay */}
-              <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
-                {hasDiscount && (
-                  <span className="bg-red-600 text-white text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md shadow-sm">
-                    Save {discountPercent}%
-                  </span>
-                )}
-                {product.productType && (
-                  <span className="bg-neutral-900/85 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-md shadow-sm">
-                    {product.productType}
-                  </span>
-                )}
-              </div>
-
-              {/* Stock Status Badge */}
-              <div className="absolute top-4 right-4 z-10">
-                <span
-                  className={`text-xs font-medium px-2.5 py-1 rounded-md shadow-sm inline-flex items-center gap-1.5 backdrop-blur-sm ${
-                    isAvailable
-                      ? 'bg-emerald-600/90 text-white'
-                      : 'bg-neutral-800/90 text-neutral-300'
-                  }`}
-                >
+                {/* Stock Status Badge */}
+                <div className="absolute top-4 right-20 z-10 pointer-events-none">
                   <span
-                    className={`w-2 h-2 rounded-full ${
-                      isAvailable ? 'bg-emerald-300 animate-pulse' : 'bg-neutral-400'
+                    className={`text-xs font-medium px-2.5 py-1 rounded-md shadow-sm inline-flex items-center gap-1.5 backdrop-blur-sm ${
+                      isAvailable
+                        ? 'bg-emerald-600/90 text-white'
+                        : 'bg-neutral-800/90 text-neutral-300'
                     }`}
-                  />
-                  {isAvailable ? 'In Stock' : 'Out of Stock'}
-                </span>
-              </div>
-
-              {/* Carousel Arrows (if > 1 image) */}
-              {images.length > 1 && (
-                <>
-                  <button
-                    id="product-gallery-prev-btn"
-                    aria-label="Previous image"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSelectedImageIndex((prev) =>
-                        prev === 0 ? images.length - 1 : prev - 1
-                      )
-                    }}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white text-neutral-800 shadow-md flex items-center justify-center transition-all opacity-80 hover:opacity-100 hover:scale-105"
                   >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                  <button
-                    id="product-gallery-next-btn"
-                    aria-label="Next image"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSelectedImageIndex((prev) =>
-                        prev === images.length - 1 ? 0 : prev + 1
-                      )
-                    }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white text-neutral-800 shadow-md flex items-center justify-center transition-all opacity-80 hover:opacity-100 hover:scale-105"
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                </>
-              )}
-
-              {/* Image Counter */}
-              {images.length > 1 && (
-                <div className="absolute bottom-3 right-3 bg-neutral-900/70 backdrop-blur-sm text-white text-[11px] font-medium px-2.5 py-0.5 rounded-full">
-                  {selectedImageIndex + 1} / {images.length}
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        isAvailable ? 'bg-emerald-300 animate-pulse' : 'bg-neutral-400'
+                      }`}
+                    />
+                    {isAvailable ? 'In Stock' : 'Out of Stock'}
+                  </span>
                 </div>
-              )}
-            </div>
+
+                {/* Carousel Arrows (if > 1 image) */}
+                {images.length > 1 && (
+                  <>
+                    <button
+                      id="product-gallery-prev-btn"
+                      type="button"
+                      aria-label="Previous image"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedImageIndex((prev) =>
+                          prev === 0 ? images.length - 1 : prev - 1
+                        )
+                      }}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white text-neutral-800 shadow-md flex items-center justify-center transition-all opacity-80 hover:opacity-100 hover:scale-105 pointer-events-auto cursor-pointer z-10"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button
+                      id="product-gallery-next-btn"
+                      type="button"
+                      aria-label="Next image"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedImageIndex((prev) =>
+                          prev === images.length - 1 ? 0 : prev + 1
+                        )
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white text-neutral-800 shadow-md flex items-center justify-center transition-all opacity-80 hover:opacity-100 hover:scale-105 pointer-events-auto cursor-pointer z-10"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
+
+                {/* Image Counter */}
+                {images.length > 1 && (
+                  <div className="absolute bottom-3 right-3 bg-neutral-900/70 backdrop-blur-sm text-white text-[11px] font-medium px-2.5 py-0.5 rounded-full pointer-events-none z-10">
+                    {selectedImageIndex + 1} / {images.length}
+                  </div>
+                )}
+              </ProductImageZoom>
+            ) : (
+              <div className="relative aspect-square w-full bg-neutral-100/80 rounded-2xl overflow-hidden border border-neutral-200/80 flex flex-col items-center justify-center text-neutral-500 gap-3">
+                <PackageOpen className="w-16 h-16 stroke-[1.2]" />
+                <span className="text-sm font-medium">No Image Available</span>
+              </div>
+            )}
 
             {/* Thumbnail Strip */}
             {images.length > 1 && (
@@ -747,6 +781,22 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   <Heart className={`w-5 h-5 transition-colors ${isSaved ? 'fill-current text-rose-600' : ''}`} />
                 </button>
               </div>
+            </div>
+
+            {/* Social Sharing Section: Twitter, Facebook, Copy Link, Web Share API */}
+            <div id="product-detail-social-share" className="pt-4 border-t border-neutral-200/80 mb-6">
+              <SocialShareButtons
+                url={
+                  typeof window !== 'undefined' && product?.handle
+                    ? `${window.location.origin}${productBaseUrl}/${product.handle}`
+                    : undefined
+                }
+                title={product.title}
+                description={product.description}
+                variant="default"
+                showLabel={true}
+                labelText="Share this product"
+              />
             </div>
 
             {/* Tabbed Info Panel: Overview, Specs, Warranty */}

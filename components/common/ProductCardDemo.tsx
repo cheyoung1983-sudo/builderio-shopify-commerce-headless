@@ -58,6 +58,15 @@ const ProductCardDemo: React.FC<ProductCardProps> = ({
         p: 3,
         display: 'flex',
         flexDirection: 'column',
+        transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+        willChange: 'transform',
+        '&:hover': {
+          transform: 'translateY(-4px) scale(1.025)',
+          boxShadow: '0 16px 32px -8px rgba(20, 21, 24, 0.12)',
+        },
+        '&:active': {
+          transform: 'translateY(-1px) scale(0.995)',
+        },
       }}
       onMouseOut={() => setShowAlternate(false)}
       onMouseOver={() => setShowAlternate(true)}

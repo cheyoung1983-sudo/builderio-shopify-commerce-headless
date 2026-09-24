@@ -119,7 +119,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         onQueryStart?.()
 
         const res = await searchStorefrontProducts(trimmed, {
-          onlyAvailable: true,
+          onlyAvailable: false,
+          unavailable_products: 'show',
           sortKey,
           reverse,
         })

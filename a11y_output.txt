@@ -1,0 +1,499 @@
+npm warn Unknown user config "allow-scripts". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> nextjs-shopify@1.0.0 test:a11y
+> jest
+
+(node:22380) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/.worktrees/storefront-hardening/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\.worktrees\storefront-hardening\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21388) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:25404) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/verification.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15508) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/seo.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20748) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/api-security/index.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:14884) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/webhooks/shopify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20892) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/.worktrees/storefront-hardening/lib/cart-storage.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\.worktrees\storefront-hardening\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15036) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/cart-storage.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3860) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/.worktrees/storefront-hardening/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\.worktrees\storefront-hardening\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21572) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23120) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:25512) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/api-security/index.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8536) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/seo.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7996) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/verification.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:14840) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/.worktrees/storefront-hardening/lib/cart-storage.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\.worktrees\storefront-hardening\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS .worktrees/storefront-hardening/tests/cart-storage.test.js
+(node:16160) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/cart-storage.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS tests/cart-storage.test.js
+(node:5496) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/.worktrees/storefront-hardening/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\.worktrees\storefront-hardening\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23840) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/webhooks/shopify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15496) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:25124) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/seo.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7724) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/api-security/index.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:776) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/verification.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21052) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/.worktrees/storefront-hardening/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\.worktrees\storefront-hardening\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS .worktrees/storefront-hardening/tests/a11y.test.js
+(node:24952) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20804) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/api-security/index.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15460) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/seo.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:22276) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/webhooks/shopify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23364) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24284) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/verification.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2644) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/.worktrees/storefront-hardening/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\.worktrees\storefront-hardening\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8376) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:19788) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/api-security/index.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:18684) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/seo.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS tests/seo-metadata.test.js
+PASS .worktrees/storefront-hardening/tests/config-validation.test.js
+(node:24256) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/webhooks/shopify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4644) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/.worktrees/storefront-hardening/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\.worktrees\storefront-hardening\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21872) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/verification.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:25400) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/api-security/index.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:25468) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS .worktrees/storefront-hardening/tests/newsletter-draft-storage.test.js
+PASS tests/newsletter-draft-storage.test.js
+PASS tests/config-validation.test.js
+(node:22384) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/.worktrees/storefront-hardening/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\.worktrees\storefront-hardening\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8788) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/geofencing.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS tests/a11y.test.js
+(node:12136) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2124) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/webhooks/shopify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21668) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/api-security/index.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3452) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20212) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/.worktrees/storefront-hardening/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\.worktrees\storefront-hardening\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24704) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/verification.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:18312) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3800) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/api-security/index.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS lib/api-security/__tests__/api-security.test.js
+[Shopify Webhook] Invalid HMAC signature received for topic orders/updated from displaycellpros.myshopify.com
+(node:19152) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/webhooks/shopify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS tests/shopify-webhook.test.js
+(node:8068) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/.worktrees/storefront-hardening/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\.worktrees\storefront-hardening\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5364) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/verification.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1120) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21732) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24888) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/.worktrees/storefront-hardening/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\.worktrees\storefront-hardening\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20976) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3692) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/verification.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15612) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/.worktrees/storefront-hardening/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\.worktrees\storefront-hardening\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21828) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23276) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20916) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/.worktrees/storefront-hardening/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\.worktrees\storefront-hardening\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16336) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/audit.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8640) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:25580) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24332) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/.worktrees/storefront-hardening/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\.worktrees\storefront-hardening\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24504) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tax-calculator.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:19984) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24312) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/.worktrees/storefront-hardening/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\.worktrees\storefront-hardening\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS .worktrees/storefront-hardening/tests/validate-email.test.js (5.983 s)
+(node:17836) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/email-service.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16764) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/validate-email.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS tests/validate-email.test.js (6.034 s)
+(node:16724) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20640) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/audit.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24788) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/audit.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:25560) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2772) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/qr-scanner.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:14624) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/qr-scanner.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1788) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:17748) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/pdf-generator.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:11256) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/pdf-generator.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS tests/tribal-dual-track.test.js (7.119 s)
+(node:23036) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10900) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2960) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21652) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:25508) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:11984) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20652) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:9016) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23868) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5996) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6004) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5820) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20892) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:22096) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24644) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/certificate.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:13744) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7676) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/certificate.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS tests/exemption-certificate-validation.test.js (11.214 s)
+(node:24864) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21944) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23932) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8448) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:11780) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:11124) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24764) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15376) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:18260) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7556) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21552) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Shopify Admin GraphQL call failed, returning simulated response: Error: Network timeout connecting to Shopify Admin GraphQL
+    at globalThis.fetch (file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/[eval1]:8:17)
+    at updateShopifyCustomerTribalStatus (file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/shopify-admin.ts:119:25)
+    at file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts:93:18
+    at file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/lib/tribal/sentry-monitor.ts:31:30
+    at file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/node_modules/@sentry/core/build/esm/tracing/trace.js:50:15
+    at file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/node_modules/@sentry/core/build/esm/tracing/trace.js:388:13
+    at handleCallbackErrors (file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/node_modules/@sentry/core/build/esm/utils/handleCallbackErrors.js:9:26)
+    at file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/node_modules/@sentry/core/build/esm/tracing/trace.js:387:11
+    at file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/node_modules/@sentry/core/build/esm/tracing/trace.js:383:14
+    at file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/node_modules/@sentry/core/build/esm/tracing/trace.js:122:12
+(node:24608) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23604) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:18156) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:12624) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20852) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21852) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:22376) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:22184) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:13388) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/cheyo/OneDrive/Documents/GitHub/latest/builderio-shopify-commerce-headless/pages/api/tribal/verify.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\cheyo\OneDrive\Documents\GitHub\latest\builderio-shopify-commerce-headless\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS tests/tribal-verify.test.js (39.187 s)
+
+Test Suites: 16 passed, 16 total
+Tests:       121 passed, 121 total
+Snapshots:   0 total
+Time:        42.423 s
+Ran all test suites.

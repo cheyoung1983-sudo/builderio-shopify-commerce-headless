@@ -14,7 +14,19 @@ import {
 
 const REFRESH_TOKEN_MAX_AGE = 60 * 60 * 24 * 30 // 30 days
 
+function sanitizeReturnTo(value: unknown): string {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) {
+    return '/account'
+  }
+  return value
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET')
+    return res.status(405).json({ error: 'Method not allowed. Use GET.' })
+  }
+
   const { code, state, error, error_description } = req.query
 
   if (error) {
@@ -26,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const expectedState = req.cookies[COOKIE.state]
   const codeVerifier = req.cookies[COOKIE.verifier]
   const expectedNonce = req.cookies[COOKIE.nonce]
-  const returnTo = req.cookies[COOKIE.returnTo] || '/account'
+  const returnTo = sanitizeReturnTo(req.cookies[COOKIE.returnTo])
 
   if (
     typeof code !== 'string' ||
@@ -70,8 +82,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     clearPkceCookies(res, req)
 
     res.redirect(302, returnTo)
-  } catch (err: any) {
+  } catch (err) {
     clearPkceCookies(res, req)
-    res.redirect(302, `/account?error=${encodeURIComponent(err?.message || 'login_failed')}`)
+    console.error('[account/callback] Token exchange failed', err)
+    res.redirect(302, '/account?error=login_failed')
   }
 }

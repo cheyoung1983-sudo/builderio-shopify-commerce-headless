@@ -15,8 +15,9 @@ import {
 import Head from 'next/head'
 import { useThemeUI } from '@theme-ui/core'
 import { getLayoutProps } from '@lib/get-layout-props'
-import { Breadcrumbs } from '../../components/common/Breadcrumbs'
+import { Breadcrumbs, formatCollectionBreadcrumbs } from '../../components/common/Breadcrumbs'
 import { ProductGrid } from '../../components/products/ProductGrid'
+import { ProductGridSkeleton } from '../../components/products/ProductGridSkeleton'
 import DynamicSEO from '../../components/DynamicSEO'
 
 if (builderConfig.apiKey) {
@@ -28,22 +29,47 @@ export async function getStaticProps({
   params,
   locale,
 }: GetStaticPropsContext<{ handle: string }>) {
-  const collection = await getCollection(shopifyConfig, {
-    handle: params?.handle,
-  })
+  try {
+    const collection = await getCollection(shopifyConfig, {
+      handle: params?.handle,
+    }).catch((err) => {
+      console.error(`[pages/collection] Error fetching collection for handle "${params?.handle}":`, err)
+      return null
+    })
 
-  const page = await resolveBuilderContent(builderModel, locale, {
-    collectionHandle: params?.handle,
-  })
+    const page = await resolveBuilderContent(builderModel, locale, {
+      collectionHandle: params?.handle,
+    }).catch((err) => {
+      console.error(`[pages/collection] Error resolving builder content for handle "${params?.handle}":`, err)
+      return null
+    })
 
-  return {
-    notFound: !collection,
-    revalidate: 30,
-    props: {
-      page: page,
-      collection: collection,
-      ...(await getLayoutProps()),
-    },
+    if (!collection && !page) {
+      return {
+        notFound: true,
+        revalidate: 30,
+      }
+    }
+
+    const layoutProps = await getLayoutProps().catch((err) => {
+      console.error('[pages/collection] Error fetching layout props:', err)
+      return { theme: null }
+    })
+
+    return {
+      revalidate: 30,
+      props: {
+        page: page,
+        collection: collection,
+        ...layoutProps,
+      },
+    }
+  } catch (error) {
+    console.error(`[pages/collection] Unexpected error in getStaticProps for handle "${params?.handle}":`, error)
+    return {
+      notFound: true,
+      revalidate: 30,
+    }
   }
 }
 
@@ -75,40 +101,58 @@ export default function Handle({
     )
   }
 
+  const collectionHandle = (router.query.handle as string) || collection?.handle
+
+  const breadcrumbItems = collection
+    ? formatCollectionBreadcrumbs({
+        collection,
+        includeProductsRoot: true,
+      })
+    : [
+        { label: 'Home', href: '/' },
+        { label: 'Products', href: '/products' },
+        {
+          label: collectionHandle
+            ? collectionHandle.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+            : 'Collection',
+          isCurrent: true,
+        },
+      ]
+
   return router.isFallback && isLive ? (
     <div className="min-h-screen bg-neutral-50/50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto mb-4">
+      <div className="max-w-7xl mx-auto space-y-6">
         <Breadcrumbs
           id="collection-fallback-breadcrumbs"
           variant="contained"
           showHomeIcon={true}
+          collectionHandle={collectionHandle}
           items={[
             { label: 'Home', href: '/' },
             { label: 'Products', href: '/products' },
-            { label: 'Loading collection...', isCurrent: true },
+            {
+              label: collectionHandle
+                ? collectionHandle.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+                : 'Collection',
+              isCurrent: true,
+            },
           ]}
         />
+        <ProductGridSkeleton count={8} showControls={true} showSidebar={true} />
       </div>
-      <h1 className="text-xl font-semibold text-neutral-600">Loading collection...</h1>
     </div>
   ) : (
     <div className="min-h-screen bg-neutral-50/50 py-6">
-      <DynamicSEO collection={collection} />
+      <DynamicSEO collection={collection} breadcrumbs={breadcrumbItems} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
         <Breadcrumbs
           id="collection-page-top-breadcrumbs"
           variant="contained"
           showHomeIcon={true}
           showBackOnMobile={true}
-          items={[
-            { label: 'Home', href: '/' },
-            { label: 'Products', href: '/products' },
-            {
-              label: collection?.title || 'Collection',
-              isCurrent: true,
-              count: collection?.products?.length,
-            },
-          ]}
+          collection={collection}
+          collectionHandle={collectionHandle}
+          items={breadcrumbItems}
         />
       </div>
       {page ? (

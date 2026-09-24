@@ -12,14 +12,19 @@ export async function getStaticProps(context: GetStaticPropsContext) {
   try {
     const res = await fetchAllAvailableProducts({
       batchSize: 50,
-      onlyAvailable: true,
+      onlyAvailable: false,
     })
     initialProducts = res.products
   } catch (err) {
     console.error('[pages/products] Error pre-fetching products:', err)
   }
 
-  const layoutProps = await getLayoutProps()
+  let layoutProps = { theme: null }
+  try {
+    layoutProps = await getLayoutProps()
+  } catch (err) {
+    console.error('[pages/products] Error fetching layout props:', err)
+  }
 
   return {
     props: {
@@ -113,7 +118,7 @@ export default function ProductsPage({
         <ProductGrid
           initialProducts={initialProducts}
           title="Catalog & Screen Replacements"
-          subtitle="Real-time available inventory fetched directly from the Shopify Storefront API."
+          subtitle="Explore genuine OEM and premium device replacement screens, gaming repair parts, and on-site diagnostic services."
           showControls={true}
           initialQuery={qParam}
           initialCategory={categoryParam}

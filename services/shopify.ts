@@ -1,5 +1,12 @@
 import ShopifyBuy from 'shopify-buy'
-import shopifyConfig from '../config/shopify.ts'
+import shopifyConfig, {
+  getShopifyDomain,
+  getShopifyApiVersion,
+  getStorefrontAccessToken,
+  getShopifyClientId,
+  getShopifyClientSecret,
+  getAdminAccessToken,
+} from '../config/shopify.ts'
 import { startLoading, stopLoading } from '../lib/progress.ts'
 import { formatForShopifyGraphQL } from '../lib/shopify-search-syntax.ts'
 
@@ -153,39 +160,23 @@ export function normalizeShopifyDomain(rawDomain?: string): string {
  * ensuring dynamic runtime environment variables take precedence without module-caching lock.
  */
 export function getShopifyConfig(): ShopifyStorefrontConfig {
-  const rawDomain =
-    process.env.SHOPIFY_STORE_DOMAIN ||
-    process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN ||
-    process.env.SHOPIFY_DOMAIN ||
-    shopifyConfig.domain
-  const domain = normalizeShopifyDomain(rawDomain)
-
-  const rawApiVersion =
-    process.env.SHOPIFY_STOREFRONT_API_VERSION ||
-    shopifyConfig.apiVersion
-  const apiVersion = normalizeShopifyApiVersion(rawApiVersion)
-
-  const rawToken =
-    process.env.SHOPIFY_STOREFRONT_API_TOKEN ||
-    process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN ||
-    process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
-    shopifyConfig.storefrontAccessToken ||
-    ''
-  const storefrontAccessToken = rawToken.trim()
+  const domain = getShopifyDomain();
+  const apiVersion = getShopifyApiVersion();
+  const storefrontAccessToken = getStorefrontAccessToken();
 
   const endpoint = domain
     ? `https://${domain}/api/${apiVersion}/graphql.json`
-    : ''
+    : '';
 
   return {
     domain,
     storefrontAccessToken,
     apiVersion,
     endpoint,
-    clientId: process.env.SHOPIFY_CLIENT_ID || shopifyConfig.clientId,
-    clientSecret: process.env.SHOPIFY_CLIENT_SECRET || shopifyConfig.clientSecret,
-    adminAccessToken: process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || shopifyConfig.adminAccessToken,
-  }
+    clientId: getShopifyClientId(),
+    clientSecret: getShopifyClientSecret(),
+    adminAccessToken: getAdminAccessToken(),
+  };
 }
 
 /**
@@ -715,9 +706,9 @@ export interface FetchAllAvailableProductsOptions {
   reverse?: boolean
   /** Batch size per GraphQL page request (default: 50, max 250) */
   batchSize?: number
-  /** Maximum total products to collect (optional limit, defaults to fetching all available) */
+  /** Maximum total products to collect (optional limit, defaults to fetching all products) */
   maxProducts?: number
-  /** Filter out any unavailable items (default: true) */
+  /** Filter out any unavailable items (default: false to display entire catalog including 0 stock) */
   onlyAvailable?: boolean
   /** Request timeout per GraphQL query in ms (default: 15000) */
   timeoutMs?: number
@@ -888,9 +879,126 @@ export const PRODUCT_BY_HANDLE_QUERY = /* GraphQL */ `
         id
         name
       }
+      collections(first: 5) {
+        edges {
+          node {
+            id
+            handle
+            title
+          }
+        }
+      }
       seo {
         title
         description
+      }
+    }
+  }
+`
+
+export const PRODUCT_RECOMMENDATIONS_QUERY = /* GraphQL */ `
+  query getProductRecommendations($productId: ID!, $intent: ProductRecommendationIntent) {
+    productRecommendations(productId: $productId, intent: $intent) {
+      id
+      handle
+      title
+      description
+      availableForSale
+      productType
+      vendor
+      tags
+      featuredImage {
+        url
+        altText
+        width
+        height
+      }
+      images(first: 5) {
+        edges {
+          node {
+            url
+            altText
+            width
+            height
+          }
+        }
+      }
+      priceRange {
+        minVariantPrice {
+          amount
+          currencyCode
+        }
+        maxVariantPrice {
+          amount
+          currencyCode
+        }
+      }
+      compareAtPriceRange {
+        minVariantPrice {
+          amount
+          currencyCode
+        }
+        maxVariantPrice {
+          amount
+          currencyCode
+        }
+      }
+      variants(first: 10) {
+        edges {
+          node {
+            id
+            title
+            availableForSale
+            price {
+              amount
+              currencyCode
+            }
+            compareAtPrice {
+              amount
+              currencyCode
+            }
+            image {
+              url
+              altText
+            }
+          }
+        }
+      }
+    }
+  }
+`
+
+export const PRODUCT_BREADCRUMB_QUERY = /* GraphQL */ `
+  query getProductBreadcrumbPath($handle: String!) {
+    product(handle: $handle) {
+      id
+      handle
+      title
+      productType
+      vendor
+      collections(first: 5) {
+        edges {
+          node {
+            id
+            handle
+            title
+          }
+        }
+      }
+    }
+  }
+`
+
+export const COLLECTION_BREADCRUMB_QUERY = /* GraphQL */ `
+  query getCollectionBreadcrumbPath($handle: String!) {
+    collection(handle: $handle) {
+      id
+      handle
+      title
+      products(first: 1) {
+        pageInfo {
+          hasNextPage
+        }
       }
     }
   }
@@ -1112,8 +1220,8 @@ export async function fetchStorefrontShopInfo() {
 }
 
 /**
- * Fetches all available products from the Shopify Storefront API using pagination.
- * Iterates through all pages using GraphQL cursor pagination until all available products
+ * Fetches all products (including 0 stock / unavailable items by default) from the Shopify Storefront API using pagination.
+ * Iterates through all pages using GraphQL cursor pagination until all products
  * are fetched or the optional maxProducts limit is reached.
  */
 export async function fetchAllAvailableProducts(
@@ -1125,14 +1233,14 @@ export async function fetchAllAvailableProducts(
     reverse,
     batchSize = 50,
     maxProducts,
-    onlyAvailable = true,
+    onlyAvailable = false,
     timeoutMs = 15000,
     cache,
     next,
   } = options
 
   // Build the Storefront search filter:
-  // If onlyAvailable is true, ensure available_for_sale:true is included
+  // If onlyAvailable is explicitly set to true, ensure available_for_sale:true is included
   let combinedQuery = customQuery ? customQuery.trim() : ''
   if (onlyAvailable) {
     if (!combinedQuery.includes('available_for_sale:')) {
@@ -1279,7 +1387,7 @@ export async function searchStorefrontProducts(
       ? true
       : options.unavailable_products === 'show'
       ? false
-      : (options.onlyAvailable ?? true)
+      : (options.onlyAvailable ?? false)
 
   return fetchAllAvailableProducts({
     ...options,
@@ -1332,6 +1440,76 @@ export async function fetchStorefrontProductByHandle(handle: string) {
  */
 export async function fetchProductByHandle(handle: string) {
   return fetchStorefrontProductByHandle(handle)
+}
+
+/**
+ * Fetches product recommendations using Shopify's Product Recommendations API
+ */
+export async function fetchStorefrontProductRecommendations(
+  productId: string,
+  options?: {
+    intent?: 'RELATED' | 'COMPLEMENTARY'
+  }
+) {
+  const formattedId = productId.startsWith('gid://shopify/Product/')
+    ? productId
+    : `gid://shopify/Product/${productId.replace(/\D/g, '') || productId}`
+
+  return storefrontFetch<{ productRecommendations: ShopifyProductNode[] | null }>({
+    query: PRODUCT_RECOMMENDATIONS_QUERY,
+    variables: {
+      productId: formattedId,
+      intent: options?.intent || 'RELATED',
+    },
+  })
+}
+
+/**
+ * Fetches product path hierarchy for breadcrumbs from Shopify Storefront API
+ */
+export async function fetchStorefrontProductBreadcrumbPath(handle: string) {
+  return storefrontFetch<{
+    product: {
+      id: string
+      handle: string
+      title: string
+      productType?: string
+      vendor?: string
+      collections?: {
+        edges: Array<{
+          node: {
+            id: string
+            handle: string
+            title: string
+          }
+        }>
+      }
+    } | null
+  }>({
+    query: PRODUCT_BREADCRUMB_QUERY,
+    variables: { handle },
+  })
+}
+
+/**
+ * Fetches collection path hierarchy for breadcrumbs from Shopify Storefront API
+ */
+export async function fetchStorefrontCollectionBreadcrumbPath(handle: string) {
+  return storefrontFetch<{
+    collection: {
+      id: string
+      handle: string
+      title: string
+      products?: {
+        pageInfo: {
+          hasNextPage: boolean
+        }
+      }
+    } | null
+  }>({
+    query: COLLECTION_BREADCRUMB_QUERY,
+    variables: { handle },
+  })
 }
 
 /**
@@ -1444,8 +1622,11 @@ export const shopifyStorefront = {
   fetchAllAvailableProducts,
   fetchAllProducts,
   fetchProductByHandle: fetchStorefrontProductByHandle,
+  fetchProductRecommendations: fetchStorefrontProductRecommendations,
+  fetchProductBreadcrumbPath: fetchStorefrontProductBreadcrumbPath,
   fetchCollections: fetchStorefrontCollections,
   fetchCollectionByHandle: fetchStorefrontCollectionByHandle,
+  fetchCollectionBreadcrumbPath: fetchStorefrontCollectionBreadcrumbPath,
   fetchCart: fetchStorefrontCart,
   createCart: createStorefrontCart,
   addCartLines: addStorefrontCartLines,

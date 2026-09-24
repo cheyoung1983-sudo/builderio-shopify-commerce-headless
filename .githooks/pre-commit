@@ -9,4 +9,4 @@
 #   node scripts/check-hardcoded-secrets.js --staged
 #   node scripts/check-ci-integrity.js
 
-node scripts/check-hardcoded-secrets.js --staged && node scripts/check-ci-integrity.js
+node scripts/check-hardcoded-secrets.cjs --staged && node scripts/check-ci-integrity.cjs

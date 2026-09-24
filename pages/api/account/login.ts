@@ -19,6 +19,11 @@ function sanitizeReturnTo(value: unknown): string {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET')
+    return res.status(405).json({ error: 'Method not allowed. Use GET.' })
+  }
+
   try {
     const verifier = generateCodeVerifier()
     const challenge = generateCodeChallenge(verifier)
@@ -40,7 +45,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     res.redirect(302, authorizeUrl)
-  } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Failed to start Customer Account API login' })
+  } catch (error) {
+    console.error('[account/login] Failed to start login', error)
+    res.status(500).json({ error: 'Failed to start Customer Account API login' })
   }
 }

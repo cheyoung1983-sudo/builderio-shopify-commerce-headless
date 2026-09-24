@@ -7,15 +7,26 @@ Builder.registerComponent(
     if (!props.cloudinaryOptions) {
       return 'Choose an Image'
     }
+    const width = Number(props.cloudinaryOptions.width) || 800
+    const height = Number(props.cloudinaryOptions.height) || 600
+
     return (
-      <Image
-        src={props.cloudinaryOptions.url}
-        alt={props.alt || ''}
-        width={props.cloudinaryOptions.width}
-        height={props.cloudinaryOptions.height}
-        placeholder="blur"
-        blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
-      />
+      <div
+        className="relative w-full overflow-hidden"
+        style={{ aspectRatio: `${width} / ${height}` }}
+      >
+        <Image
+          src={props.cloudinaryOptions.url}
+          alt={props.alt || 'Content image'}
+          width={width}
+          height={height}
+          placeholder="blur"
+          blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
+          style={{ width: '100%', height: 'auto', aspectRatio: `${width} / ${height}` }}
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px"
+          loading="lazy"
+        />
+      </div>
     )
   },
   {

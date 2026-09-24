@@ -1,12 +1,41 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
+import {
+  applyCors,
+  createRateLimiter,
+  handleOptions,
+  isAllowedOrigin,
+  readBoundedString,
+} from '@lib/api-security';
+
+const allowedOrigins = ['https://displaycellpros.com', 'https://www.displaycellpros.com']
+const rateLimiter = createRateLimiter({ maxRequests: 100, windowMs: 60_000 })
+
+function getClientKey(req: NextApiRequest): string {
+  const forwarded = req.headers['x-forwarded-for']
+  const address = Array.isArray(forwarded) ? forwarded[0] : forwarded
+  return address?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown'
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  const corsOptions = {
+    allowedOrigins,
+    allowLocalhost: true,
+    allowRunApp: true,
+  }
+  applyCors(res, req.headers.origin, corsOptions)
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end()
+  if (handleOptions(req, res, corsOptions)) {
+    return
+  }
+
+  if (!rateLimiter.check(getClientKey(req)).allowed) {
+    const result = rateLimiter.check(getClientKey(req))
+    res.setHeader('Retry-After', String(result.retryAfterSeconds))
+    return res.status(429).json({ ok: false, error: 'Too many requests' })
+  }
+
+  if (!isAllowedOrigin(req.headers.origin, corsOptions)) {
+    return res.status(403).json({ ok: false, error: 'Origin not allowed' })
   }
 
   if (req.method !== 'POST') {
@@ -38,39 +67,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       metadata,
     } = payload || {}
 
-    // Structured observability log output
+    const boundedEventId = readBoundedString(eventId, { maxLength: 64 }) || `err_${Date.now().toString(36)}`
+    const boundedName = readBoundedString(name, { maxLength: 64 }) || 'ClientError'
+    const boundedMessage = readBoundedString(message, { maxLength: 1000 }) || 'Unspecified client error'
+    const boundedStack = readBoundedString(stack, { maxLength: 5000 })
+    const boundedComponentStack = readBoundedString(componentStack, { maxLength: 5000 })
+    const boundedUrl = readBoundedString(url, { maxLength: 2048 })
+    const boundedUserAgent = readBoundedString(userAgent, { maxLength: 512 })
+
     const structuredEntry = {
       timestamp,
       severity: 'ERROR',
       serviceContext: {
         service: 'displaycellpros-frontend',
       },
-      eventId,
+      eventId: boundedEventId,
       error: {
-        name,
-        message,
-        stack,
-        componentStack,
+        name: boundedName,
+        message: boundedMessage,
+        stack: boundedStack,
+        componentStack: boundedComponentStack,
       },
       httpRequest: {
-        requestUrl: url,
-        userAgent,
+        requestUrl: boundedUrl,
+        userAgent: boundedUserAgent,
       },
       metadata,
     }
 
-    // Server-side logging for Cloud Run / central log aggregators
-    console.error(`[CLIENT-ERROR-OBSERVABILITY] EventID: ${eventId} | ${name}: ${message} | URL: ${url || 'N/A'}`)
-    if (stack) {
-      console.error(`[CLIENT-ERROR-STACK] ${stack}`)
+    console.error(`[CLIENT-ERROR-OBSERVABILITY] EventID: ${boundedEventId} | ${boundedName}: ${boundedMessage} | URL: ${boundedUrl || 'N/A'}`)
+    if (boundedStack) {
+      console.error(`[CLIENT-ERROR-STACK] ${boundedStack}`)
     }
-    if (componentStack) {
-      console.error(`[CLIENT-ERROR-COMPONENT-STACK] ${componentStack}`)
+    if (boundedComponentStack) {
+      console.error(`[CLIENT-ERROR-COMPONENT-STACK] ${boundedComponentStack}`)
     }
 
     return res.status(200).json({
       ok: true,
-      eventId,
+      eventId: boundedEventId,
       loggedAt: new Date().toISOString(),
       entry: process.env.NODE_ENV !== 'production' ? structuredEntry : undefined,
     })

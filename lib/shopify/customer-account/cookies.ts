@@ -49,12 +49,14 @@ function serialize(name: string, value: string, options: CookieOptions = {}): st
 
 /** Appends a Set-Cookie header without clobbering any already queued on the response. */
 export function appendCookie(res: ResLike, name: string, value: string, options?: CookieOptions) {
-  const existing = res.getHeader('Set-Cookie')
+  const existing = typeof res?.getHeader === 'function' ? res.getHeader('Set-Cookie') : undefined
   const cookie = serialize(name, value, options)
   const next = existing
     ? (Array.isArray(existing) ? existing : [String(existing)]).concat(cookie)
     : [cookie]
-  res.setHeader('Set-Cookie', next)
+  if (typeof res?.setHeader === 'function') {
+    res.setHeader('Set-Cookie', next)
+  }
 }
 
 export function clearCookie(res: ResLike, name: string, options?: Pick<CookieOptions, 'secure'>) {

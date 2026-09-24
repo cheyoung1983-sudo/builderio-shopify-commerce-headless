@@ -22,6 +22,8 @@ const builderConfig = {
   productsModel: 'shopify-product',
   collectionsModel: 'shopify-collection',
   announcementModel: process.env.NEXT_PUBLIC_BUILDER_ANNOUNCEMENT_MODEL || '',
+  cartUpsellModel: process.env.NEXT_PUBLIC_BUILDER_CART_UPSELL_MODEL || '',
+  themeModel: process.env.NEXT_PUBLIC_BUILDER_THEME_MODEL || '',
 }
 
 export default builderConfig

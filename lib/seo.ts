@@ -10,6 +10,66 @@ export interface SeoProps {
   siteName?: string
 }
 
+export interface MetadataOptions {
+  title?: string
+  description?: string
+  image?: string
+  canonical?: string
+  url?: string
+  type?: 'website' | 'article' | 'book' | 'profile' | 'music.song' | 'video.movie'
+  noindex?: boolean
+  nofollow?: boolean
+  keywords?: string | string[]
+  publishedTime?: string
+  authors?: string[]
+}
+
+export interface NextMetadata {
+  title?: string
+  description?: string
+  keywords?: string[]
+  metadataBase?: URL
+  alternates?: {
+    canonical?: string
+  }
+  openGraph?: {
+    title?: string
+    description?: string
+    url?: string
+    siteName?: string
+    locale?: string
+    type?: string
+    images?: Array<{
+      url: string
+      width?: number
+      height?: number
+      alt?: string
+    }>
+    publishedTime?: string
+    authors?: string[]
+  }
+  twitter?: {
+    card?: string
+    title?: string
+    description?: string
+    images?: string[]
+    creator?: string
+    site?: string
+  }
+  robots?: {
+    index?: boolean
+    follow?: boolean
+    googleBot?: {
+      index?: boolean
+      follow?: boolean
+      'max-video-preview'?: number
+      'max-image-preview'?: string
+      'max-snippet'?: number
+    }
+  }
+  other?: Record<string, string | number | (string | number)[]>
+}
+
 export const DEFAULT_SITE_NAME = 'DisplayCellPros'
 export const DEFAULT_OG_IMAGE =
   'https://cdn.shopify.com/s/files/1/1023/5428/9012/collections/display-cell-pros-homepage-hero.png'
@@ -19,7 +79,14 @@ export const DEFAULT_DESCRIPTION =
   'Shop premium OEM and LCD replacement screens and repair components for smartphones and tablets with fast shipping and expert support.'
 
 export function getBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL || 'https://displaycellpros.com'
+  const envUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL
+  if (envUrl) {
+    const trimmed = envUrl.trim()
+    return trimmed.startsWith('http://') || trimmed.startsWith('https://')
+      ? trimmed.replace(/\/$/, '')
+      : `https://${trimmed.replace(/\/$/, '')}`
+  }
+  return 'https://displaycellpros.com'
 }
 
 /**
@@ -322,5 +389,236 @@ export function generateCollectionSeo(collection: any, siteUrl?: string) {
       },
       generateBreadcrumbJsonLd(breadcrumbItems, siteUrl),
     ],
+  }
+}
+
+/**
+ * Constructs a Next.js Metadata configuration object with default fallbacks,
+ * OpenGraph, Twitter Cards, robots rules, and canonical link definitions.
+ */
+export function constructMetadata({
+  title = DEFAULT_TITLE,
+  description = DEFAULT_DESCRIPTION,
+  image = DEFAULT_OG_IMAGE,
+  canonical,
+  url,
+  noindex = false,
+  nofollow = false,
+  keywords,
+  publishedTime,
+  authors,
+}: MetadataOptions = {}): NextMetadata {
+  const baseUrl = getBaseUrl()
+  const resolvedTitle = title.includes(DEFAULT_SITE_NAME) ? title : `${title} | ${DEFAULT_SITE_NAME}`
+  const resolvedDescription = cleanMetaDescription(description, 160)
+  const resolvedUrl = canonical || url || baseUrl
+
+  const keywordsArray = Array.isArray(keywords)
+    ? keywords
+    : typeof keywords === 'string'
+      ? keywords.split(',').map((k) => k.trim())
+      : undefined
+
+  return {
+    title: resolvedTitle,
+    description: resolvedDescription,
+    keywords: keywordsArray,
+    metadataBase: new URL(baseUrl),
+    alternates: {
+      canonical: resolvedUrl,
+    },
+    openGraph: {
+      title: resolvedTitle,
+      description: resolvedDescription,
+      url: resolvedUrl,
+      siteName: DEFAULT_SITE_NAME,
+      locale: 'en_US',
+      type: 'website',
+      images: [
+        {
+          url: image,
+          width: 1200,
+          height: 630,
+          alt: resolvedTitle,
+        },
+      ],
+      ...(publishedTime ? { publishedTime } : {}),
+      ...(authors ? { authors } : {}),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: resolvedTitle,
+      description: resolvedDescription,
+      images: [image],
+      creator: `@${DEFAULT_SITE_NAME.toLowerCase()}`,
+      site: `@${DEFAULT_SITE_NAME.toLowerCase()}`,
+    },
+    robots: {
+      index: !noindex,
+      follow: !nofollow,
+      googleBot: {
+        index: !noindex,
+        follow: !nofollow,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
+    },
+  }
+}
+
+/**
+ * Generates a dynamic Next.js Metadata object from a Shopify product
+ */
+export function generateProductMetadata(product: any, siteUrl?: string): NextMetadata {
+  if (!product) return constructMetadata()
+  const baseUrl = siteUrl || getBaseUrl()
+
+  const rawTitle = product.seo?.title || product.title || 'Product'
+  const title = rawTitle.includes(DEFAULT_SITE_NAME) ? rawTitle : `${rawTitle} | ${DEFAULT_SITE_NAME}`
+
+  const rawDesc =
+    product.seo?.description ||
+    product.description ||
+    product.descriptionHtml ||
+    DEFAULT_DESCRIPTION
+  const description = cleanMetaDescription(rawDesc, 160)
+
+  const image =
+    product.featuredImage?.url ||
+    product.featuredImage?.src ||
+    product.images?.edges?.[0]?.node?.url ||
+    product.images?.[0]?.url ||
+    product.images?.[0]?.src ||
+    product.image?.url ||
+    product.image?.src ||
+    DEFAULT_OG_IMAGE
+
+  const imageAlt =
+    product.featuredImage?.altText ||
+    product.images?.edges?.[0]?.node?.altText ||
+    product.title ||
+    DEFAULT_SITE_NAME
+
+  const handle = product.handle || ''
+  const canonicalUrl = `${baseUrl}/product/${handle}`
+
+  const firstVariantNode = product.variants?.edges?.[0]?.node || product.variants?.[0]
+  const price =
+    firstVariantNode?.price?.amount ||
+    product.priceRange?.minVariantPrice?.amount ||
+    product.priceV2?.amount ||
+    '0.00'
+  const currency =
+    firstVariantNode?.price?.currencyCode ||
+    product.priceRange?.minVariantPrice?.currencyCode ||
+    product.priceV2?.currencyCode ||
+    'USD'
+
+  const available =
+    product.availableForSale ??
+    firstVariantNode?.availableForSale ??
+    firstVariantNode?.available ??
+    true
+
+  return {
+    title,
+    description,
+    metadataBase: new URL(baseUrl),
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      siteName: DEFAULT_SITE_NAME,
+      locale: 'en_US',
+      type: 'website',
+      images: [
+        {
+          url: image,
+          width: 1024,
+          height: 1024,
+          alt: imageAlt,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [image],
+    },
+    other: {
+      'product:price:amount': String(price),
+      'product:price:currency': currency,
+      'product:availability': available ? 'in stock' : 'out of stock',
+      'product:brand': product.vendor || DEFAULT_SITE_NAME,
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  }
+}
+
+/**
+ * Generates a dynamic Next.js Metadata object from a Shopify collection
+ */
+export function generateCollectionMetadata(collection: any, siteUrl?: string): NextMetadata {
+  if (!collection) return constructMetadata()
+  const baseUrl = siteUrl || getBaseUrl()
+
+  const rawTitle = collection.title ? `${collection.title} | ${DEFAULT_SITE_NAME}` : `Collection | ${DEFAULT_SITE_NAME}`
+  const title = rawTitle.includes(DEFAULT_SITE_NAME) ? rawTitle : `${rawTitle} | ${DEFAULT_SITE_NAME}`
+
+  const description = cleanMetaDescription(
+    collection.description ||
+      `Explore our ${collection.title || 'replacement parts'} collection. Premium screens and components at DisplayCellPros.`,
+    160
+  )
+
+  const image =
+    collection.image?.src ||
+    collection.image?.url ||
+    DEFAULT_OG_IMAGE
+
+  const handle = collection.handle || ''
+  const canonicalUrl = `${baseUrl}/collection/${handle}`
+
+  return {
+    title,
+    description,
+    metadataBase: new URL(baseUrl),
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      siteName: DEFAULT_SITE_NAME,
+      locale: 'en_US',
+      type: 'website',
+      images: [
+        {
+          url: image,
+          width: 1200,
+          height: 630,
+          alt: collection.title || DEFAULT_SITE_NAME,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [image],
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
   }
 }

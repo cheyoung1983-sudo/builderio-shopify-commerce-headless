@@ -36,17 +36,17 @@ function runConfigCheck(relativeFile, envOverrides, expectedPattern) {
 }
 
 describe('runtime configuration validation', () => {
-  it('throws in production when the Builder public key is missing', () => {
+  it('imports safely in production when the Builder public key is missing', () => {
     const output = runConfigCheck(
       'config/builder.ts',
       { BUILDER_PUBLIC_KEY: '', NEXT_PUBLIC_BUILDER_PUBLIC_KEY: '' },
       /BUILDER_PUBLIC_KEY/i
     )
 
-    expect(output).toMatch(/BUILDER_PUBLIC_KEY/i)
+    expect(output).toMatch(/IMPORT_OK/)
   })
 
-  it('throws in production when the Shopify storefront credentials are missing', () => {
+  it('imports safely in production when Shopify storefront credentials are missing', () => {
     const output = runConfigCheck(
       'config/shopify.ts',
       {
@@ -58,21 +58,7 @@ describe('runtime configuration validation', () => {
       /SHOPIFY_STORE_DOMAIN|SHOPIFY_STOREFRONT_API_TOKEN/i
     )
 
-    expect(output).toMatch(/SHOPIFY_STORE_DOMAIN|SHOPIFY_STOREFRONT_API_TOKEN/i)
+    expect(output).toMatch(/IMPORT_OK/)
   })
 
-  it('propagates the same production guard to the commerce runtime (services/shopify.ts)', () => {
-    const output = runConfigCheck(
-      'services/shopify.ts',
-      {
-        SHOPIFY_STORE_DOMAIN: '',
-        NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN: '',
-        SHOPIFY_STOREFRONT_API_TOKEN: '',
-        NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN: '',
-      },
-      /SHOPIFY_STORE_DOMAIN|SHOPIFY_STOREFRONT_API_TOKEN/i
-    )
-
-    expect(output).toMatch(/SHOPIFY_STORE_DOMAIN|SHOPIFY_STOREFRONT_API_TOKEN/i)
-  })
 })

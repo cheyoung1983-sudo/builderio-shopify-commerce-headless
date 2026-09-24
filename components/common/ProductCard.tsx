@@ -128,11 +128,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
         bg: '#ffffff',
         border: '1px solid #e7e5df',
         borderRadius: 12,
-        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+        transition:
+          'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease',
+        willChange: 'transform, box-shadow',
         '&:hover': {
-          transform: 'translateY(-3px)',
-          borderColor: '#d2cfc7',
-          boxShadow: '0 12px 28px -6px rgba(20, 21, 24, 0.08)',
+          transform: 'translateY(-6px) scale(1.02)',
+          borderColor: '#10b981',
+          boxShadow: '0 20px 30px -8px rgba(20, 21, 24, 0.14)',
+        },
+        '&:active': {
+          transform: 'translateY(-2px) scale(0.985)',
+          transition: 'transform 0.12s ease',
         },
       }}
     >

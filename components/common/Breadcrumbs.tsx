@@ -1,34 +1,385 @@
-import React from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
-import { ChevronRight, Home, ArrowLeft } from 'lucide-react'
+import { useRouter } from 'next/router'
+import { ChevronRight, Home, ArrowLeft, Loader2, Tag, Layers } from 'lucide-react'
 import { getBaseUrl } from '../../lib/seo'
+import {
+  fetchStorefrontProductBreadcrumbPath,
+  fetchStorefrontCollectionBreadcrumbPath,
+  ShopifyProductNode,
+  ShopifyProductDetailNode,
+} from '../../services/shopify'
+import { getDemoProductByHandle } from '../../lib/shopify/demo-catalog'
 
 export interface BreadcrumbItem {
   label: string
   href?: string
   isCurrent?: boolean
   count?: number
+  icon?: React.ComponentType<{ className?: string }>
 }
 
 export interface BreadcrumbsProps {
-  items: BreadcrumbItem[]
+  /** Explicit items array (takes precedence if provided) */
+  items?: BreadcrumbItem[]
+  /** Shopify product object or detail node */
+  product?: ShopifyProductNode | ShopifyProductDetailNode | any | null
+  /** Product handle to fetch breadcrumb hierarchy from Shopify Storefront API */
+  productHandle?: string
+  /** Shopify collection object */
+  collection?: { id?: string; handle?: string; title?: string; products?: any[] } | null
+  /** Collection handle to fetch breadcrumb hierarchy from Shopify Storefront API */
+  collectionHandle?: string
+  /** Active category or query override (e.g. from router query) */
+  categoryOverride?: string | null
+  /** Active collection or query override */
+  collectionOverride?: string | null
+  /** Whether to show the Home icon on the first item */
   showHomeIcon?: boolean
+  /** Whether to show a mobile quick back button on narrow viewports */
   showBackOnMobile?: boolean
+  /** Visual presentation variant */
   variant?: 'minimal' | 'contained' | 'card'
+  /** Root link behavior: whether to include intermediate /products link or direct Home > Category > Product */
+  includeProductsRoot?: boolean
+  /** Additional CSS class names */
   className?: string
+  /** HTML ID */
   id?: string
+  /** Base URL for Schema.org JSON-LD generation */
   siteUrl?: string
+  /** Callback fired when items are resolved */
+  onItemsResolved?: (items: BreadcrumbItem[]) => void
 }
 
+/**
+ * Pure helper function to format breadcrumb items from a product object
+ */
+export function formatProductBreadcrumbs(params: {
+  product: {
+    title: string
+    handle?: string
+    productType?: string
+    vendor?: string
+    collections?: {
+      edges?: Array<{
+        node: {
+          id?: string
+          handle: string
+          title: string
+        }
+      }>
+    }
+  }
+  categoryOverride?: string | null
+  collectionOverride?: string | null
+  includeProductsRoot?: boolean
+}): BreadcrumbItem[] {
+  const { product, categoryOverride, collectionOverride, includeProductsRoot = false } = params
+
+  const items: BreadcrumbItem[] = [{ label: 'Home', href: '/' }]
+
+  if (includeProductsRoot) {
+    items.push({ label: 'Products', href: '/products' })
+  }
+
+  // Determine category or collection segment
+  const firstCollection = product.collections?.edges?.[0]?.node
+  const resolvedCategory =
+    categoryOverride ||
+    (collectionOverride
+      ? collectionOverride.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+      : null) ||
+    firstCollection?.title ||
+    product.productType ||
+    product.vendor
+
+  const resolvedCategoryHref = categoryOverride
+    ? `/products?category=${encodeURIComponent(categoryOverride)}`
+    : collectionOverride
+    ? `/collection/${encodeURIComponent(collectionOverride)}`
+    : firstCollection?.handle
+    ? `/collection/${encodeURIComponent(firstCollection.handle)}`
+    : product.productType
+    ? `/products?category=${encodeURIComponent(product.productType)}`
+    : '/products'
+
+  if (resolvedCategory) {
+    items.push({
+      label: resolvedCategory,
+      href: resolvedCategoryHref,
+    })
+  } else if (!includeProductsRoot) {
+    items.push({
+      label: 'Products',
+      href: '/products',
+    })
+  }
+
+  // Add the current product
+  items.push({
+    label: product.title || 'Product Details',
+    isCurrent: true,
+  })
+
+  return items
+}
+
+/**
+ * Pure helper function to format breadcrumb items from a collection object
+ */
+export function formatCollectionBreadcrumbs(params: {
+  collection: {
+    title: string
+    handle?: string
+    products?: any[]
+  }
+  includeProductsRoot?: boolean
+}): BreadcrumbItem[] {
+  const { collection, includeProductsRoot = true } = params
+
+  const items: BreadcrumbItem[] = [{ label: 'Home', href: '/' }]
+
+  if (includeProductsRoot) {
+    items.push({ label: 'Products', href: '/products' })
+  }
+
+  items.push({
+    label: collection.title || 'Collection',
+    isCurrent: true,
+    count: collection.products?.length,
+  })
+
+  return items
+}
+
+/**
+ * Custom React Hook to fetch and compute breadcrumbs using Shopify Storefront API
+ */
+export function useShopifyBreadcrumbs(options: {
+  items?: BreadcrumbItem[]
+  product?: ShopifyProductNode | ShopifyProductDetailNode | any | null
+  productHandle?: string
+  collection?: { id?: string; handle?: string; title?: string; products?: any[] } | null
+  collectionHandle?: string
+  categoryOverride?: string | null
+  collectionOverride?: string | null
+  includeProductsRoot?: boolean
+}) {
+  const {
+    items: initialItems,
+    product: initialProduct,
+    productHandle,
+    collection: initialCollection,
+    collectionHandle,
+    categoryOverride,
+    collectionOverride,
+    includeProductsRoot = false,
+  } = options
+
+  const [fetchedProduct, setFetchedProduct] = useState<any | null>(null)
+  const [fetchedCollection, setFetchedCollection] = useState<any | null>(null)
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch product hierarchy if productHandle is provided and initialProduct is missing
+  useEffect(() => {
+    if (initialItems && initialItems.length > 0) return
+    if (initialProduct) return
+    if (!productHandle) return
+
+    let isMounted = true
+
+    async function loadProductBreadcrumb() {
+      setLoading(true)
+      setError(null)
+      try {
+        const response = await fetchStorefrontProductBreadcrumbPath(productHandle!)
+        if (isMounted) {
+          if (response?.data?.product) {
+            setFetchedProduct(response.data.product)
+          } else {
+            // Fallback to demo catalog
+            const demo = getDemoProductByHandle(productHandle!)
+            if (demo) {
+              setFetchedProduct(demo)
+            } else {
+              setFetchedProduct({
+                title: productHandle!
+                  .replace(/-/g, ' ')
+                  .replace(/\b\w/g, (l) => l.toUpperCase()),
+                handle: productHandle,
+              })
+            }
+          }
+        }
+      } catch (err: any) {
+        if (isMounted) {
+          const demo = getDemoProductByHandle(productHandle!)
+          if (demo) {
+            setFetchedProduct(demo)
+          } else {
+            setError(err?.message || 'Failed to fetch breadcrumbs from Shopify Storefront API')
+          }
+        }
+      } finally {
+        if (isMounted) setLoading(false)
+      }
+    }
+
+    loadProductBreadcrumb()
+
+    return () => {
+      isMounted = false
+    }
+  }, [productHandle, initialProduct, initialItems])
+
+  // Fetch collection hierarchy if collectionHandle is provided and initialCollection is missing
+  useEffect(() => {
+    if (initialItems && initialItems.length > 0) return
+    if (initialCollection) return
+    if (!collectionHandle) return
+
+    let isMounted = true
+
+    async function loadCollectionBreadcrumb() {
+      setLoading(true)
+      setError(null)
+      try {
+        const response = await fetchStorefrontCollectionBreadcrumbPath(collectionHandle!)
+        if (isMounted) {
+          if (response?.data?.collection) {
+            setFetchedCollection(response.data.collection)
+          } else {
+            setFetchedCollection({
+              title: collectionHandle!
+                .replace(/-/g, ' ')
+                .replace(/\b\w/g, (l) => l.toUpperCase()),
+              handle: collectionHandle,
+            })
+          }
+        }
+      } catch (err: any) {
+        if (isMounted) {
+          setFetchedCollection({
+            title: collectionHandle!
+              .replace(/-/g, ' ')
+              .replace(/\b\w/g, (l) => l.toUpperCase()),
+            handle: collectionHandle,
+          })
+          setError(err?.message || 'Failed to fetch collection breadcrumb')
+        }
+      } finally {
+        if (isMounted) setLoading(false)
+      }
+    }
+
+    loadCollectionBreadcrumb()
+
+    return () => {
+      isMounted = false
+    }
+  }, [collectionHandle, initialCollection, initialItems])
+
+  // Compute final breadcrumbs items
+  const resolvedItems: BreadcrumbItem[] = useMemo(() => {
+    if (initialItems && initialItems.length > 0) {
+      return initialItems
+    }
+
+    const effectiveProduct = initialProduct || fetchedProduct
+    if (effectiveProduct) {
+      return formatProductBreadcrumbs({
+        product: effectiveProduct,
+        categoryOverride,
+        collectionOverride,
+        includeProductsRoot,
+      })
+    }
+
+    const effectiveCollection = initialCollection || fetchedCollection
+    if (effectiveCollection) {
+      return formatCollectionBreadcrumbs({
+        collection: effectiveCollection,
+        includeProductsRoot: true,
+      })
+    }
+
+    // Default fallback while loading or when nothing is provided
+    if (loading && (productHandle || collectionHandle)) {
+      return [
+        { label: 'Home', href: '/' },
+        { label: 'Loading...', isCurrent: true },
+      ]
+    }
+
+    return [{ label: 'Home', href: '/' }]
+  }, [
+    initialItems,
+    initialProduct,
+    fetchedProduct,
+    initialCollection,
+    fetchedCollection,
+    categoryOverride,
+    collectionOverride,
+    includeProductsRoot,
+    loading,
+    productHandle,
+    collectionHandle,
+  ])
+
+  return { items: resolvedItems, loading, error }
+}
+
+/**
+ * Reusable Breadcrumbs Component
+ * Fetches the current product or collection path using the Shopify Storefront API
+ * and displays the hierarchy (Home > Category > Product) with Schema.org JSON-LD support.
+ */
 export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
-  items,
+  items: directItems,
+  product,
+  productHandle,
+  collection,
+  collectionHandle,
+  categoryOverride,
+  collectionOverride,
   showHomeIcon = true,
-  showBackOnMobile = false,
+  showBackOnMobile = true,
   variant = 'minimal',
+  includeProductsRoot = false,
   className = '',
   id = 'breadcrumb-nav',
   siteUrl,
+  onItemsResolved,
 }) => {
+  const router = useRouter()
+
+  // Extract router query fallbacks if not explicitly provided
+  const queryCategory =
+    categoryOverride ??
+    (router?.query && typeof router.query.category === 'string' ? router.query.category : null)
+  const queryCollection =
+    collectionOverride ??
+    (router?.query && typeof router.query.collection === 'string' ? router.query.collection : null)
+
+  const { items, loading } = useShopifyBreadcrumbs({
+    items: directItems,
+    product,
+    productHandle,
+    collection,
+    collectionHandle,
+    categoryOverride: queryCategory,
+    collectionOverride: queryCollection,
+    includeProductsRoot,
+  })
+
+  useEffect(() => {
+    if (onItemsResolved && items.length > 0) {
+      onItemsResolved(items)
+    }
+  }, [items, onItemsResolved])
+
   if (!items || items.length === 0) {
     return null
   }
@@ -60,7 +411,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
   const variantStyles = {
     minimal: 'py-2 px-1 text-xs text-neutral-500 font-medium',
     contained:
-      'py-2.5 px-3.5 sm:px-4 text-xs font-medium bg-white/80 backdrop-blur-xs border border-neutral-200/80 rounded-xl shadow-2xs text-neutral-600',
+      'py-2.5 px-3.5 sm:px-4 text-xs font-medium bg-white/90 backdrop-blur-xs border border-neutral-200/80 rounded-xl shadow-2xs text-neutral-600',
     card:
       'p-3 sm:p-4 text-xs font-medium bg-white border border-neutral-200 rounded-2xl shadow-xs text-neutral-600',
   }
@@ -123,9 +474,12 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
                   <span
                     itemProp="name"
                     aria-current="page"
-                    className="text-neutral-900 font-semibold truncate max-w-[200px] sm:max-w-sm md:max-w-lg inline-flex items-center gap-1"
+                    className="text-neutral-900 font-semibold truncate max-w-[200px] sm:max-w-sm md:max-w-lg inline-flex items-center gap-1.5"
                     title={item.label}
                   >
+                    {loading && (
+                      <Loader2 className="w-3 h-3 animate-spin text-emerald-600 shrink-0" />
+                    )}
                     <span>{item.label}</span>
                     {typeof item.count === 'number' && (
                       <span className="ml-1 px-1.5 py-0.5 text-[10px] font-semibold text-neutral-600 bg-neutral-100 rounded-full border border-neutral-200/60">
@@ -175,5 +529,21 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
     </nav>
   )
 }
+
+/**
+ * Convenience wrapper specifically for Product pages
+ */
+export const ProductBreadcrumbs: React.FC<
+  Omit<BreadcrumbsProps, 'collection' | 'collectionHandle'>
+> = (props) => <Breadcrumbs id="product-breadcrumbs" {...props} />
+
+/**
+ * Convenience wrapper specifically for Collection pages
+ */
+export const CollectionBreadcrumbs: React.FC<
+  Omit<BreadcrumbsProps, 'product' | 'productHandle'>
+> = (props) => <Breadcrumbs id="collection-breadcrumbs" {...props} />
+
+export const ShopifyBreadcrumbs = Breadcrumbs
 
 export default Breadcrumbs
