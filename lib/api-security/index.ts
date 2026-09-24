@@ -5,6 +5,7 @@ export interface AllowedOriginsOptions {
 }
 
 export function isAllowedOrigin(origin: string | undefined, options: AllowedOriginsOptions = { allowedOrigins: [] }): boolean {
+  if (origin === undefined) return false;
   if (!origin) return true;
 
   if (options.allowLocalhost !== false) {
