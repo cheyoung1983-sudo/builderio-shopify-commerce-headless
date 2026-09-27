@@ -17,7 +17,7 @@ export function isAllowedOrigin(origin: string | undefined, options: AllowedOrig
   if (options.allowRunApp !== false) {
     try {
       const url = new URL(origin)
-      if (url.hostname.endsWith('.run.app')) return true
+      if (url.hostname.endsWith('.run.app') || url.hostname.endsWith('.vercel.app')) return true
     } catch {
       // Ignore invalid URL formatting
     }
