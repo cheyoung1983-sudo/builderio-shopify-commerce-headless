@@ -20,115 +20,102 @@ import { AuditHistoryTable, AuditLogEntry } from '../../components/tribal/AuditH
 import { AdminAuditCsvExporter } from '../../components/tribal/AdminAuditCsvExporter'
 import { AdminAuditReportGenerator } from '../../components/tribal/AdminAuditReportGenerator'
 
+const INITIAL_MOCK_AUDIT_LOGS: AuditLogEntry[] = [
+  {
+    id: 'audit-1001',
+    timestamp: '2026-09-27T08:00:00.000Z',
+    status: 'VERIFIED',
+    hash: 'a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0',
+    tribalNation: 'Navajo Nation',
+    maskedEnrollmentId: '••••8442',
+    provider: 'sheerid',
+    certificateRef: 'CERT-AZ-86515-9921',
+    taxExempt: true,
+    entityUseCode: 'C',
+    customerId: 'cust_778899',
+    metadata: {
+      customerName: 'Mary Tsosie',
+      customerEmail: 'mary.tsosie@navajo.gov',
+      state: 'AZ',
+      reservationName: 'Navajo Nation Reservation',
+      deliveryMethod: 'COMMON_CARRIER',
+      trackingRef: '1Z9999999999999999',
+    },
+  },
+  {
+    id: 'audit-1002',
+    timestamp: '2026-09-27T07:00:00.000Z',
+    status: 'VERIFIED',
+    hash: 'b2c3d4e5f6a17890123456789abcdef0123456789abcdef0123456789abcdef1',
+    tribalNation: 'Gila River Indian Community',
+    maskedEnrollmentId: '••••3920',
+    provider: 'sheerid',
+    certificateRef: 'CERT-AZ-85248-1182',
+    taxExempt: true,
+    entityUseCode: 'C',
+    customerId: 'cust_445566',
+    metadata: {
+      customerName: 'James Miller',
+      customerEmail: 'j.miller@gilariver.org',
+      state: 'AZ',
+      reservationName: 'Gila River Indian Reservation',
+      deliveryMethod: 'SELLER_DELIVERY',
+      trackingRef: 'BOL-882910',
+    },
+  },
+  {
+    id: 'audit-1003',
+    timestamp: '2026-09-27T06:00:00.000Z',
+    status: 'VERIFIED',
+    hash: 'c3d4e5f6a1b27890123456789abcdef0123456789abcdef0123456789abcdef2',
+    tribalNation: 'Yakama Nation',
+    maskedEnrollmentId: '••••1029',
+    provider: 'sheerid',
+    certificateRef: 'CERT-WA-98948-3341',
+    taxExempt: true,
+    entityUseCode: 'C',
+    customerId: 'cust_112233',
+    metadata: {
+      customerName: 'Sarah Jim',
+      customerEmail: 'sarah.jim@yakama.com',
+      state: 'WA',
+      reservationName: 'Yakama Indian Reservation',
+      deliveryMethod: 'COMMON_CARRIER',
+      trackingRef: '1Z8888888888888888',
+    },
+  },
+  {
+    id: 'audit-1004',
+    timestamp: '2026-09-27T05:00:00.000Z',
+    status: 'EXEMPT_ACTIVE',
+    hash: 'd4e5f6a1b2c37890123456789abcdef0123456789abcdef0123456789abcdef3',
+    tribalNation: 'Hoopa Valley Tribe',
+    maskedEnrollmentId: '••••5546',
+    provider: 'sheerid',
+    certificateRef: 'CERT-CA-95546-7782',
+    taxExempt: true,
+    entityUseCode: 'C',
+    customerId: 'cust_998877',
+    metadata: {
+      customerName: 'Robert Cole',
+      customerEmail: 'robert.cole@hoopa-nsn.gov',
+      state: 'CA',
+      reservationName: 'Hoopa Valley Indian Reservation',
+      deliveryMethod: 'FOB_RESERVATION',
+      trackingRef: 'FEDEX-99201827',
+    },
+  },
+]
+
 export function AdminTribalAuditDashboard() {
-  const [logs, setLogs] = useState<AuditLogEntry[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [stats, setStats] = useState({
-    totalVerified: 0,
-    onReservationCount: 0,
-    taxExemptCount: 0,
-    nationsCount: 0,
+  const [logs] = useState<AuditLogEntry[]>(INITIAL_MOCK_AUDIT_LOGS)
+  const [isLoading] = useState(false)
+  const [stats] = useState({
+    totalVerified: INITIAL_MOCK_AUDIT_LOGS.length,
+    onReservationCount: INITIAL_MOCK_AUDIT_LOGS.filter((l) => l.taxExempt).length,
+    taxExemptCount: INITIAL_MOCK_AUDIT_LOGS.filter((l) => l.taxExempt).length,
+    nationsCount: new Set(INITIAL_MOCK_AUDIT_LOGS.map((l) => l.tribalNation)).size,
   })
-
-  // Load audit logs (mock or aggregated from localStorage / API)
-  useEffect(() => {
-    // Generate realistic multi-customer compliance audit logs for admin monitoring
-    const mockAuditLogs: AuditLogEntry[] = [
-      {
-        id: 'audit-1001',
-        timestamp: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
-        status: 'VERIFIED',
-        hash: 'a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0',
-        tribalNation: 'Navajo Nation',
-        maskedEnrollmentId: '••••8442',
-        provider: 'sheerid',
-        certificateRef: 'CERT-AZ-86515-9921',
-        taxExempt: true,
-        entityUseCode: 'C',
-        customerId: 'cust_778899',
-        metadata: {
-          customerName: 'Mary Tsosie',
-          customerEmail: 'mary.tsosie@navajo.gov',
-          state: 'AZ',
-          reservationName: 'Navajo Nation Reservation',
-          deliveryMethod: 'COMMON_CARRIER',
-          trackingRef: '1Z9999999999999999',
-        },
-      },
-      {
-        id: 'audit-1002',
-        timestamp: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-        status: 'VERIFIED',
-        hash: 'b2c3d4e5f6a17890123456789abcdef0123456789abcdef0123456789abcdef1',
-        tribalNation: 'Gila River Indian Community',
-        maskedEnrollmentId: '••••3920',
-        provider: 'sheerid',
-        certificateRef: 'CERT-AZ-85248-1182',
-        taxExempt: true,
-        entityUseCode: 'C',
-        customerId: 'cust_445566',
-        metadata: {
-          customerName: 'James Miller',
-          customerEmail: 'j.miller@gilariver.org',
-          state: 'AZ',
-          reservationName: 'Gila River Indian Reservation',
-          deliveryMethod: 'SELLER_DELIVERY',
-          trackingRef: 'BOL-882910',
-        },
-      },
-      {
-        id: 'audit-1003',
-        timestamp: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
-        status: 'VERIFIED',
-        hash: 'c3d4e5f6a1b27890123456789abcdef0123456789abcdef0123456789abcdef2',
-        tribalNation: 'Yakama Nation',
-        maskedEnrollmentId: '••••1029',
-        provider: 'sheerid',
-        certificateRef: 'CERT-WA-98948-3341',
-        taxExempt: true,
-        entityUseCode: 'C',
-        customerId: 'cust_112233',
-        metadata: {
-          customerName: 'Sarah Jim',
-          customerEmail: 'sarah.jim@yakama.com',
-          state: 'WA',
-          reservationName: 'Yakama Indian Reservation',
-          deliveryMethod: 'COMMON_CARRIER',
-          trackingRef: '1Z8888888888888888',
-        },
-      },
-      {
-        id: 'audit-1004',
-        timestamp: new Date(Date.now() - 1000 * 60 * 720).toISOString(),
-        status: 'EXEMPT_ACTIVE',
-        hash: 'd4e5f6a1b2c37890123456789abcdef0123456789abcdef0123456789abcdef3',
-        tribalNation: 'Hoopa Valley Tribe',
-        maskedEnrollmentId: '••••5546',
-        provider: 'sheerid',
-        certificateRef: 'CERT-CA-95546-7782',
-        taxExempt: true,
-        entityUseCode: 'C',
-        customerId: 'cust_998877',
-        metadata: {
-          customerName: 'Robert Cole',
-          customerEmail: 'robert.cole@hoopa-nsn.gov',
-          state: 'CA',
-          reservationName: 'Hoopa Valley Indian Reservation',
-          deliveryMethod: 'FOB_RESERVATION',
-          trackingRef: 'FEDEX-99201827',
-        },
-      },
-    ]
-
-    setLogs(mockAuditLogs)
-    setStats({
-      totalVerified: mockAuditLogs.length,
-      onReservationCount: mockAuditLogs.filter((l) => l.taxExempt).length,
-      taxExemptCount: mockAuditLogs.filter((l) => l.taxExempt).length,
-      nationsCount: new Set(mockAuditLogs.map((l) => l.tribalNation)).size,
-    })
-    setIsLoading(false)
-  }, [])
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">

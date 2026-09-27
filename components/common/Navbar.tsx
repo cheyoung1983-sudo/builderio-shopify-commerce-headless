@@ -10,6 +10,7 @@ import Link from '@components/common/Link'
 import { Bag } from '@components/icons'
 import { Menu, X, Heart } from 'lucide-react'
 import { useWishlist } from '../../context'
+import { useIsMounted } from '@lib/hooks/useIsMounted'
 
 const Navbar: FC = () => {
   const [announcement, setAnnouncement] = useState<any>()
@@ -24,6 +25,7 @@ const Navbar: FC = () => {
         }
   const cart = useCart()
   const modernCart = useModernCart()
+  const isMounted = useIsMounted()
   const cartCount =
     modernCart?.totalQuantity > 0
       ? modernCart.totalQuantity
@@ -32,6 +34,8 @@ const Navbar: FC = () => {
           0
         )
   const { totalItems: wishlistCount, isLoaded } = useWishlist()
+  const displayCartCount = isMounted ? cartCount : 0
+  const displayWishlistCount = isMounted && isLoaded ? wishlistCount : 0
 
   const itemHandles = (cart?.lineItems || [])
     .map((item: any) => item?.variant?.product?.handle)
@@ -163,16 +167,17 @@ const Navbar: FC = () => {
             <Link
               id="navbar-wishlist-link"
               href="/wishlist"
-              aria-label={`Wishlist (${isLoaded ? wishlistCount : 0} items)`}
+              aria-label={`Wishlist (${displayWishlistCount} items)`}
               className="relative inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full text-neutral-700 hover:text-rose-600 hover:bg-rose-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+              suppressHydrationWarning={true}
             >
               <Heart className="w-5 h-5 text-rose-500 hover:scale-110 transition-transform" />
-              {isLoaded && wishlistCount > 0 && (
+              {displayWishlistCount > 0 && (
                 <span
                   id="navbar-wishlist-count-badge"
                   className="absolute -top-0.5 -right-0.5 bg-rose-600 text-white rounded-full text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center px-1 leading-none border-2 border-white shadow-sm"
                 >
-                  {wishlistCount}
+                  {displayWishlistCount}
                 </span>
               )}
             </Link>
@@ -182,16 +187,17 @@ const Navbar: FC = () => {
               id="navbar-bag-button"
               type="button"
               onClick={openSidebar}
-              aria-label={`Shopping Bag (${cartCount} items)`}
+              aria-label={`Shopping Bag (${displayCartCount} items)`}
               className="relative inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full text-neutral-700 hover:text-emerald-700 hover:bg-emerald-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
+              suppressHydrationWarning={true}
             >
               <Bag className="w-5 h-5" />
-              {cartCount > 0 && (
+              {displayCartCount > 0 && (
                 <span
                   id="navbar-bag-badge"
                   className="absolute -top-1 -right-1 bg-emerald-600 text-white rounded-full text-[11px] font-bold min-w-[20px] h-[20px] flex items-center justify-center px-1 leading-none border-2 border-white shadow-sm"
                 >
-                  {cartCount}
+                  {displayCartCount}
                 </span>
               )}
             </button>
@@ -251,9 +257,9 @@ const Navbar: FC = () => {
                   <Heart className="w-4 h-4 text-rose-500" />
                   <span>My Wishlist</span>
                 </span>
-                {isLoaded && wishlistCount > 0 && (
+                {displayWishlistCount > 0 && (
                   <span className="bg-rose-100 text-rose-700 text-xs font-bold px-2 py-0.5 rounded-full">
-                    {wishlistCount}
+                    {displayWishlistCount}
                   </span>
                 )}
               </Link>

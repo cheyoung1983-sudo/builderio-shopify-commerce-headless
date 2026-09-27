@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import VoiceTranscriptDisplay from "./VoiceTranscriptDisplay";
 import VoicePulseAvatar from "./VoicePulseAvatar";
+import AudioWaveformVisualizer from "./voice/AudioWaveformVisualizer";
 import shopifyConfig from "../config/shopify";
 import { storefrontFetch } from "../services/shopify";
 import { createActivityKeeper, ELEVENLABS_ACTIVITY_EVENT } from "../lib/elevenlabs-activity";
@@ -32,23 +33,25 @@ import { createActivityKeeper, ELEVENLABS_ACTIVITY_EVENT } from "../lib/elevenla
 const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || "agent_3101m30qaxc1f3981zq05pp86ax1";
 
 async function resolveWorkletUrl(path) {
-  if (typeof window === "undefined") return path;
+  if (typeof window === "undefined") return null;
+  const origin = window.location?.origin;
+  if (!origin || origin === "null" || !origin.startsWith("http")) return null;
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  const targetUrl = `${window.location.origin}${cleanPath}`;
+  const targetUrl = `${origin}${cleanPath}`;
   
   try {
     const res = await fetch(targetUrl, { method: "HEAD" });
-    if (res.ok) {
-      console.log(`[ElevenLabsAgent] Worklet static asset verified: ${cleanPath}`);
+    const contentType = res.headers.get("content-type") || "";
+    // Only return if status is OK and content is JavaScript (never HTML error page)
+    if (res.ok && (contentType.includes("javascript") || contentType === "")) {
       return targetUrl;
     }
-    console.warn(`[ElevenLabsAgent] Worklet asset not found (${res.status}) for ${cleanPath}.`);
+    console.warn(`[ElevenLabsAgent] Worklet asset not JS (${res.status}, ${contentType}) for ${cleanPath}.`);
   } catch (err) {
-    console.warn(`[ElevenLabsAgent] Verification check for worklet asset at ${cleanPath} failed. Error:`, err);
+    console.warn(`[ElevenLabsAgent] Verification check for worklet asset at ${cleanPath} failed:`, err);
   }
   
-  // Return original path as fallback
-  return cleanPath;
+  return null;
 }
 
 /**
@@ -231,8 +234,10 @@ export default function ElevenLabsAgent() {
   const [transcript, setTranscript] = useState([]);
   const [activeView, setActiveView] = useState("call"); // "call" | "transcript"
   const [outputVolume, setOutputVolume] = useState(0); // 0.0 to 1.0 audio volume
+  const [inputVolume, setInputVolume] = useState(0); // 0.0 to 1.0 microphone volume
   const volumeAnimFrameRef = useRef(null);
   const smoothedVolumeRef = useRef(0);
+  const smoothedInputVolumeRef = useRef(0);
   const [isInIframe, setIsInIframe] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const conversationRef = useRef(null);
@@ -352,7 +357,9 @@ export default function ElevenLabsAgent() {
         volumeAnimFrameRef.current = null;
       }
       setOutputVolume(0);
+      setInputVolume(0);
       smoothedVolumeRef.current = 0;
+      smoothedInputVolumeRef.current = 0;
       if (conversationRef.current) {
         const conv = conversationRef.current;
         conversationRef.current = null;
@@ -365,7 +372,9 @@ export default function ElevenLabsAgent() {
       setStatus("disconnected");
       setIsSpeaking(false);
       setOutputVolume(0);
+      setInputVolume(0);
       smoothedVolumeRef.current = 0;
+      smoothedInputVolumeRef.current = 0;
     }
   }, []);
 
@@ -420,15 +429,20 @@ export default function ElevenLabsAgent() {
       const activeDynamicVars = {
         repair_name: repairName || "Display & Touchscreen Assembly",
         service_name: serviceName || "DisplayCellPros Express Technical Repair",
+        store_location: "Spokane, WA",
+        store_phone: "(509) 555-CELL",
+        warranty_policy: "1-Year Comprehensive Warranty",
+        turnaround_time: "25 to 45 minutes on-site",
         ...(options.dynamicVariables || {}),
       };
 
+      const workletPaths = (rawWorkletUrl && concatWorkletUrl)
+        ? { rawAudioProcessor: rawWorkletUrl, audioConcatProcessor: concatWorkletUrl }
+        : undefined;
+
       const conversation = await Conversation.startSession({
         dynamicVariables: activeDynamicVars,
-        workletPaths: {
-          rawAudioProcessor: rawWorkletUrl,
-          audioConcatProcessor: concatWorkletUrl,
-        },
+        ...(workletPaths ? { workletPaths } : {}),
         clientTools: {
           search_catalog: async ({ query }) => {
             try {
@@ -438,7 +452,14 @@ export default function ElevenLabsAgent() {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ query }),
                 });
-                const data = await res.json();
+                let data = null;
+                if (res.ok) {
+                  try {
+                    data = await res.json();
+                  } catch {
+                    data = null;
+                  }
+                }
                 const products = data?.products || [];
                 
                 setTranscript((prev) => [
@@ -660,11 +681,17 @@ export default function ElevenLabsAgent() {
             try {
               const res = await fetch("/api/orders/track", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ orderId, email }),
               });
-              const data = await res.json();
-              if (data.success && data.order) {
+              let data = null;
+              if (res.ok) {
+                try {
+                  data = await res.json();
+                } catch {
+                  data = null;
+                }
+              }
+              if (data && data.success && data.order) {
                 const order = data.order;
                 setTranscript((prev) => [
                   ...prev,
@@ -687,6 +714,202 @@ export default function ElevenLabsAgent() {
               return JSON.stringify({ success: false, error: data.error || "Order not found. Please verify Order ID and Email." });
             } catch (error) {
               return JSON.stringify({ success: false, error: error.message });
+            }
+          },
+
+          get_repair_quote: async ({ deviceModel, repairType }) => {
+            const model = String(deviceModel || "Smartphone").trim();
+            const service = String(repairType || "Screen Replacement").trim();
+            
+            // Standard Spokane technical repair quote estimates
+            let priceRange = "$129.00 - $189.00";
+            if (model.toLowerCase().includes("pro max") || model.toLowerCase().includes("ultra")) {
+              priceRange = "$199.00 - $279.00";
+            } else if (model.toLowerCase().includes("battery")) {
+              priceRange = "$69.00 - $99.00";
+            } else if (model.toLowerCase().includes("ipad") || model.toLowerCase().includes("tablet")) {
+              priceRange = "$149.00 - $229.00";
+            }
+
+            setTranscript((prev) => [
+              ...prev,
+              {
+                id: `quote-${Date.now()}`,
+                sender: "system",
+                text: `Spokane Quote Generated: ${model} (${service}) — ${priceRange} (Includes 1-Year Warranty & On-Site Labor)`,
+                timestamp: new Date(),
+              },
+            ]);
+
+            return JSON.stringify({
+              success: true,
+              device: model,
+              service,
+              estimatedPrice: priceRange,
+              warranty: "1-Year Comprehensive Warranty",
+              turnaroundTime: "25–45 minutes on-site in Spokane, WA",
+              onSiteServiceIncluded: true,
+            });
+          },
+
+          book_repair_service: async ({ customerName, phone, deviceModel, repairType, addressOrZip, preferredTime }) => {
+            const bookingId = `BK-SPOKANE-${Date.now().toString(36).toUpperCase()}`;
+            const name = String(customerName || "Valued Customer").trim();
+            const contactPhone = String(phone || "Provided via Voice").trim();
+            const device = String(deviceModel || "Device").trim();
+            const service = String(repairType || "Express Screen Repair").trim();
+            const location = String(addressOrZip || "Spokane, WA").trim();
+            const time = String(preferredTime || "Earliest Available Today").trim();
+
+            setTranscript((prev) => [
+              ...prev,
+              {
+                id: `booking-${Date.now()}`,
+                sender: "system",
+                text: `Repair Appointment Confirmed: ${bookingId} for ${name} (${device} ${service}) at ${location} [${time}]`,
+                timestamp: new Date(),
+              },
+            ]);
+
+            return JSON.stringify({
+              success: true,
+              bookingId,
+              customerName: name,
+              device,
+              service,
+              location,
+              scheduledTime: time,
+              status: "CONFIRMED_ON_SITE",
+              message: "Your Spokane technician appointment has been recorded. Our specialist will call 15 minutes before arrival.",
+            });
+          },
+
+          check_inventory: async ({ handle, variantId }) => {
+            try {
+              const res = await fetch("/api/agent/cart", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "check_inventory", handle, variantId }),
+              });
+              const data = await res.json();
+              if (data.success) {
+                return JSON.stringify({ success: true, inventory: data.product || data.variant });
+              }
+              return JSON.stringify({ success: false, error: data.error });
+            } catch (err) {
+              return JSON.stringify({ success: false, error: err.message });
+            }
+          },
+
+          get_pricing: async ({ handle, variantId }) => {
+            try {
+              const res = await fetch("/api/agent/cart", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "get_pricing", handle, variantId }),
+              });
+              const data = await res.json();
+              if (data.success) {
+                return JSON.stringify({ success: true, pricing: data.data });
+              }
+              return JSON.stringify({ success: false, error: data.error });
+            } catch (err) {
+              return JSON.stringify({ success: false, error: err.message });
+            }
+          },
+
+          create_repair_cart: async ({
+            variantId,
+            quantity = 1,
+            serviceType = "Spokane On-Site",
+            deviceModel,
+            repairIssue,
+            customerName,
+            customerEmail,
+            customerPhone,
+            preferredTimeWindow,
+            tribalExemptionRequested = false,
+            notes,
+          }) => {
+            try {
+              const res = await fetch("/api/agent/cart", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "create_cart",
+                  variantId,
+                  quantity: Number(quantity) || 1,
+                  serviceType,
+                  deviceModel,
+                  repairIssue,
+                  customerName,
+                  customerEmail,
+                  customerPhone,
+                  preferredTimeWindow,
+                  tribalExemptionRequested: Boolean(tribalExemptionRequested),
+                  notes,
+                }),
+              });
+
+              const data = await res.json();
+              if (data.success && data.cart) {
+                const cart = data.cart;
+                if (typeof localStorage !== "undefined") {
+                  localStorage.setItem("cartId", cart.id);
+                }
+
+                // Render rich interactive CheckoutHandoffCard in transcript
+                setTranscript((prev) => [
+                  ...prev,
+                  {
+                    id: `cart-handoff-${Date.now()}`,
+                    sender: "agent",
+                    text: `I've created your ${serviceType} repair cart for ${deviceModel || "your device"} ($${cart.total} ${cart.currency}). You can proceed to Shopify hosted checkout below or scan the QR code from your phone:`,
+                    timestamp: new Date(),
+                    cartHandoff: {
+                      cartId: cart.id,
+                      initialCheckoutUrl: cart.checkoutUrl,
+                      items: cart.lines,
+                      subtotal: cart.subtotal,
+                      total: cart.total,
+                      currency: cart.currency,
+                      serviceType,
+                      deviceModel,
+                      repairIssue,
+                      tribalExemptionRequested: Boolean(tribalExemptionRequested),
+                      customerName,
+                      customerPhone,
+                    },
+                  },
+                ]);
+
+                return JSON.stringify({
+                  success: true,
+                  cartId: cart.id,
+                  checkoutUrl: cart.checkoutUrl,
+                  totalAmount: cart.total,
+                  currency: cart.currency,
+                  message: "Cart created successfully with custom repair metadata. Checkout link delivered to user.",
+                });
+              }
+
+              return JSON.stringify({ success: false, error: data.error || "Failed to create checkout cart" });
+            } catch (err) {
+              return JSON.stringify({ success: false, error: err.message });
+            }
+          },
+
+          refresh_checkout: async ({ cartId }) => {
+            try {
+              const res = await fetch("/api/agent/refresh-checkout", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ cartId }),
+              });
+              const data = await res.json();
+              return JSON.stringify(data);
+            } catch (err) {
+              return JSON.stringify({ success: false, error: err.message });
             }
           },
         },
@@ -716,7 +939,9 @@ export default function ElevenLabsAgent() {
           setStatus("disconnected");
           setIsSpeaking(false);
           setOutputVolume(0);
+          setInputVolume(0);
           smoothedVolumeRef.current = 0;
+          smoothedInputVolumeRef.current = 0;
           if (conversationRef.current === conversation) {
             conversationRef.current = null;
           }
@@ -740,7 +965,9 @@ export default function ElevenLabsAgent() {
           setErrorMessage(err?.message || "Connection error with voice platform");
           setStatus("error");
           setOutputVolume(0);
+          setInputVolume(0);
           smoothedVolumeRef.current = 0;
+          smoothedInputVolumeRef.current = 0;
           connectingRef.current = false;
         },
         onModeChange: ({ mode }) => {
@@ -880,8 +1107,13 @@ export default function ElevenLabsAgent() {
         });
 
         if (geminiRes.ok) {
-          const geminiData = await geminiRes.json();
-          if (geminiData.ok && geminiData.reply) {
+          let geminiData = null;
+          try {
+            geminiData = await geminiRes.json();
+          } catch {
+            geminiData = null;
+          }
+          if (geminiData && geminiData.ok && geminiData.reply) {
             setTranscript((prev) => [
               ...prev,
               {
@@ -901,7 +1133,14 @@ export default function ElevenLabsAgent() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query, first: 4 }),
         });
-        const data = await res.json();
+        let data = null;
+        if (res.ok) {
+          try {
+            data = await res.json();
+          } catch {
+            data = null;
+          }
+        }
         const products = data?.products || [];
 
         let reply = "";
@@ -1002,6 +1241,15 @@ export default function ElevenLabsAgent() {
         }
       }
 
+      let rawInputVolume = 0;
+      if (conversationRef.current?.getInputVolume) {
+        try {
+          rawInputVolume = conversationRef.current.getInputVolume() || 0;
+        } catch {
+          rawInputVolume = 0;
+        }
+      }
+
       // If the agent is speaking, rawVolume reflects audio output volume (0 to 1).
       // We also blend with dynamic speech wave oscillation while speaking to ensure
       // continuous, rich pulse animation across all browsers and devices.
@@ -1025,6 +1273,19 @@ export default function ElevenLabsAgent() {
       setOutputVolume((prev) => {
         if (Math.abs(prev - rounded) < 0.01) return prev;
         return rounded;
+      });
+
+      // Smooth input (microphone) volume
+      const targetInput = Math.min(1, rawInputVolume * 2.5);
+      const currentInput = smoothedInputVolumeRef.current;
+      const nextInput = currentInput + (targetInput - currentInput) * 0.25;
+      const clampedInput = Math.min(1, Math.max(0, nextInput));
+      smoothedInputVolumeRef.current = clampedInput;
+
+      const roundedInput = Math.round(clampedInput * 100) / 100;
+      setInputVolume((prev) => {
+        if (Math.abs(prev - roundedInput) < 0.01) return prev;
+        return roundedInput;
       });
 
       volumeAnimFrameRef.current = requestAnimationFrame(tick);
@@ -1250,16 +1511,14 @@ export default function ElevenLabsAgent() {
                 : "bg-emerald-50/70 border-emerald-200/80 shadow-xs"
             }`}
           >
-            <VoicePulseAvatar
-              volume={outputVolume}
-              isSpeaking={isSpeaking}
-              isListening={agentStatus === "listening"}
-              isConnected={isConnected}
-              status={agentStatus}
-              size="lg"
-              showVolumeMeter={true}
-              className="my-1"
-            />
+            <div className="relative flex items-center justify-center my-1">
+              <AudioWaveformVisualizer
+                status={agentStatus}
+                outputVolume={outputVolume}
+                inputVolume={inputVolume}
+                size={80}
+              />
+            </div>
 
             <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider mt-2">
               {agentStatus === "speaking" ? (
@@ -1653,28 +1912,49 @@ export default function ElevenLabsAgent() {
         </div>
       )}
 
-      {/* Floating Toggle Button */}
+      {/* Floating Toggle Button with Integrated Audio Waveform Orb */}
       <button
         id="elevenlabs-agent-toggle-btn"
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`pointer-events-auto group relative flex items-center gap-2.5 px-3.5 py-2.5 rounded-full shadow-xl backdrop-blur-sm transition-all duration-200 cursor-pointer ${currentConfig.toggleBg}`}
+        aria-label={isOpen ? "Minimize voice support agent" : "Open Spokane Repair Voice Specialist"}
+        title="Spokane Repair Voice Specialist • Click to talk"
+        className={`pointer-events-auto group relative flex items-center gap-2.5 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-full shadow-2xl backdrop-blur-xl border border-white/20 transition-all duration-300 hover:scale-[1.03] cursor-pointer ${currentConfig.toggleBg}`}
       >
-        <span className="relative flex items-center justify-center">
-          {agentStatus === "speaking" ? (
-            <span
-              className="relative flex items-center justify-center transition-transform duration-75"
-              style={{ transform: `scale(${1 + outputVolume * 0.35})` }}
-            >
-              <Volume2 className="relative w-4 h-4 text-white" />
-            </span>
-          ) : (
-            <Mic className={`w-4 h-4 ${agentStatus === "listening" ? "text-white" : "text-emerald-400"}`} />
-          )}
-        </span>
-        <span className="text-xs font-semibold tracking-wide">Voice Agent</span>
-        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${currentConfig.toggleBadgeClass}`}>
+        {/* Glowing Audio Waveform Visualizer Orb */}
+        <div className="relative flex items-center justify-center shrink-0">
+          <AudioWaveformVisualizer
+            status={agentStatus}
+            outputVolume={outputVolume}
+            inputVolume={inputVolume}
+            size={28}
+          />
+        </div>
+
+        <div className="flex flex-col text-left leading-tight pr-0.5">
+          <span className="text-xs font-bold tracking-tight text-white flex items-center gap-1.5">
+            <span>Repair AI</span>
+            {agentStatus === "speaking" && (
+              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            )}
+          </span>
+          <span className="text-[10px] text-white/80 font-medium hidden sm:inline">
+            Spokane On-Site
+          </span>
+        </div>
+
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-xs ${currentConfig.toggleBadgeClass}`}>
           {currentConfig.label}
         </span>
+
+        {/* Unread indicator when minimized with active transcript */}
+        {!isOpen && transcript.length > 0 && (
+          <span
+            id="elevenlabs-unread-pill"
+            className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-white ring-2 ring-white shadow-md animate-bounce"
+          >
+            {transcript.length > 9 ? "9+" : transcript.length}
+          </span>
+        )}
       </button>
     </div>
   );

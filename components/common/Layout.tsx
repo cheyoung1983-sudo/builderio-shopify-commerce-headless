@@ -32,9 +32,12 @@ const CartDrawer = dynamic(() => import('@components/CartDrawer'), {
   ssr: false,
 })
 
-const ElevenLabsAgent = dynamic(() => import('@components/ElevenLabsAgent'), {
-  ssr: false,
-})
+const FloatingVoiceAgentWrapper = dynamic(
+  () => import('@components/voice/FloatingVoiceAgentWrapper'),
+  {
+    ssr: false,
+  }
+)
 
 const AudioPermissionDiagnostics = dynamic(
   () => import('@components/AudioPermissionDiagnostics'),
@@ -162,7 +165,7 @@ const InnerLayout: React.FC<{
                 <ToastContainer />
                 <NoSSR>
                   <CartDrawer />
-                  <ElevenLabsAgent />
+                  <FloatingVoiceAgentWrapper />
                   <AudioPermissionDiagnostics />
                   <FeatureBar
                     title="This site uses cookies to improve your experience. By clicking, you agree to our Privacy Policy."

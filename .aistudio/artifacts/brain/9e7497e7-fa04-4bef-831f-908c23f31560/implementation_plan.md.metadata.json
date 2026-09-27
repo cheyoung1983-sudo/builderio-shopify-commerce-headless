@@ -1,6 +1,6 @@
 {
-  "summary":  "Comprehensive implementation plan to align container build directories, resolve build and environment warnings, and implement ElevenLabs Agents client-to-server events (contextual updates and activity pings).",
-  "updatedAt":  "2026-09-27T00:42:34.003503999Z",
+  "summary":  "Revised implementation plan for ElevenLabs x Shopify Headless Checkout Integration (Phase 1), incorporating: 1) Pinned Storefront API version from config/environment (2024-07 / 2025-01 dynamic fallback), 2) Clear boundary that _tribal_exemption_requested cart attribute is for Shopify Flow downstream tagging and post-purchase Avalara tax processing rather than immediate checkout calculation, and 3) /api/agent/refresh-checkout endpoint for generating fresh, non-stale checkoutUrls before QR code rendering.",
+  "updatedAt":  "2026-09-27T17:41:55.844064583Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

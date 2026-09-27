@@ -785,11 +785,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             {/* Social Sharing Section: Twitter, Facebook, Copy Link, Web Share API */}
             <div id="product-detail-social-share" className="pt-4 border-t border-neutral-200/80 mb-6">
               <SocialShareButtons
-                url={
-                  typeof window !== 'undefined' && product?.handle
-                    ? `${window.location.origin}${productBaseUrl}/${product.handle}`
-                    : undefined
-                }
+                url={product?.handle ? `${productBaseUrl}/${product.handle}` : undefined}
                 title={product.title}
                 description={product.description}
                 variant="default"

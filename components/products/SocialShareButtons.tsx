@@ -1,11 +1,6 @@
-import React, { useState, useSyncExternalStore } from 'react'
+import React, { useState } from 'react'
 import { Share2, Copy, Check, ExternalLink } from 'lucide-react'
-
-// External store subscription for client-side Web Share API support detection
-const emptySubscribe = () => () => {}
-const getClientWebShareSnapshot = () =>
-  typeof navigator !== 'undefined' && typeof navigator.share === 'function'
-const getServerWebShareSnapshot = () => false
+import { useIsMounted } from '@lib/hooks/useIsMounted'
 
 export interface SocialShareButtonsProps {
   /** The canonical URL to share. If omitted, uses the current page URL. */
@@ -35,26 +30,26 @@ export const SocialShareButtons: React.FC<SocialShareButtonsProps> = ({
 }) => {
   const [copied, setCopied] = useState<boolean>(false)
   const [copyFeedback, setCopyFeedback] = useState<string>('')
+  const isMounted = useIsMounted()
 
-  // Detect Web Share API capability safely without cascading render effects
-  const canWebShare = useSyncExternalStore(
-    emptySubscribe,
-    getClientWebShareSnapshot,
-    getServerWebShareSnapshot
-  )
+  // Detect Web Share API capability safely after hydration
+  const canWebShare =
+    isMounted &&
+    typeof navigator !== 'undefined' &&
+    typeof navigator.share === 'function'
 
-  // Resolve target URL safely without cascading setState in effect
+  // Resolve target URL safely without SSR mismatch
   const getTargetUrl = (): string => {
     if (url) {
       if (url.startsWith('http://') || url.startsWith('https://')) {
         return url
       }
-      if (typeof window !== 'undefined') {
+      if (isMounted && typeof window !== 'undefined') {
         return `${window.location.origin}${url.startsWith('/') ? '' : '/'}${url}`
       }
       return url
     }
-    if (typeof window !== 'undefined') {
+    if (isMounted && typeof window !== 'undefined') {
       return window.location.href
     }
     return ''
@@ -170,6 +165,7 @@ export const SocialShareButtons: React.FC<SocialShareButtonsProps> = ({
       id="product-social-share-container"
       className={`space-y-2.5 ${className}`}
       aria-label="Social sharing options"
+      suppressHydrationWarning={true}
     >
       {showLabel && (
         <div className="flex items-center justify-between gap-2">

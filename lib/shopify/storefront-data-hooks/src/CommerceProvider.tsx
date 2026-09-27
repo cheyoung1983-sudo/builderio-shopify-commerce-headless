@@ -80,8 +80,7 @@ export function CommerceProvider({
   children,
 }: CommerceProviderProps) {
   const isConfigured = Boolean(domain && storefrontAccessToken)
-  const initialCart = LocalStorage.getInitialCart()
-  const [cart, setCart] = useState<ShopifyBuy.Cart | null>(initialCart)
+  const [cart, setCart] = useState<ShopifyBuy.Cart | null>(null)
   const isInitializingRef = useRef(false)
 
   const client = useMemo(() => {
@@ -182,7 +181,21 @@ export function CommerceProvider({
     if (isInitializingRef.current) return
     isInitializingRef.current = true
 
-    async function getNewCart() {
+    queueMicrotask(async () => {
+      const storedCart = LocalStorage.getInitialCart()
+      if (storedCart != null) {
+        setCart(storedCart)
+        try {
+          const refreshedCart = await client.checkout.fetch(String(storedCart.id))
+          if (refreshedCart != null) {
+            setCart(refreshedCart)
+            return
+          }
+        } catch (error) {
+          console.warn('Failed to refresh shopify cart:', error)
+          return
+        }
+      }
       try {
         const newCart = await client.checkout.create()
         if (newCart) {
@@ -191,29 +204,7 @@ export function CommerceProvider({
       } catch (error) {
         console.warn('Failed to create shopify cart:', error)
       }
-    }
-
-    async function refreshExistingCart(cartId: string) {
-      try {
-        const refreshedCart = await client.checkout.fetch(cartId)
-        if (refreshedCart == null) {
-          return getNewCart()
-        }
-        setCart(refreshedCart)
-      } catch (error) {
-        console.warn('Failed to refresh shopify cart:', error)
-      }
-    }
-
-    if (cart == null) {
-      getNewCart()
-    } else {
-      refreshExistingCart(String(cart.id))
-    }
-    // Intentionally run once on mount using whatever `cart` was loaded from
-    // LocalStorage at that time — this effect itself calls setCart(), so
-    // including `cart` in the deps would re-trigger it on every refresh.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    })
   }, [client])
 
   useEffect(() => {

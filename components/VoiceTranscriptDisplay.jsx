@@ -11,6 +11,7 @@ import {
   Sparkles,
   Info,
 } from "lucide-react";
+import CheckoutHandoffCard from "./voice/CheckoutHandoffCard";
 
 /**
  * VoiceTranscriptDisplay
@@ -268,35 +269,42 @@ const VoiceTranscriptDisplay = memo(function VoiceTranscriptDisplay({
                     )}
                   </div>
 
-                  {/* Message Bubble */}
-                  <div className="relative max-w-[90%] sm:max-w-[85%]">
-                    <div
-                      className={`px-3 py-2 rounded-xl text-xs leading-relaxed transition-colors select-text ${
-                        isAgent
-                          ? "bg-white text-neutral-900 border border-neutral-200/90 shadow-2xs rounded-tl-xs"
-                          : "bg-neutral-900 text-white shadow-2xs rounded-tr-xs"
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap break-words">{item.text}</p>
-                    </div>
+                    {/* Message Bubble */}
+                    <div className="relative max-w-[90%] sm:max-w-[85%] w-full">
+                      <div
+                        className={`px-3 py-2 rounded-xl text-xs leading-relaxed transition-colors select-text ${
+                          isAgent
+                            ? "bg-white text-neutral-900 border border-neutral-200/90 shadow-2xs rounded-tl-xs"
+                            : "bg-neutral-900 text-white shadow-2xs rounded-tr-xs"
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap break-words">{item.text}</p>
+                      </div>
 
-                    {/* Quick Copy Action */}
-                    <button
-                      type="button"
-                      onClick={() => handleCopyMessage(item.id || idx, item.text)}
-                      title="Copy message"
-                      aria-label="Copy message text"
-                      className={`absolute top-1 -right-7 sm:-right-8 p-1 rounded-md bg-white border border-neutral-200 text-neutral-400 hover:text-neutral-800 shadow-2xs opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity cursor-pointer ${
-                        copiedId === (item.id || idx) ? "opacity-100 text-emerald-600" : ""
-                      }`}
-                    >
-                      {copiedId === (item.id || idx) ? (
-                        <Check className="w-2.5 h-2.5 text-emerald-600" />
-                      ) : (
-                        <Copy className="w-2.5 h-2.5" />
+                      {/* Interactive Cart Handoff Card if provided */}
+                      {item.cartHandoff && (
+                        <div className="mt-2 w-full">
+                          <CheckoutHandoffCard {...item.cartHandoff} />
+                        </div>
                       )}
-                    </button>
-                  </div>
+
+                      {/* Quick Copy Action */}
+                      <button
+                        type="button"
+                        onClick={() => handleCopyMessage(item.id || idx, item.text)}
+                        title="Copy message"
+                        aria-label="Copy message text"
+                        className={`absolute top-1 -right-7 sm:-right-8 p-1 rounded-md bg-white border border-neutral-200 text-neutral-400 hover:text-neutral-800 shadow-2xs opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity cursor-pointer ${
+                          copiedId === (item.id || idx) ? "opacity-100 text-emerald-600" : ""
+                        }`}
+                      >
+                        {copiedId === (item.id || idx) ? (
+                          <Check className="w-2.5 h-2.5 text-emerald-600" />
+                        ) : (
+                          <Copy className="w-2.5 h-2.5" />
+                        )}
+                      </button>
+                    </div>
                 </div>
               );
             })

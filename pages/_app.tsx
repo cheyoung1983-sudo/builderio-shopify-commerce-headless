@@ -57,8 +57,12 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         <Layout pageProps={pageProps}>
           <Component {...pageProps} />
         </Layout>
-        <SpeedInsights />
-        <Analytics />
+        {process.env.NEXT_PUBLIC_VERCEL_ENV ? (
+          <>
+            <SpeedInsights />
+            <Analytics />
+          </>
+        ) : null}
       </ErrorBoundary>
     </AuthProvider>
   )
