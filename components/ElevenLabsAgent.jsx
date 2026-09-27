@@ -38,7 +38,7 @@ async function resolveWorkletUrl(path) {
   if (!origin || origin === "null" || !origin.startsWith("http")) return null;
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   const targetUrl = `${origin}${cleanPath}`;
-  
+
   try {
     const res = await fetch(targetUrl, { method: "HEAD" });
     const contentType = res.headers.get("content-type") || "";
@@ -50,7 +50,7 @@ async function resolveWorkletUrl(path) {
   } catch (err) {
     console.warn(`[ElevenLabsAgent] Verification check for worklet asset at ${cleanPath} failed:`, err);
   }
-  
+
   return null;
 }
 
@@ -225,6 +225,17 @@ export async function fetchVoiceTokenWithBackoff(agentId, options = {}) {
 
 const getVoiceToken = fetchVoiceTokenWithBackoff;
 
+/**
+ * Conversational AI Voice Agent Component
+ *
+ * Renders a floating interactive voice assistant interface powered by ElevenLabs.
+ * Handles WebSocket audio streaming via `@elevenlabs/client`, real-time transcript
+ * updates, audio waveform visualization, microphone permissions, and on-session
+ * tools (`search_catalog`, `add_to_cart`).
+ *
+ * @component
+ * @returns {JSX.Element} Floating Voice Agent widget and dialogue sheet
+ */
 export default function ElevenLabsAgent() {
   const router = useRouter();
   const [status, setStatus] = useState("disconnected"); // 'disconnected' | 'connecting' | 'connected' | 'error'
@@ -273,7 +284,7 @@ export default function ElevenLabsAgent() {
 
   const [searchMode, setSearchMode] = useState("local"); // "local" | "global"
   const searchModeRef = useRef("local");
-  
+
   useEffect(() => {
     searchModeRef.current = searchMode;
   }, [searchMode]);
@@ -461,7 +472,7 @@ export default function ElevenLabsAgent() {
                   }
                 }
                 const products = data?.products || [];
-                
+
                 setTranscript((prev) => [
                   ...prev,
                   {
@@ -622,10 +633,10 @@ export default function ElevenLabsAgent() {
                     timestamp: new Date(),
                   },
                 ]);
-                return JSON.stringify({ 
-                  success: true, 
+                return JSON.stringify({
+                  success: true,
                   totalQuantity: cart.totalQuantity,
-                  checkoutUrl: cart.checkoutUrl 
+                  checkoutUrl: cart.checkoutUrl
                 });
               }
 
@@ -720,7 +731,7 @@ export default function ElevenLabsAgent() {
           get_repair_quote: async ({ deviceModel, repairType }) => {
             const model = String(deviceModel || "Smartphone").trim();
             const service = String(repairType || "Screen Replacement").trim();
-            
+
             // Standard Spokane technical repair quote estimates
             let priceRange = "$129.00 - $189.00";
             if (model.toLowerCase().includes("pro max") || model.toLowerCase().includes("ultra")) {
@@ -1764,8 +1775,8 @@ export default function ElevenLabsAgent() {
                   <button
                     onClick={() => setSearchMode(searchMode === "local" ? "global" : "local")}
                     className={`px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase transition-colors cursor-pointer ${
-                      searchMode === "global" 
-                        ? "bg-indigo-100 text-indigo-700 border-indigo-200" 
+                      searchMode === "global"
+                        ? "bg-indigo-100 text-indigo-700 border-indigo-200"
                         : "bg-emerald-100 text-emerald-700 border-emerald-200"
                     }`}
                   >

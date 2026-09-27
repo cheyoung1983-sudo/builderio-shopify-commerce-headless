@@ -21,6 +21,8 @@
  *   - Phrase query: "Bob Norman"
  *   - Prefix query: norm*, title:head*
  *   - Exists query: tag:*, -published_at:*
+ *
+ * @module ShopifySearchSyntax
  */
 
 import { ShopifyProductNode } from '../services/shopify'

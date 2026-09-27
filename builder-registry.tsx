@@ -1,40 +1,68 @@
+/**
+ * Builder.io Custom Component Registration Manifest
+ *
+ * Configures dynamic loading and input schemas for Builder.io visual blocks,
+ * enabling non-technical content editors to place e-commerce elements
+ * (product grids, collection views, search bars, FAQ accordions) inside
+ * Builder.io pages and visual templates.
+ *
+ * @module BuilderRegistry
+ */
+
 import { Builder } from '@builder.io/react'
 import dynamic from 'next/dynamic'
 import { Input } from '@builder.io/sdk'
 import Image from 'next/image'
 
-// Lazy load components
+// -----------------------------------------------------------------------------
+// Lazy Loaded Components
+// Code-split components using Next.js dynamic imports for optimal bundle size
+// -----------------------------------------------------------------------------
+
+/** Lazy-loaded Product Grid component for manual or collection product listings */
 const LazyProductGrid = dynamic(async () => {
   return (await import('./blocks/ProductGrid/ProductGrid')).ProductGrid
 })
 
+/** Lazy-loaded Collection View component for collection header and grid details */
 const LazyCollectionView = dynamic(() => import('./blocks/CollectionView/CollectionView'))
 
+/** Lazy-loaded Product View component for product detail presentation */
 const LazyProductView = dynamic(
   () => import('./blocks/ProductView/ProductView'),
   { ssr: true }
 )
 
+/** Lazy-loaded FAQ Accordion with Schema.org JSON-LD support for SEO */
 const LazyFAQAccordion = dynamic(
   () => import('./components/common/FAQAccordion'),
   { ssr: true }
 )
 
+/** Lazy-loaded ScrollToTop floating action button */
 const LazyScrollToTop = dynamic(
   () => import('./components/common/ScrollToTop'),
   { ssr: false }
 )
 
+/** Lazy-loaded Breadcrumbs navigation trail component */
 const LazyBreadcrumbs = dynamic(
   () => import('./components/common/Breadcrumbs'),
   { ssr: true }
 )
 
+/** Lazy-loaded Predictive Search bar with syntax helper chips */
 const LazyPredictiveSearch = dynamic(
   () => import('./components/search/PredictiveSearch').then((mod) => mod.PredictiveSearch),
   { ssr: true }
 )
 
+// -----------------------------------------------------------------------------
+// Input Schemas
+// Reusable Builder.io editor input specifications
+// -----------------------------------------------------------------------------
+
+/** Configuration inputs for product card image dimensions and loading strategies */
 const productCardFields: Input[] = [
   { name: 'imgWidth', type: 'number', defaultValue: 540 },
   { name: 'imgHeight', type: 'number', defaultValue: 540 },
@@ -56,6 +84,7 @@ const productCardFields: Input[] = [
   { name: 'fillImage', type: 'boolean', advanced: true, defaultValue: true },
 ]
 
+/** Configuration schema for product grid pagination, limits, and card options */
 const productGridSchema: Input[] = [
   {
     name: 'cardProps',

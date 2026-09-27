@@ -1,26 +1,33 @@
 /**
- * Avalara AvaTax Tax Calculation Service
- * 
+ * Avalara AvaTax Tax Calculation & Tribal Exemption Service
+ *
  * Integrates with Avalara AvaTax API (v2) using Entity Use Code 'C' (Native American / Tribal Member)
  * to calculate sales tax exemptions for qualified on-reservation transactions.
+ *
+ * @module TaxCalculator
  */
 
 import { checkCoordinatesIntersectAIANA, isCoordinatesOnReservation } from './geofencing.ts'
 import { evaluateAddressGeofence } from './tribal/geofencing.ts'
 
+/** Avalara Entity Use Code 'C' for Native American Tribal Exemption */
 export const AVATAX_ENTITY_USE_CODE_TRIBAL = 'C'
 
+/** Address specification for tax jurisdiction lookup and geofencing */
 export interface TaxAddress {
   line1: string
   line2?: string
   city: string
-  region: string // State code (e.g. 'AZ', 'CA', 'WA', 'NM')
+  /** State or territory code (e.g. 'AZ', 'CA', 'WA', 'NM') */
+  region: string
   postalCode: string
-  country?: string // Defaults to 'US'
+  /** Two-letter ISO country code (defaults to 'US') */
+  country?: string
   latitude?: number
   longitude?: number
 }
 
+/** Individual line item for tax calculation */
 export interface TaxLineItem {
   id?: string
   number?: string
@@ -28,23 +35,28 @@ export interface TaxLineItem {
   description?: string
   quantity: number
   amount: number
+  /** Standard Avalara tax code (defaults to personal property 'P0000000') */
   taxCode?: string
   entityUseCode?: string
 }
 
+/** Calculation request payload sent to tax calculator */
 export interface TaxCalculatorRequest {
   transactionCode?: string
   customerId: string
+  /** Flag indicating enrolled tribal member status */
   isTribalMember: boolean
   tribalNation?: string
   tribalEnrollmentId?: string
   shippingAddress: TaxAddress
   lines: TaxLineItem[]
+  /** If true, commits transaction to Avalara AvaTax as SalesInvoice */
   commit?: boolean
   date?: string
   currencyCode?: string
 }
 
+/** Tax jurisdiction breakdown details */
 export interface TaxJurisdictionDetail {
   jurisdictionName: string
   jurisdictionType: 'State' | 'County' | 'City' | 'Special' | 'Tribal'
@@ -54,6 +66,7 @@ export interface TaxJurisdictionDetail {
   exemptionReason?: string
 }
 
+/** Final tax calculation and exemption determination result */
 export interface TaxCalculationResult {
   transactionCode: string
   totalAmount: number
@@ -77,6 +90,7 @@ export interface TaxCalculationResult {
   rawAvaTaxResponse?: any
 }
 
+/** Avalara AvaTax connection configuration */
 export interface AvaTaxConfig {
   accountId?: string
   licenseKey?: string

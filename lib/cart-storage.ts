@@ -1,19 +1,30 @@
 /**
- * Shared cart storage contract for the modern CartContext implementation and the
- * legacy storefront-data-hooks bridge.
+ * Shared Cart LocalStorage Contract & Persistence Bridge
  *
- * Keep these values centralized to avoid duplicate cart schemas drifting apart.
+ * Centralizes localStorage keys, type schemas, and synchronization logic between
+ * the modern React `CartContext` implementation and legacy `storefront-data-hooks`
+ * bridges to prevent state drift across page reloads.
+ *
+ * @module CartStorage
  */
+
+/** Centralized localStorage keys used across cart contexts and legacy hooks */
 export const CART_STORAGE_KEYS = {
+  /** Primary key storing modern CartStorageItem array */
   ITEMS: 'shopify_bag_items_v2',
+  /** Secondary fallback key storing cart items */
   ITEMS_FALLBACK: 'shopify_cart_items',
+  /** Unique Shopify Storefront API cart ID */
   CART_ID: 'shopify_bag_cart_id_v2',
+  /** Direct web checkout redirect URL from Shopify Storefront API */
   CHECKOUT_URL: 'shopify_bag_checkout_url_v2',
+  /** Legacy storefront-data-hooks cart object key */
   LEGACY_CART: 'shopify_local_store__cart',
 } as const
 
 export const LEGACY_CART_STORAGE_KEY = CART_STORAGE_KEYS.LEGACY_CART
 
+/** Core data structure representing a cart item in local storage */
 export type CartStorageItem = {
   id: string
   lineId?: string
@@ -45,8 +56,10 @@ export type CartStorageItem = {
 }
 
 /**
- * Loads stored cart items and identifiers from localStorage across primary,
- * fallback, and legacy storefront-data-hooks keys.
+ * Loads stored cart items and identifiers from `localStorage` across primary,
+ * fallback, and legacy `storefront-data-hooks` keys.
+ *
+ * @returns Object containing parsed `items`, `cartId`, and `checkoutUrl`
  */
 export function loadStoredCartItems(): {
   items: CartStorageItem[]
