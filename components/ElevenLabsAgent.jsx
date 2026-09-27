@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo, startTransition } from "react";
 import Router, { useRouter } from "next/router";
 import { Conversation } from "@elevenlabs/client";
 import {
@@ -27,6 +27,7 @@ import VoiceTranscriptDisplay from "./VoiceTranscriptDisplay";
 import VoicePulseAvatar from "./VoicePulseAvatar";
 import shopifyConfig from "../config/shopify";
 import { storefrontFetch } from "../services/shopify";
+import { createActivityKeeper, ELEVENLABS_ACTIVITY_EVENT } from "../lib/elevenlabs-activity";
 
 const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || "agent_3101m30qaxc1f3981zq05pp86ax1";
 
@@ -232,16 +233,7 @@ export default function ElevenLabsAgent() {
   const [outputVolume, setOutputVolume] = useState(0); // 0.0 to 1.0 audio volume
   const volumeAnimFrameRef = useRef(null);
   const smoothedVolumeRef = useRef(0);
-  const [isInIframe] = useState(() => {
-    if (typeof window !== "undefined") {
-      try {
-        return window.self !== window.top;
-      } catch {
-        return true;
-      }
-    }
-    return false;
-  });
+  const [isInIframe, setIsInIframe] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const conversationRef = useRef(null);
   const connectingRef = useRef(false);
@@ -256,15 +248,22 @@ export default function ElevenLabsAgent() {
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [isSendingText, setIsSendingText] = useState(false);
-  const [isSecureEnv] = useState(() => {
-    if (typeof window !== "undefined") {
-      return Boolean(window.isSecureContext);
-    }
-    return true;
-  });
+  const [isSecureEnv, setIsSecureEnv] = useState(true);
+
+  useEffect(() => {
+    startTransition(() => {
+      try {
+        setIsInIframe(window.self !== window.top);
+      } catch {
+        setIsInIframe(true);
+      }
+      setIsSecureEnv(Boolean(window.isSecureContext));
+    });
+  }, []);
   const [repairName, setRepairName] = useState("Display & Touchscreen Assembly");
   const [serviceName, setServiceName] = useState("DisplayCellPros Express Technical Repair");
   const [showDynamicVars, setShowDynamicVars] = useState(false);
+  const [queueStatus, setQueueStatus] = useState(null); // null | "waiting" | "admitted" | "timed_out"
   const startSessionRef = useRef(null);
 
   const [searchMode, setSearchMode] = useState("local"); // "local" | "global"
@@ -273,6 +272,72 @@ export default function ElevenLabsAgent() {
   useEffect(() => {
     searchModeRef.current = searchMode;
   }, [searchMode]);
+
+  const sendContextualUpdate = useCallback((text) => {
+    if (!text || !conversationRef.current) return;
+    try {
+      if (typeof conversationRef.current.sendContextualUpdate === "function") {
+        conversationRef.current.sendContextualUpdate(text);
+        console.log(`[ElevenLabs:Context] Sent contextual update: "${text}"`);
+      }
+    } catch (err) {
+      console.warn("[ElevenLabs:Context] Error sending contextual update:", err);
+    }
+  }, []);
+
+  const sendUserActivity = useCallback(() => {
+    if (!conversationRef.current) return;
+    try {
+      if (typeof conversationRef.current.sendUserActivity === "function") {
+        conversationRef.current.sendUserActivity();
+        console.log("[ElevenLabs:Activity] Sent user_activity heartbeat ping");
+      }
+    } catch (err) {
+      console.warn("[ElevenLabs:Activity] Error sending user activity:", err);
+    }
+  }, []);
+
+  // Listen to route changes and propagate contextual updates to the conversation
+  useEffect(() => {
+    if (!router || !router.events) return;
+    const handleRouteChange = (url) => {
+      sendContextualUpdate(`User navigated to page: ${url}`);
+    };
+    router.events.on("routeChangeComplete", handleRouteChange);
+    return () => {
+      router.events.off("routeChangeComplete", handleRouteChange);
+    };
+  }, [router, sendContextualUpdate]);
+
+  // Global custom event listeners for UI actions to inform voice agent
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleCustomContext = (e) => {
+      if (e?.detail?.text) {
+        sendContextualUpdate(e.detail.text);
+      }
+    };
+    const handleCustomActivity = () => {
+      sendUserActivity();
+    };
+    window.addEventListener("elevenlabs:contextual_update", handleCustomContext);
+    window.addEventListener(ELEVENLABS_ACTIVITY_EVENT, handleCustomActivity);
+    return () => {
+      window.removeEventListener("elevenlabs:contextual_update", handleCustomContext);
+      window.removeEventListener(ELEVENLABS_ACTIVITY_EVENT, handleCustomActivity);
+    };
+  }, [sendContextualUpdate, sendUserActivity]);
+
+  // Periodic user activity keeper every 30s while connected to prevent turn timeouts
+  useEffect(() => {
+    if (status !== "connected") return;
+    const keeper = createActivityKeeper(() => conversationRef.current, {
+      intervalMs: 30000,
+      debug: process.env.NODE_ENV !== "production",
+    });
+    keeper.start();
+    return () => keeper.stop();
+  }, [status]);
 
   const endSession = useCallback(async () => {
     if (reconnectTimerRef.current) {
@@ -715,6 +780,51 @@ export default function ElevenLabsAgent() {
             );
           }
         },
+        onIncomingEvent: (event) => {
+          if (!mountedRef.current || currentGen !== generationRef.current) return;
+          if (event?.type === "queue_status") {
+            const status = event?.queue_status_event?.status;
+            setQueueStatus(status);
+            if (status === "waiting") {
+              setTranscript((prev) => [
+                ...prev,
+                {
+                  id: `queue-${Date.now()}`,
+                  sender: "system",
+                  text: "Call queue active: Waiting for available agent line...",
+                  timestamp: new Date(),
+                },
+              ]);
+            } else if (status === "admitted") {
+              setQueueStatus(null);
+            }
+          }
+        },
+        onAgentToolResponse: (response) => {
+          if (!mountedRef.current || currentGen !== generationRef.current) return;
+          if (response?.tool_name) {
+            console.log(`[ElevenLabsAgent] Agent executed tool: ${response.tool_name}`);
+          }
+        },
+        onAgentToolResponseFullPayload: (response) => {
+          if (!mountedRef.current || currentGen !== generationRef.current) return;
+          if (response?.tool_name && response?.full_tool_result) {
+            console.log(`[ElevenLabsAgent] Tool ${response.tool_name} returned payload:`, response.full_tool_result);
+          }
+        },
+        onGuardrailTriggered: () => {
+          if (!mountedRef.current || currentGen !== generationRef.current) return;
+          console.warn("[ElevenLabsAgent] Guardrail triggered — conversation ended.");
+          setTranscript((prev) => [
+            ...prev,
+            {
+              id: `guardrail-${Date.now()}`,
+              sender: "system",
+              text: "Conversation concluded per agent safety policy.",
+              timestamp: new Date(),
+            },
+          ]);
+        },
       });
 
       if (!mountedRef.current || currentGen !== generationRef.current) {
@@ -838,13 +948,14 @@ export default function ElevenLabsAgent() {
 
   useEffect(() => {
     mountedRef.current = true;
-    generationRef.current++;
-    const gen = generationRef.current;
+    const currentGenerationRef = generationRef;
+    currentGenerationRef.current++;
+    const gen = currentGenerationRef.current;
     console.log(`[ElevenLabs:LIFECYCLE] cleanup setup (gen: ${gen})`);
 
     return () => {
       mountedRef.current = false;
-      generationRef.current++;
+      currentGenerationRef.current++;
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
@@ -935,6 +1046,7 @@ export default function ElevenLabsAgent() {
 
   // Determine current voice agent state for user feedback visual indicator
   const agentStatus = (() => {
+    if (queueStatus === "waiting") return "queued";
     if (status === "connecting") return "connecting";
     if (status === "connected") return isSpeaking ? "speaking" : "listening";
     if (status === "error") return "error";
@@ -942,6 +1054,17 @@ export default function ElevenLabsAgent() {
   })();
 
   const STATUS_CONFIG = {
+    queued: {
+      label: "In Queue",
+      badgeClass: "bg-purple-50 text-purple-800 border-purple-200 shadow-xs",
+      dotClass: "bg-purple-500",
+      dotPing: true,
+      bannerBg: "bg-purple-50/90 border-purple-200/80 text-purple-800",
+      subtext: "Call queue active. Waiting for available agent line...",
+      toggleBg: "bg-purple-600 text-white hover:bg-purple-700 ring-4 ring-purple-500/20",
+      toggleStatusTag: "Queued",
+      toggleBadgeClass: "bg-purple-500/30 text-purple-100 border-purple-400/40",
+    },
     offline: {
       label: "Offline",
       badgeClass: "bg-neutral-100 text-neutral-600 border-neutral-200/90",

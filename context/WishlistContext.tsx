@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, startTransition } from 'react'
 import { ShopifyProductNode } from '../services/shopify'
 import { useAnnouncer } from '../components/common/Announcer'
 import { useToast } from './ToastContext'
@@ -31,14 +31,17 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
       if (saved) {
         const parsed = JSON.parse(saved)
         if (Array.isArray(parsed)) {
-          // eslint-disable-next-line react-hooks/set-state-in-effect
-          setWishlist(parsed)
+          startTransition(() => {
+            setWishlist(parsed)
+          })
         }
       }
     } catch (e) {
       console.warn('Failed to load wishlist from localStorage:', e)
     } finally {
-      setIsLoaded(true)
+      startTransition(() => {
+        setIsLoaded(true)
+      })
     }
   }, [])
 
@@ -49,13 +52,17 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
         try {
           const parsed = JSON.parse(e.newValue)
           if (Array.isArray(parsed)) {
-            setWishlist(parsed)
+            startTransition(() => {
+              setWishlist(parsed)
+            })
           }
         } catch (e) {
           console.warn('Failed to sync wishlist from storage event:', e)
         }
       } else if (e.key === WISHLIST_STORAGE_KEY && !e.newValue) {
-        setWishlist([])
+        startTransition(() => {
+          setWishlist([])
+        })
       }
     }
 

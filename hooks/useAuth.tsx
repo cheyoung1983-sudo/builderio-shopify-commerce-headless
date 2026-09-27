@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, createContext, useContext, startTransition } from 'react';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from 'firebase/auth';
 import { doc, onSnapshot, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { auth, db, signInWithGoogle } from '../lib/firebase';
@@ -24,14 +24,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
+      startTransition(() => {
+        setUser(currentUser);
+      });
       
       if (currentUser) {
         // Enforce verified email
         if (!currentUser.emailVerified) {
           console.warn("User email not verified.");
-          setRole(null);
-          setLoading(false);
+          startTransition(() => {
+            setRole(null);
+            setLoading(false);
+          });
           return;
         }
 
@@ -40,7 +44,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Listen for real-time role changes
         const unsubRole = onSnapshot(userDocRef, async (docSnap) => {
           if (docSnap.exists()) {
-            setRole(docSnap.data().role as UserRole);
+            startTransition(() => {
+              setRole(docSnap.data().role as UserRole);
+              setLoading(false);
+            });
           } else {
             // First time registration logic
             // Check if this is the bootstrapped owner email
@@ -61,21 +68,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 await setDoc(doc(db, 'admins', currentUser.uid), { uid: currentUser.uid });
               }
               
-              setRole(initialRole);
+              startTransition(() => {
+                setRole(initialRole);
+              });
             } catch (err) {
               console.error("Failed to register user profile:", err);
+            } finally {
+              startTransition(() => {
+                setLoading(false);
+              });
             }
           }
-          setLoading(false);
         }, (err) => {
           console.error("Role listener error:", err);
-          setLoading(false);
+          startTransition(() => {
+            setLoading(false);
+          });
         });
 
         return () => unsubRole();
       } else {
-        setRole(null);
-        setLoading(false);
+        startTransition(() => {
+          setRole(null);
+          setLoading(false);
+        });
       }
     });
 

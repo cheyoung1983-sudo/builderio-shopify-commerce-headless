@@ -9,6 +9,7 @@ import React, {
   useMemo,
   useRef,
   ReactNode,
+  startTransition,
 } from 'react'
 import {
   createStorefrontCart,
@@ -317,24 +318,25 @@ export const CartProvider: React.FC<CartProviderProps> = ({
         customAttributes: item.customAttributes,
       })
 
-      if (storedItems && Array.isArray(storedItems) && storedItems.length > 0) {
-        // This is the sanctioned "sync with an external system on mount"
-        // pattern: localStorage doesn't exist during SSR, so this can only
-        // run post-mount, and there is no derived-state equivalent for it.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setItems(storedItems.map(toCartItem))
-      }
-      if (storedCartId) {
-        setCartId(storedCartId)
-      }
-      if (storedCheckout) {
-        setCheckoutUrl(storedCheckout)
-      }
+      startTransition(() => {
+        if (storedItems && Array.isArray(storedItems) && storedItems.length > 0) {
+          setItems(storedItems.map(toCartItem))
+        }
+        if (storedCartId) {
+          setCartId(storedCartId)
+        }
+        if (storedCheckout) {
+          setCheckoutUrl(storedCheckout)
+        }
+        setIsInitialized(true)
+      })
     } catch (err) {
       console.warn('[CartContext] Failed to load initial cart from localStorage:', err)
+      startTransition(() => {
+        setIsInitialized(true)
+      })
     } finally {
       isLoadedRef.current = true
-      setIsInitialized(true)
     }
   }, [])
 
@@ -389,16 +391,22 @@ export const CartProvider: React.FC<CartProviderProps> = ({
             sku: item.sku,
             customAttributes: item.customAttributes,
           })
-          setItems(freshItems.map(toCartItem))
+          startTransition(() => {
+            setItems(freshItems.map(toCartItem))
+          })
         } catch {
           // ignore
         }
       }
       if (e.key === STORAGE_KEYS.CART_ID) {
-        setCartId(e.newValue || null)
+        startTransition(() => {
+          setCartId(e.newValue || null)
+        })
       }
       if (e.key === STORAGE_KEYS.CHECKOUT_URL) {
-        setCheckoutUrl(e.newValue || null)
+        startTransition(() => {
+          setCheckoutUrl(e.newValue || null)
+        })
       }
     }
 

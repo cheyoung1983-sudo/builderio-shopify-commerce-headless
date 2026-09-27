@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { ArrowUp } from 'lucide-react'
+import { useIsMounted } from '@lib/hooks/useIsMounted'
 
 export interface ScrollToTopProps {
   /** Optional custom hero section element ID to track */
@@ -23,15 +24,8 @@ export const ScrollToTop: React.FC<ScrollToTopProps> = ({
   } catch {
     router = null
   }
-  const [mounted, setMounted] = useState<boolean>(false)
+  const mounted = useIsMounted()
   const [isVisible, setIsVisible] = useState<boolean>(false)
-
-  // Ensure hydration safety: this must run once after the client-side
-  // render, not before, so there's no derived-state equivalent.
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true)
-  }, [])
 
   // Calculate if user has scrolled past the hero or listing controls threshold
   const checkScrollPosition = useCallback(() => {

@@ -160,10 +160,10 @@ const InnerLayout: React.FC<{
                 </Sidebar>
                 <QuickViewDrawer />
                 <ToastContainer />
-                <CartDrawer />
-                <ElevenLabsAgent />
-                <AudioPermissionDiagnostics />
                 <NoSSR>
+                  <CartDrawer />
+                  <ElevenLabsAgent />
+                  <AudioPermissionDiagnostics />
                   <FeatureBar
                     title="This site uses cookies to improve your experience. By clicking, you agree to our Privacy Policy."
                     hide={Builder.isEditing ? true : acceptedCookies}

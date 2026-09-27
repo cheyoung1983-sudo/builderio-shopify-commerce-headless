@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/router'
+import { useIsMounted } from '@lib/hooks/useIsMounted'
 
 export interface ScrollProgressBarProps {
   /**
@@ -25,17 +26,9 @@ export const ScrollProgressBar: React.FC<ScrollProgressBarProps> = ({
   } catch {
     router = null
   }
-  const [mounted, setMounted] = useState<boolean>(false)
+  const mounted = useIsMounted()
   const [scrollProgress, setScrollProgress] = useState<number>(0)
   const [isVisible, setIsVisible] = useState<boolean>(false)
-
-  useEffect(() => {
-    // Intentional hydration-safe mount flag: this must run once after the
-    // client-side render to distinguish it from SSR output. There is no
-    // derived-state equivalent that preserves that distinction.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true)
-  }, [])
 
   // Check if current route is a product detail page
   const isProductPage =

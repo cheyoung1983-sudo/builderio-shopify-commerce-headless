@@ -1,16 +1,13 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
+import { useIsMounted } from '@lib/hooks/useIsMounted'
 
 const NoSSR: React.FC<{
   skeleton?: React.ReactNode
   children: React.ReactNode
 }> = ({ children, skeleton }) => {
-  const [render, setRender] = useState(false)
-  // Must run once after the client-side render to distinguish it from SSR
-  // output — that's this component's entire purpose, so there is no
-  // derived-state equivalent.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => setRender(true), [])
-  if (render) {
+  const isMounted = useIsMounted()
+
+  if (isMounted) {
     return <>{children}</>
   }
   if (skeleton) {
@@ -18,4 +15,5 @@ const NoSSR: React.FC<{
   }
   return null
 }
+
 export default NoSSR
