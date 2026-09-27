@@ -42,7 +42,12 @@
         "./utils/*"
       ]
     },
-    "incremental": true
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
   "include": [
     "next-env.d.ts",
@@ -51,7 +56,9 @@
     "config/**/*",
     "lib/**/*",
     "pages/**/*",
-    "utils/**/*"
+    "utils/**/*",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
