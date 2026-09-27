@@ -1,11 +1,21 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
+import {
+  applyCors,
+  handleOptions,
+  isAllowedOrigin,
+  DEFAULT_AGENT_CORS_OPTIONS,
+} from '@lib/api-security'
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
+  const corsOptions = DEFAULT_AGENT_CORS_OPTIONS
+  applyCors(res, req.headers.origin, corsOptions)
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end()
+  if (handleOptions(req, res, corsOptions)) {
+    return
+  }
+
+  if (!isAllowedOrigin(req.headers.origin, corsOptions)) {
+    return res.status(403).json({ error: 'Origin not allowed' })
   }
 
   const manifest = {

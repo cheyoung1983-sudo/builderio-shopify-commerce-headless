@@ -4,8 +4,25 @@ import {
   getStorefrontAccessToken,
   getShopifyApiVersion,
 } from '@config/shopify'
+import {
+  applyCors,
+  handleOptions,
+  isAllowedOrigin,
+  DEFAULT_AGENT_CORS_OPTIONS,
+} from '@lib/api-security'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const corsOptions = DEFAULT_AGENT_CORS_OPTIONS
+  applyCors(res, req.headers.origin, corsOptions)
+
+  if (handleOptions(req, res, corsOptions)) {
+    return
+  }
+
+  if (!isAllowedOrigin(req.headers.origin, corsOptions)) {
+    return res.status(403).json({ success: false, error: 'Origin not allowed' })
+  }
+
   if (req.method !== 'POST' && req.method !== 'GET') {
     res.setHeader('Allow', ['GET', 'POST'])
     return res.status(405).json({ success: false, error: `Method ${req.method} not allowed` })

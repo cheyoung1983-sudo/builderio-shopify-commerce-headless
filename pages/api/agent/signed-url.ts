@@ -1,9 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import {
+  applyCors,
   createRateLimiter,
   handleOptions,
   isAllowedOrigin,
   readBoundedString,
+  DEFAULT_AGENT_CORS_OPTIONS,
 } from '../../../lib/api-security'
 
 interface SignedUrlResponse {
@@ -14,10 +16,6 @@ interface SignedUrlResponse {
   message?: string
 }
 
-const allowedOrigins = [
-  'https://displaycellpros.com',
-  'https://www.displaycellpros.com',
-]
 const DEFAULT_AGENT_ID = 'agent_3101m30qaxc1f3981zq05pp86ax1'
 const AGENT_ID_PATTERN = /^agent_[a-zA-Z0-9]{20,64}$/
 const rateLimiter = createRateLimiter({ maxRequests: 30, windowMs: 60_000 })
@@ -61,11 +59,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<SignedUrlResponse>
 ) {
-  const corsOptions = {
-    allowedOrigins,
-    allowLocalhost: true,
-    allowRunApp: true,
-  }
+  const corsOptions = DEFAULT_AGENT_CORS_OPTIONS
+  applyCors(res, req.headers.origin, corsOptions)
   const securityRes = createSecurityResponse(res)
 
   if (handleOptions(req, securityRes, corsOptions)) return

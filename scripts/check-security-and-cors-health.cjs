@@ -51,8 +51,11 @@ apiFiles.forEach((file) => {
   const hasFragileOriginCheck = content.includes('!corsOptions.allowedOrigins.includes(req.headers.origin)') ||
     (content.includes('req.headers.origin') && content.includes('http://localhost:') && !content.includes('isAllowedOrigin'));
 
-  // Check 2: Missing allowRunApp: true when defining corsOptions
-  const hasCorsOptionsWithoutRunApp = content.includes('corsOptions') && !content.includes('allowRunApp');
+  // Check 2: Missing allowRunApp: true when defining custom corsOptions
+  const hasCorsOptionsWithoutRunApp =
+    content.includes('corsOptions') &&
+    !content.includes('allowRunApp') &&
+    !content.includes('DEFAULT_AGENT_CORS_OPTIONS');
 
   if (hasFragileOriginCheck || hasCorsOptionsWithoutRunApp) {
     errorsCount++;

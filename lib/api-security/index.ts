@@ -2,36 +2,112 @@ export interface AllowedOriginsOptions {
   allowedOrigins: string[]
   allowLocalhost?: boolean
   allowRunApp?: boolean
+  allowVercelApp?: boolean
 }
 
-export function isAllowedOrigin(origin: string | undefined, options: AllowedOriginsOptions = { allowedOrigins: [] }): boolean {
-  if (origin === undefined) return true
-  if (!origin) return true
+export const DEFAULT_AGENT_ALLOWED_ORIGINS = [
+  'https://displaycellpros.com',
+  'https://www.displaycellpros.com',
+  'https://ai.studio',
+]
 
+/**
+ * Dynamically resolves allowed origins from runtime environment variables,
+ * including VERCEL_URL, NEXT_PUBLIC_SITE_URL, and canonical domains.
+ */
+export function getEnvironmentAllowedOrigins(): string[] {
+  const origins = new Set<string>(DEFAULT_AGENT_ALLOWED_ORIGINS)
+
+  const envSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL
+  if (envSiteUrl) {
+    try {
+      const url = new URL(envSiteUrl.startsWith('http') ? envSiteUrl : `https://${envSiteUrl}`)
+      origins.add(url.origin)
+    } catch {
+      // Ignore invalid URL
+    }
+  }
+
+  const vercelUrl = process.env.VERCEL_URL
+  if (vercelUrl) {
+    origins.add(`https://${vercelUrl.replace(/^https?:\/\//, '')}`)
+  }
+
+  return Array.from(origins)
+}
+
+export const DEFAULT_AGENT_CORS_OPTIONS: AllowedOriginsOptions = {
+  allowedOrigins: getEnvironmentAllowedOrigins(),
+  allowLocalhost: true,
+  allowRunApp: true,
+  allowVercelApp: true,
+}
+
+export function isAllowedOrigin(
+  origin: string | undefined,
+  options: AllowedOriginsOptions = { allowedOrigins: [] }
+): boolean {
+  if (origin === undefined || origin === null || origin === '') return true
+
+  // 1. Localhost and Loopback development origins
   if (options.allowLocalhost !== false) {
-    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:') || origin === 'http://localhost' || origin === 'http://127.0.0.1') {
+    if (
+      origin.startsWith('http://localhost:') ||
+      origin.startsWith('http://127.0.0.1:') ||
+      origin === 'http://localhost' ||
+      origin === 'http://127.0.0.1'
+    ) {
       return true
     }
   }
 
-  if (options.allowRunApp !== false) {
-    try {
-      const url = new URL(origin)
-      if (url.hostname.endsWith('.run.app') || url.hostname.endsWith('.vercel.app')) return true
-    } catch {
-      // Ignore invalid URL formatting
+  // 2. Cloud Run (*.run.app) and Vercel Preview (*.vercel.app) environments
+  try {
+    const url = new URL(origin)
+    const hostname = url.hostname.toLowerCase()
+
+    if (options.allowRunApp !== false && (hostname.endsWith('.run.app') || hostname === 'ai.studio' || hostname.endsWith('.ai.studio'))) {
+      return true
     }
+
+    if (options.allowVercelApp !== false && hostname.endsWith('.vercel.app')) {
+      return true
+    }
+
+    // 3. Exact matching or subdomains of allowed production domains
+    if (Array.isArray(options.allowedOrigins)) {
+      for (const allowed of options.allowedOrigins) {
+        if (allowed === origin) return true
+        try {
+          const allowedHost = new URL(allowed).hostname.toLowerCase()
+          if (hostname === allowedHost || hostname.endsWith(`.${allowedHost}`)) {
+            return true
+          }
+        } catch {
+          if (allowed === origin) return true
+        }
+      }
+    }
+  } catch {
+    // Malformed origin URL: fallback to exact string check
+    return Array.isArray(options.allowedOrigins) && options.allowedOrigins.includes(origin)
   }
 
-  return Array.isArray(options.allowedOrigins) && options.allowedOrigins.includes(origin)
+  return false
 }
 
 export function applyCors(res: any, origin: string | undefined, options: AllowedOriginsOptions): void {
+  // Always apply baseline security headers
+  if (res.setHeader) {
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+  }
+
   if (isAllowedOrigin(origin, options)) {
-    if (origin) {
+    if (origin && res.setHeader) {
       res.setHeader('Access-Control-Allow-Origin', origin)
       res.setHeader('Vary', 'Origin')
-    } else {
+    } else if (res.setHeader) {
       res.setHeader('Access-Control-Allow-Origin', '*')
     }
   }
@@ -42,9 +118,12 @@ export function handleOptions(req: any, res: any, options: AllowedOriginsOptions
     const origin = req.headers.origin
     if (isAllowedOrigin(origin, options)) {
       applyCors(res, origin, options)
-      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, xi-api-key, X-Requested-With')
-      res.status(204).send()
+      if (res.setHeader) {
+        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, xi-api-key, X-Requested-With, x-agent-id')
+        res.setHeader('Access-Control-Max-Age', '86400')
+      }
+      res.status(204).end()
       return true
     }
     res.status(403).send('Forbidden')

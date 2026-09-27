@@ -4,6 +4,12 @@ import {
   getStorefrontAccessToken,
   getShopifyApiVersion,
 } from '@config/shopify'
+import {
+  applyCors,
+  handleOptions,
+  isAllowedOrigin,
+  DEFAULT_AGENT_CORS_OPTIONS,
+} from '@lib/api-security'
 
 export interface CartActionRequest {
   action: 'check_inventory' | 'get_pricing' | 'create_cart' | 'add_lines' | 'refresh_checkout'
@@ -63,6 +69,17 @@ async function executeStorefrontGraphQL(query: string, variables: Record<string,
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const corsOptions = DEFAULT_AGENT_CORS_OPTIONS
+  applyCors(res, req.headers.origin, corsOptions)
+
+  if (handleOptions(req, res, corsOptions)) {
+    return
+  }
+
+  if (!isAllowedOrigin(req.headers.origin, corsOptions)) {
+    return res.status(403).json({ success: false, error: 'Origin not allowed' })
+  }
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST'])
     return res.status(405).json({ success: false, error: `Method ${req.method} not allowed` })

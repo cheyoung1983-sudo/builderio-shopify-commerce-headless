@@ -9,6 +9,7 @@ import {
   handleOptions,
   isAllowedOrigin,
   readBoundedString,
+  DEFAULT_AGENT_CORS_OPTIONS,
 } from '@lib/api-security'
 
 interface TokenResponse {
@@ -21,10 +22,6 @@ interface TokenResponse {
   category?: string
 }
 
-const allowedOrigins = [
-  'https://displaycellpros.com',
-  'https://www.displaycellpros.com',
-]
 const rateLimiter = createRateLimiter({ maxRequests: 30, windowMs: 60_000 })
 
 function getClientKey(req: NextApiRequest): string {
@@ -37,11 +34,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<TokenResponse>
 ) {
-  const corsOptions = {
-    allowedOrigins,
-    allowLocalhost: true,
-    allowRunApp: true,
-  }
+  const corsOptions = DEFAULT_AGENT_CORS_OPTIONS
 
   applyCors(res, req.headers.origin, corsOptions)
 
