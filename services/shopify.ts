@@ -194,7 +194,7 @@ export function isShopifyConfigured(): boolean {
  */
 export function getStorefrontAuthHeaders(token: string): Record<string, string> {
   const trimmed = token.trim()
-  if (trimmed.startsWith('shpat_')) {
+  if (/^(shpat_|shpca_)/i.test(trimmed)) {
     return {
       'Shopify-Storefront-Private-Token': trimmed,
     }
@@ -212,7 +212,7 @@ function createStorefrontFetch(token: string) {
     startLoading()
     try {
       const headers = { ...opts.headers }
-      if (token.startsWith('shpat_')) {
+      if (/^(shpat_|shpca_)/i.test(token)) {
         headers['Shopify-Storefront-Private-Token'] = token
         delete headers['X-Shopify-Storefront-Access-Token']
       }

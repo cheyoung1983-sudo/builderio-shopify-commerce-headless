@@ -16,6 +16,7 @@ This README is the short front door. The detailed, load-bearing docs live in the
 
 | File | What it covers |
 |---|---|
+| [`TODO.md`](./TODO.md) | Active task tracker, completed integration milestones, and pending dashboard setup |
 | [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | Comprehensive system architecture, subsystem data flows, security/auth specs, tax engine, AI voice agent, and development best practices |
 | [`CLAUDE.md`](./CLAUDE.md) | Architecture, the two Shopify data-client layers, routing (Builder-driven catch-all vs. native pages), CSP/env-var conventions, health-check scripts |
 | [`AGENTS.md`](./AGENTS.md) | Next.js 16 breaking-change notes — read before writing Next.js code |
