@@ -293,12 +293,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Prepare line items
         const cartLines: Array<{ merchandiseId: string; quantity: number }> = []
         if (variantId) {
-          cartLines.push({ merchandiseId: variantId, quantity })
+          const boundedQuantity = Math.min(Math.max(parseInt(String(quantity || 1), 10) || 1, 1), 100)
+          cartLines.push({ merchandiseId: String(variantId).trim().slice(0, 256), quantity: boundedQuantity })
         }
         if (Array.isArray(lines)) {
           lines.forEach((l) => {
             if (l.variantId) {
-              cartLines.push({ merchandiseId: l.variantId, quantity: l.quantity || 1 })
+              const boundedQuantity = Math.min(Math.max(parseInt(String(l.quantity || 1), 10) || 1, 1), 100)
+              cartLines.push({ merchandiseId: String(l.variantId).trim().slice(0, 256), quantity: boundedQuantity })
             }
           })
         }
@@ -307,6 +309,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return res.status(400).json({
             success: false,
             error: 'Cart must contain at least one line item (provide "variantId" or "lines")',
+          })
+        }
+
+        if (cartLines.length > 50) {
+          return res.status(400).json({
+            success: false,
+            error: 'Maximum 50 line items allowed per cart',
           })
         }
 
@@ -444,18 +453,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const cartLines: Array<{ merchandiseId: string; quantity: number }> = []
         if (variantId) {
-          cartLines.push({ merchandiseId: variantId, quantity })
+          const boundedQuantity = Math.min(Math.max(parseInt(String(quantity || 1), 10) || 1, 1), 100)
+          cartLines.push({ merchandiseId: String(variantId).trim().slice(0, 256), quantity: boundedQuantity })
         }
         if (Array.isArray(lines)) {
           lines.forEach((l) => {
             if (l.variantId) {
-              cartLines.push({ merchandiseId: l.variantId, quantity: l.quantity || 1 })
+              const boundedQuantity = Math.min(Math.max(parseInt(String(l.quantity || 1), 10) || 1, 1), 100)
+              cartLines.push({ merchandiseId: String(l.variantId).trim().slice(0, 256), quantity: boundedQuantity })
             }
           })
         }
 
         if (cartLines.length === 0) {
           return res.status(400).json({ success: false, error: 'No items provided to add to cart' })
+        }
+
+        if (cartLines.length > 50) {
+          return res.status(400).json({ success: false, error: 'Maximum 50 line items allowed per cart request' })
         }
 
         const mutation = `
