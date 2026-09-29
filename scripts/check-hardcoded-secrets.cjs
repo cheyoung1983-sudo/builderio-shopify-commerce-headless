@@ -40,6 +40,7 @@ const EXCLUDED_PATH_PATTERNS = [
   /yarn\.lock$/,
   /pnpm-lock\.yaml$/,
   /\.tsbuildinfo$/,
+  /(^|\/)chrome-devtools-mcp\//,
 ]
 
 // High-confidence provider-shaped secret formats. These are never legitimate

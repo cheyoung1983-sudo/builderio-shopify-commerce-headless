@@ -38,6 +38,7 @@
     "check:ci-integrity": "node scripts/check-ci-integrity.cjs",
     "check:dependency-health": "node scripts/check-dependency-health.cjs",
     "check:dev-health": "node scripts/check-dev-health.cjs",
+    "check:deployment-readiness": "node scripts/check-deployment-readiness.cjs",
     "check:stale-branches": "node scripts/check-stale-branches.cjs",
     "check:shopify-catalog-health": "node scripts/check-shopify-catalog-health.cjs",
     "fix:shopify-catalog-health": "node scripts/check-shopify-catalog-health.cjs --fix",
