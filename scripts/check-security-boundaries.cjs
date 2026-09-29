@@ -41,10 +41,10 @@ check(!callback.includes('encodeURIComponent(err?.message'), 'OAuth callback mus
 check(!login.includes('error?.message ||'), 'Account login must not expose upstream error messages')
 
 check(agentContent.includes('escapeRegex'), 'Builder agent content queries must escape regex metacharacters')
-check(agentContent.includes('.slice(0, 120)') || agentContent.includes('maxLength: 120'), 'Builder agent content queries must be length bounded')
+check(agentContent.includes('.slice(0, 120)'), 'Builder agent content queries must be length bounded')
 check(agentContent.includes('finally'), 'Builder agent content timeout must be cleared in a finally block')
-check(agentSearch.includes('.slice(0, 200)') || agentSearch.includes('maxLength: 200'), 'Agent search queries must be length bounded')
-check(agentCart.includes('cartLines.length > 50') || agentCart.includes('rawLines.length > 50'), 'Agent cart line count must be bounded')
+check(agentSearch.includes('.slice(0, 200)'), 'Agent search queries must be length bounded')
+check(agentCart.includes('rawLines.length > 50'), 'Agent cart line count must be bounded')
 check(agentCart.includes('Math.min(Math.max'), 'Agent cart quantities must be bounded')
 
 if (failures.length) {

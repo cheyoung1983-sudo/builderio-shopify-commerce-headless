@@ -12,6 +12,7 @@ import {
   Info,
 } from "lucide-react";
 import CheckoutHandoffCard from "./voice/CheckoutHandoffCard";
+import { resolveDynamicVariables } from "../lib/elevenlabs-variables";
 
 /**
  * VoiceTranscriptDisplay
@@ -105,7 +106,8 @@ const VoiceTranscriptDisplay = memo(function VoiceTranscriptDisplay({
         .map((m) => {
           const senderLabel = m.sender === "agent" ? "DisplayCellPros AI Specialist" : "Customer";
           const time = m.timestamp ? ` [${formatTime(m.timestamp)}]` : "";
-          return `${senderLabel}${time}:\n${m.text}\n`;
+          const cleanedText = resolveDynamicVariables(m.text);
+          return `${senderLabel}${time}:\n${cleanedText}\n`;
         })
         .join("\n");
 
@@ -278,7 +280,7 @@ const VoiceTranscriptDisplay = memo(function VoiceTranscriptDisplay({
                             : "bg-neutral-900 text-white shadow-2xs rounded-tr-xs"
                         }`}
                       >
-                        <p className="whitespace-pre-wrap break-words">{item.text}</p>
+                        <p className="whitespace-pre-wrap break-words">{resolveDynamicVariables(item.text)}</p>
                       </div>
 
                       {/* Interactive Cart Handoff Card if provided */}
@@ -291,7 +293,7 @@ const VoiceTranscriptDisplay = memo(function VoiceTranscriptDisplay({
                       {/* Quick Copy Action */}
                       <button
                         type="button"
-                        onClick={() => handleCopyMessage(item.id || idx, item.text)}
+                        onClick={() => handleCopyMessage(item.id || idx, resolveDynamicVariables(item.text))}
                         title="Copy message"
                         aria-label="Copy message text"
                         className={`absolute top-1 -right-7 sm:-right-8 p-1 rounded-md bg-white border border-neutral-200 text-neutral-400 hover:text-neutral-800 shadow-2xs opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity cursor-pointer ${

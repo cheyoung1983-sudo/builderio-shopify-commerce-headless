@@ -70,12 +70,12 @@ export default async function handler(
     req.query.agentId ||
     process.env.ELEVENLABS_AGENT_ID ||
     process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID ||
-    'agent_6301kqxr35beedj8n91eq7gz73d7'
+    'agent_3101m30qaxc1f3981zq05pp86ax1'
 
   const agentId =
     typeof requestedAgentId === 'string'
-      ? readBoundedString(requestedAgentId.trim(), { maxLength: 100 }) || 'agent_6301kqxr35beedj8n91eq7gz73d7'
-      : 'agent_6301kqxr35beedj8n91eq7gz73d7'
+      ? readBoundedString(requestedAgentId.trim(), { maxLength: 100 }) || 'agent_3101m30qaxc1f3981zq05pp86ax1'
+      : 'agent_3101m30qaxc1f3981zq05pp86ax1'
 
   try {
     const result = await acquireElevenLabsTokenWithBackoff({

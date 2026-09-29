@@ -21,7 +21,6 @@ import {
   WifiOff,
   HelpCircle,
   CheckCircle2,
-  Settings2,
 } from "lucide-react";
 import VoiceTranscriptDisplay from "./VoiceTranscriptDisplay";
 import VoicePulseAvatar from "./VoicePulseAvatar";
@@ -29,6 +28,7 @@ import AudioWaveformVisualizer from "./voice/AudioWaveformVisualizer";
 import shopifyConfig from "../config/shopify";
 import { storefrontFetch } from "../services/shopify";
 import { createActivityKeeper, ELEVENLABS_ACTIVITY_EVENT } from "../lib/elevenlabs-activity";
+import { buildDynamicVariables, resolveDynamicVariables } from "../lib/elevenlabs-variables";
 
 const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || "agent_3101m30qaxc1f3981zq05pp86ax1";
 
@@ -258,8 +258,8 @@ export default function ElevenLabsAgent() {
   const reconnectTimerRef = useRef(null);
   const reconnectAttemptRef = useRef(0);
   const [useRelayPolicy, setUseRelayPolicy] = useState(false);
-  const [connectionMode, setConnectionMode] = useState("webrtc"); // "webrtc" | "websocket"
-  const connectionModeRef = useRef("webrtc");
+  const [connectionMode, setConnectionMode] = useState("websocket"); // "websocket" | "webrtc"
+  const connectionModeRef = useRef("websocket");
   const retryAttemptRef = useRef(0);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [textInput, setTextInput] = useState("");
@@ -268,17 +268,19 @@ export default function ElevenLabsAgent() {
 
   useEffect(() => {
     startTransition(() => {
+      let inIframe = false;
       try {
-        setIsInIframe(window.self !== window.top);
+        inIframe = window.self !== window.top;
+        setIsInIframe(inIframe);
       } catch {
+        inIframe = true;
         setIsInIframe(true);
       }
       setIsSecureEnv(Boolean(window.isSecureContext));
     });
   }, []);
-  const [repairName, setRepairName] = useState("Display & Touchscreen Assembly");
-  const [serviceName, setServiceName] = useState("DisplayCellPros Express Technical Repair");
-  const [showDynamicVars, setShowDynamicVars] = useState(false);
+  const [repairName] = useState("Display & Touchscreen Assembly");
+  const [serviceName] = useState("DisplayCellPros Express Technical Repair");
   const [queueStatus, setQueueStatus] = useState(null); // null | "waiting" | "admitted" | "timed_out"
   const startSessionRef = useRef(null);
 
@@ -408,7 +410,7 @@ export default function ElevenLabsAgent() {
         console.log(`[ElevenLabs:LIFECYCLE] reconnect cancelled`);
       }
     }
-    const transportMode = options.connectionMode || connectionModeRef.current || "webrtc";
+    const transportMode = options.connectionMode || connectionModeRef.current || "websocket";
     connectionModeRef.current = transportMode;
     setConnectionMode(transportMode);
 
@@ -437,7 +439,7 @@ export default function ElevenLabsAgent() {
       const rawWorkletUrl = await resolveWorkletUrl("/rawAudioProcessor.js");
       const concatWorkletUrl = await resolveWorkletUrl("/audioConcatProcessor.js");
 
-      const activeDynamicVars = {
+      const activeDynamicVars = buildDynamicVariables({
         repair_name: repairName || "Display & Touchscreen Assembly",
         service_name: serviceName || "DisplayCellPros Express Technical Repair",
         store_location: "Spokane, WA",
@@ -445,7 +447,7 @@ export default function ElevenLabsAgent() {
         warranty_policy: "1-Year Comprehensive Warranty",
         turnaround_time: "25 to 45 minutes on-site",
         ...(options.dynamicVariables || {}),
-      };
+      });
 
       const workletPaths = (rawWorkletUrl && concatWorkletUrl)
         ? { rawAudioProcessor: rawWorkletUrl, audioConcatProcessor: concatWorkletUrl }
@@ -934,7 +936,7 @@ export default function ElevenLabsAgent() {
               connectionType: "webrtc",
               webRtc: {
                 iceTransportPolicy: forceRelay ? "relay" : "all",
-                singlePeerConnection: true,
+                singlePeerConnection: false,
               },
             }),
         onConnect: () => {
@@ -973,6 +975,29 @@ export default function ElevenLabsAgent() {
         onError: (err) => {
           if (!mountedRef.current || currentGen !== generationRef.current) return;
           console.warn("[ElevenLabsAgent:Session] ElevenLabs runtime session error/warning:", err?.message);
+          const errMsg = String(err?.message || "");
+          const isPublisherError =
+            errMsg.includes("could not establish Publisher connection") ||
+            errMsg.includes("Publisher connection") ||
+            errMsg.includes("ConnectionError") ||
+            errMsg.includes("ice") ||
+            errMsg.includes("ICE");
+
+          // Automatic failover: if WebRTC publisher fails during session, fallback seamlessly to WebSocket
+          if (connectionModeRef.current === "webrtc" && isPublisherError && mountedRef.current && currentGen === generationRef.current) {
+            console.warn("[ElevenLabsAgent:Session] WebRTC publisher error encountered, automatically failing over to WebSocket transport...", errMsg);
+            connectionModeRef.current = "websocket";
+            setConnectionMode("websocket");
+            connectingRef.current = false;
+            if (conversationRef.current) {
+              const conv = conversationRef.current;
+              conversationRef.current = null;
+              conv.endSession().catch(() => {});
+            }
+            startSessionRef.current?.({ connectionMode: "websocket", isUserInitiated: false });
+            return;
+          }
+
           setErrorMessage(err?.message || "Connection error with voice platform");
           setStatus("error");
           setOutputVolume(0);
@@ -993,7 +1018,8 @@ export default function ElevenLabsAgent() {
         onMessage: (payload) => {
           if (!mountedRef.current || currentGen !== generationRef.current) return;
           if (payload && (payload.message || payload.text)) {
-            const text = payload.message || payload.text;
+            const rawText = payload.message || payload.text;
+            const text = resolveDynamicVariables(rawText, activeDynamicVars);
             const role = payload.role === "agent" || payload.source === "ai" ? "agent" : "user";
             setTranscript((prev) => [
               ...prev,
@@ -1009,10 +1035,14 @@ export default function ElevenLabsAgent() {
         onAgentResponseCorrection: (correctionEvent) => {
           if (!mountedRef.current || currentGen !== generationRef.current) return;
           if (correctionEvent?.original_event_id && correctionEvent?.corrected_agent_response) {
+            const correctedText = resolveDynamicVariables(
+              correctionEvent.corrected_agent_response,
+              activeDynamicVars
+            );
             setTranscript((prev) =>
               prev.map((msg) =>
                 msg.id === correctionEvent.original_event_id
-                  ? { ...msg, text: correctionEvent.corrected_agent_response, isCorrected: true }
+                  ? { ...msg, text: correctedText, isCorrected: true }
                   : msg
               )
             );
@@ -1078,6 +1108,32 @@ export default function ElevenLabsAgent() {
       conversationRef.current = conversation;
     } catch (err) {
       console.warn("[ElevenLabsAgent:Init:Error] Caught exception during Conversation.startSession:", err);
+      const errMsg = String(err?.message || "");
+      const isPublisherError =
+        errMsg.includes("could not establish Publisher connection") ||
+        errMsg.includes("Publisher connection") ||
+        errMsg.includes("ConnectionError") ||
+        errMsg.includes("ice") ||
+        errMsg.includes("ICE") ||
+        errMsg.includes("peerconnection") ||
+        errMsg.includes("PeerConnection") ||
+        errMsg.includes("disconnected");
+
+      // Auto-failover from WebRTC to WebSocket on publisher / connection failures
+      if (transportMode === "webrtc" && isPublisherError && mountedRef.current && currentGen === generationRef.current) {
+        console.warn(
+          `[ElevenLabsAgent:Init] WebRTC publisher connection failed (${errMsg}). Automatically failing over to WebSocket transport...`
+        );
+        connectionModeRef.current = "websocket";
+        setConnectionMode("websocket");
+        connectingRef.current = false;
+        return startSessionRef.current?.({
+          ...options,
+          connectionMode: "websocket",
+          isUserInitiated: false,
+        });
+      }
+
       if (mountedRef.current && currentGen === generationRef.current) {
         setErrorMessage(err?.message || "Failed to connect to voice agent.");
         setStatus("error");
@@ -1092,6 +1148,39 @@ export default function ElevenLabsAgent() {
   useEffect(() => {
     startSessionRef.current = startSession;
   }, [startSession]);
+
+  useEffect(() => {
+    const handleUnhandledRejection = (event) => {
+      const reason = event?.reason;
+      const msg = String(reason?.message || reason || "");
+      if (
+        msg.includes("could not establish Publisher connection") ||
+        msg.includes("Publisher connection") ||
+        msg.includes("ConnectionError") ||
+        msg.includes("could not establish pc connection")
+      ) {
+        event.preventDefault();
+        console.warn(
+          "[ElevenLabsAgent:Global] Handled WebRTC publisher connection failure asynchronously. Gracefully falling back to WebSocket transport...",
+          msg
+        );
+        connectionModeRef.current = "websocket";
+        setConnectionMode("websocket");
+        connectingRef.current = false;
+        if (conversationRef.current) {
+          const conv = conversationRef.current;
+          conversationRef.current = null;
+          conv.endSession().catch(() => {});
+        }
+        startSessionRef.current?.({ connectionMode: "websocket", isUserInitiated: false });
+      }
+    };
+
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
+    return () => {
+      window.removeEventListener("unhandledrejection", handleUnhandledRejection);
+    };
+  }, []);
 
   const handleSendTextMessage = useCallback(
     async (e) => {
@@ -1130,7 +1219,7 @@ export default function ElevenLabsAgent() {
               {
                 id: `agent-${Date.now()}`,
                 sender: "agent",
-                text: geminiData.reply,
+                text: resolveDynamicVariables(geminiData.reply),
                 timestamp: new Date(),
               },
             ]);
@@ -1175,7 +1264,7 @@ export default function ElevenLabsAgent() {
           {
             id: `agent-${Date.now()}`,
             sender: "agent",
-            text: reply,
+            text: resolveDynamicVariables(reply),
             timestamp: new Date(),
           },
         ]);
@@ -1185,7 +1274,9 @@ export default function ElevenLabsAgent() {
           {
             id: `agent-${Date.now()}`,
             sender: "agent",
-            text: "I'm temporarily unable to query live catalog items, but our Spokane store is open for walk-ins and phone inquiries!",
+            text: resolveDynamicVariables(
+              "I'm temporarily unable to query live catalog items, but our Spokane store is open for walk-ins and phone inquiries!"
+            ),
             timestamp: new Date(),
           },
         ]);
@@ -1497,7 +1588,9 @@ export default function ElevenLabsAgent() {
                 type="button"
                 onClick={() => {
                   setActiveView("call");
-                  startSession({ isUserInitiated: true });
+                  startSession({ isUserInitiated: true }).catch((err) => {
+                    console.warn("[ElevenLabsAgent:UI] Start call error:", err?.message);
+                  });
                 }}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-semibold transition-colors cursor-pointer"
               >
@@ -1650,58 +1743,14 @@ export default function ElevenLabsAgent() {
           </div>
         )}
 
-        <div className="border border-neutral-200/80 rounded-xl p-2.5 bg-neutral-50/80 space-y-2">
-          <button
-            type="button"
-            onClick={() => setShowDynamicVars((prev) => !prev)}
-            className="w-full flex items-center justify-between text-[11px] font-semibold text-neutral-700 hover:text-neutral-900 cursor-pointer"
-          >
-            <span className="flex items-center gap-1.5">
-              <Settings2 className="w-3.5 h-3.5 text-neutral-500" />
-              Dynamic Agent Variables ({repairName ? 2 : 0})
-            </span>
-            <span className="text-[10px] text-neutral-500 font-mono">
-              {showDynamicVars ? "Hide ▲" : "Configure ▼"}
-            </span>
-          </button>
-
-          {showDynamicVars && (
-            <div className="space-y-2 pt-1.5 border-t border-neutral-200/60 text-xs">
-              <div>
-                <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider mb-1">
-                  repair_name
-                </label>
-                <input
-                  type="text"
-                  value={repairName}
-                  onChange={(e) => setRepairName(e.target.value)}
-                  placeholder="e.g. Screen Replacement"
-                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider mb-1">
-                  service_name
-                </label>
-                <input
-                  type="text"
-                  value={serviceName}
-                  onChange={(e) => setServiceName(e.target.value)}
-                  placeholder="e.g. DisplayCellPros Tech Repair"
-                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
-                />
-              </div>
-              <p className="text-[10px] text-neutral-500 leading-tight">
-                These values populate your agent&apos;s dynamic template placeholders (<code className="font-mono text-[9px] bg-neutral-200 px-1 py-0.5 rounded">&#123;&#123;repair_name&#125;&#125;</code> &amp; <code className="font-mono text-[9px] bg-neutral-200 px-1 py-0.5 rounded">&#123;&#123;service_name&#125;&#125;</code>).
-              </p>
-            </div>
-          )}
-        </div>
-
         <div className="flex flex-col gap-2">
           <button
             id="elevenlabs-start-call-btn"
-            onClick={() => startSession({ isUserInitiated: true })}
+            onClick={() => {
+              startSession({ isUserInitiated: true }).catch((err) => {
+                console.warn("[ElevenLabsAgent:UI] Start call error:", err?.message);
+              });
+            }}
             disabled={isConnecting}
             className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-semibold shadow-xs disabled:opacity-50 transition-colors cursor-pointer"
           >
@@ -1891,7 +1940,9 @@ export default function ElevenLabsAgent() {
                         onClick={() => {
                           connectionModeRef.current = "websocket";
                           setConnectionMode("websocket");
-                          startSession({ connectionMode: "websocket", isUserInitiated: true });
+                          startSession({ connectionMode: "websocket", isUserInitiated: true }).catch((err) => {
+                            console.warn("[ElevenLabsAgent:UI] WebSocket fallback failed:", err?.message);
+                          });
                         }}
                         className="flex-1 min-w-[130px] flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[11px] transition-colors cursor-pointer"
                       >
@@ -1904,7 +1955,9 @@ export default function ElevenLabsAgent() {
                           setUseRelayPolicy(true);
                           connectionModeRef.current = "webrtc";
                           setConnectionMode("webrtc");
-                          startSession({ forceRelay: true, connectionMode: "webrtc", isUserInitiated: true });
+                          startSession({ forceRelay: true, connectionMode: "webrtc", isUserInitiated: true }).catch((err) => {
+                            console.warn("[ElevenLabsAgent:UI] WebRTC retry failed:", err?.message);
+                          });
                         }}
                         className="flex-1 min-w-[130px] flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-700 hover:bg-red-800 text-white font-semibold text-[11px] transition-colors cursor-pointer"
                       >
