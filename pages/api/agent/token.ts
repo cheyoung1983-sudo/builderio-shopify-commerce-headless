@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import {
   acquireElevenLabsTokenWithBackoff,
   ElevenLabsTokenError,
-} from '@lib/elevenlabs-token'
+} from '../../../lib/elevenlabs-token.ts'
 import {
   applyCors,
   createRateLimiter,
@@ -10,7 +10,7 @@ import {
   isAllowedOrigin,
   readBoundedString,
   DEFAULT_AGENT_CORS_OPTIONS,
-} from '@lib/api-security'
+} from '../../../lib/api-security/index.ts'
 
 interface TokenResponse {
   token?: string
@@ -56,11 +56,14 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  if (req.headers['xi-api-key'] || req.headers['x-api-key']) {
+    return res.status(400).json({
+      error: 'Client-provided API keys in request headers are forbidden. Use server-side configuration.',
+    })
+  }
+
   // Retrieve API Key: Prefer process.env.ELEVENLABS_API_KEY
-  const apiKey =
-    process.env.ELEVENLABS_API_KEY ||
-    (typeof req.headers['xi-api-key'] === 'string' ? req.headers['xi-api-key'] : undefined) ||
-    process.env.XI_API_KEY
+  const apiKey = process.env.ELEVENLABS_API_KEY || process.env.XI_API_KEY
 
   // Retrieve Agent ID: Check headers, body, query, or environment variables
   const headerAgentId = typeof req.headers['x-agent-id'] === 'string' ? req.headers['x-agent-id'] : undefined
@@ -98,17 +101,13 @@ export default async function handler(
   } catch (error) {
     if (error instanceof ElevenLabsTokenError) {
       const { status, responseBody, category, isRetryable, agentId: errAgentId } = error.details
-      console.error(`[ElevenLabsTokenAPI:Error] Failed acquiring signed URL token from ElevenLabs API:`, {
-        status,
-        category,
-        isRetryable,
-        agentId: errAgentId,
-        responseBody,
-        message: (error as Error).message,
-      })
+      let msg = (error as Error).message
+      if (msg.includes('sk_')) {
+        msg = 'Upstream authentication error'
+      }
       return res.status(status).json({
         error: `ElevenLabs API error: ${status}`,
-        details: (error as Error).message,
+        details: msg,
         category,
         agentId: errAgentId,
       })

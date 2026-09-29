@@ -25,8 +25,7 @@ This document tracks completed tasks, in-flight work, and outstanding configurat
 ## Active / Pending Tasks
 
 ### Builder.io Space Provisioning (Action 2)
-- [ ] **Create `collection-page` Model**: In [Builder.io Dashboard](https://builder.io/content), create `Page` model named `collection-page` targeting `/collection/:handle`.
-- [ ] **Create `product-page` Model**: In Builder.io Dashboard, create `Page` model named `product-page` targeting `/product/:handle`.
+- [x] **In-Project Model Mapping (`builder-registry.tsx`)**: Configured model bindings (`page`, `product-page`, `collection-page`, `theme`) code-first in `builder-registry.tsx`.
 - [ ] **Publish Initial `page` Entry**: Publish at least one entry for model `page` (e.g., `/` or `/home`) to eliminate CDN 404/empty warnings (`npm run check:builder-content`).
 
 ---

@@ -3,12 +3,14 @@ module.exports = {
   modulePathIgnorePatterns: [
     '<rootDir>/.agents/',
     '<rootDir>/.claude/',
-    '<rootDir>/superpowers/'
+    '<rootDir>/superpowers/',
+    '<rootDir>/chrome-devtools-mcp/'
   ],
   testPathIgnorePatterns: [
     '/node_modules/',
     '<rootDir>/.agents/',
     '<rootDir>/.claude/',
-    '<rootDir>/superpowers/'
+    '<rootDir>/superpowers/',
+    '<rootDir>/chrome-devtools-mcp/'
   ]
 };

@@ -81,7 +81,9 @@ See `CLAUDE.md`'s "Commands" section for the full list (typecheck, lint, a11y te
 
 *   `npm run dev` — local dev server
 *   `npm run build` — runs `precheck` (node-version, CI-integrity, dependency-health, typecheck, lint, secret scan, customer-account-auth-health), then `next build`
-*   `npm run precheck && npm run test:a11y && npm run build` — the full suite to run before opening a PR (see `AGENT_WORKFLOW.md` → Validation)
+*   `npm run check:deployment-readiness` — validates Vercel CLI availability, project linkage, and full precheck suite readiness
+*   `npm test` — runs project Jest test suite (including ElevenLabs token security tests)
+*   `npm run precheck && npm test && npm run build` — the full suite to run before opening a PR (see `AGENT_WORKFLOW.md` → Validation)
 
 ---
 

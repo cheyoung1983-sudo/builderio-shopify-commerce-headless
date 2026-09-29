@@ -120,10 +120,14 @@ export function handleOptions(req: any, res: any, options: AllowedOriginsOptions
       applyCors(res, origin, options)
       if (res.setHeader) {
         res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, xi-api-key, X-Requested-With, x-agent-id')
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, x-agent-id')
         res.setHeader('Access-Control-Max-Age', '86400')
       }
-      res.status(204).end()
+      if (typeof res.end === 'function') {
+        res.status(204).end()
+      } else if (typeof res.send === 'function') {
+        res.status(204).send('')
+      }
       return true
     }
     res.status(403).send('Forbidden')
