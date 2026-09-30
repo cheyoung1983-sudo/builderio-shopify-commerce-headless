@@ -123,6 +123,21 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
         },
       },
       {
+        name: 'check_tax_exempt',
+        description:
+          'Verify whether a customer account has verified tribal or state tax-exempt status in Shopify using their email address.',
+        parameters: {
+          type: 'object',
+          properties: {
+            email: {
+              type: 'string',
+              description: 'Customer email address to verify for tribal or state tax-exemption status',
+            },
+          },
+          required: ['email'],
+        },
+      },
+      {
         name: 'refresh_checkout',
         description:
           'Generates a fresh, non-expired checkout URL for an existing cart ID prior to rendering desktop-to-mobile QR codes.',
