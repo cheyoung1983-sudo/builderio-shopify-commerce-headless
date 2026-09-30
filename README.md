@@ -113,6 +113,47 @@ This repo is developed by multiple isolated agents working in separate branches,
 
 ---
 
+## ⚡ Performance & Optimization: Next.js Image Preload Analysis
+
+### Context
+Analysis of the `displaycellpros.com` home page to resolve browser console warnings regarding preloaded image resources that were not consumed within the first few seconds of page load.
+
+### Diagnostics
+The browser identified multiple image resources preloaded via Next.js that were not utilized by the rendering engine.
+
+| Resource URL (Shortened) | Type | Status | Size |
+| :--- | :--- | :--- | :--- |
+| `/_next/image?...samsung-galaxy-s22...&w=640` | Image | Preloaded/Unused | 7.1 kB |
+| `/_next/image?...image_4f20e406...&w=640` | Image | Preloaded/Unused | 7.1 kB |
+| `/_next/image?...galaxy-s24-lcd...&w=640` | Image | Preloaded/Unused | 5.2 kB |
+| `/_next/image?...image_122b05ea...&w=640` | Image | Preloaded/Unused | 7.2 kB |
+
+### Technical Findings
+*   **Root Cause:** The `next/image` component is generating `<link rel="preload" as="image">` tags with `imagesrcset` and `imagesizes` that do not align with the actual layout requirements or viewport of the client.
+*   **Mismatched Requests:** The browser preloaded 640px wide versions of images, but the page logic subsequently requested different versions (e.g., 384px wide), causing the initial high-resolution downloads to be wasted.
+*   **Priority Overuse:** Multiple images in the product grid appear to have the `priority` attribute, triggering preloads for assets that may not be in the initial viewport.
+
+### Actionable Recommendations
+The following strategies are identified as potential fixes for the source code:
+
+*   **Audit Priority Prop:** Limit the `priority` attribute in Next.js `Image` components strictly to Largest Contentful Paint (LCP) elements, such as the main hero banner.
+*   **Refine Sizes Attribute:** Update the `sizes` prop to more accurately reflect the rendered width of the image. A mismatch between the `sizes` logic and the actual CSS width causes the browser to select the wrong source from the `srcset`.
+*   **Example Optimization:**
+
+```tsx
+// Suggested adjustment for product grid images
+<Image
+  src={productImage}
+  alt="Product Description"
+  // Remove priority if the image is not the LCP element
+  priority={false} 
+  // Ensure sizes accurately reflect grid column widths
+  sizes="(max-width: 768px) 50vw, 25vw"
+/>
+```
+
+---
+
 ## 🔒 Security & Best Practices
 
 > [!IMPORTANT]
