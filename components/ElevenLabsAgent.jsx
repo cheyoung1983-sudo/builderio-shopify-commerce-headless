@@ -346,11 +346,11 @@ export default function ElevenLabsAgent() {
     };
   }, [sendContextualUpdate, sendUserActivity]);
 
-  // Periodic user activity keeper every 30s while connected to prevent turn timeouts
+  // Periodic user activity keeper every 25s while connected to prevent turn timeouts
   useEffect(() => {
     if (status !== "connected") return;
     const keeper = createActivityKeeper(() => conversationRef.current, {
-      intervalMs: 30000,
+      intervalMs: 25000,
       debug: process.env.NODE_ENV !== "production",
     });
     keeper.start();
@@ -948,7 +948,7 @@ export default function ElevenLabsAgent() {
         },
         onDisconnect: () => {
           if (!mountedRef.current || currentGen !== generationRef.current) return;
-          console.log(`[ElevenLabs:LIFECYCLE] disconnected (gen: ${currentGen})`);
+          console.log(`[ElevenLabs:LIFECYCLE] disconnected (gen: ${currentGen}, attempt: ${reconnectAttemptRef.current})`);
           setStatus("disconnected");
           setIsSpeaking(false);
           setOutputVolume(0);
@@ -961,10 +961,12 @@ export default function ElevenLabsAgent() {
           connectingRef.current = false;
 
           // Bounded exponential backoff recovery for genuine network loss
-          if (reconnectAttemptRef.current < 3 && !reconnectTimerRef.current && mountedRef.current) {
-            const delay = Math.min(1000 * Math.pow(2, reconnectAttemptRef.current), 10000);
+          // Backoff: 1s, 2s, 4s, 8s, 16s, capped at 30s
+          if (!reconnectTimerRef.current && mountedRef.current) {
+            const attempt = reconnectAttemptRef.current;
+            const delay = Math.min(1000 * Math.pow(2, attempt), 30000);
             reconnectAttemptRef.current++;
-            console.log(`[ElevenLabs:LIFECYCLE] reconnect scheduled in ${delay}ms (attempt ${reconnectAttemptRef.current}, gen: ${currentGen})`);
+            console.log(`[ElevenLabs:LIFECYCLE] reconnect scheduled in ${delay}ms (attempt ${attempt + 1}, gen: ${currentGen})`);
             reconnectTimerRef.current = setTimeout(() => {
               reconnectTimerRef.current = null;
               if (!mountedRef.current || connectingRef.current || conversationRef.current || currentGen !== generationRef.current) return;
