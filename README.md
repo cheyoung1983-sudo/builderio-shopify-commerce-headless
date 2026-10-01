@@ -102,6 +102,21 @@ See `CLAUDE.md`'s "Commands" section for the full list (typecheck, lint, a11y te
 
 ---
 
+## 🤖 Advanced Architecture Subsystems
+
+### Conversational AI Voice Assistant (`components/ElevenLabsAgent.jsx`)
+Powered by ElevenLabs, the assistant provides real-time voice interaction on the storefront:
+- **WebSocket & AudioWorklet Processing**: High-performance audio streaming with automatic fallback handling.
+- **Resilient Token Acquisition**: `fetchVoiceTokenWithBackoff` handles retries, exponential backoff, and active specialist fallback.
+- **Session Activity Keeper**: Managed via [`lib/elevenlabs-activity.ts`](./lib/elevenlabs-activity.ts) to keep persistent voice sessions active.
+
+### Tribal Tax Exemption & Geofencing (`lib/tax-calculator.ts`)
+Designed for store compliance with tribal sales tax exemptions:
+- **AvaTax Integration**: Applies Avalara Entity Use Code **'C'** (Tribal Member Exemption) when conditions are met.
+- **Spatial Geofencing**: Validates customer delivery or billing addresses against designated Indian Country reservation boundaries ([`lib/geofencing.ts`](./lib/geofencing.ts)).
+
+---
+
 ## 🤝 Multi-agent development
 
 This repo is developed by multiple isolated agents working in separate branches, integrated via pull request by the maintainer. Before starting work, read `AGENT_WORKFLOW.md` in full — key rules:
