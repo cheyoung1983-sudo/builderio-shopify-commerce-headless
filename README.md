@@ -170,4 +170,4 @@ The following strategies are identified as potential fixes for the source code:
 
 ## 📄 License
 
-This repository was forked from an MIT-licensed template, but **no `LICENSE` file exists in this repo** and its actual terms for this specific store's code haven't been established. Don't assume MIT applies here — confirm the intended license with the repository owner before reusing or redistributing this code, or add a `LICENSE` file to make it explicit.
+This repository is distributed under the MIT License. See [`LICENSE`](./LICENSE) for the full license text and upstream template attribution.

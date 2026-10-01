@@ -6,42 +6,49 @@ import {
   generateNonce,
   generateState,
   getCallbackUrl,
-  sanitizeReturnTo,
-} from '../../../services/shopify-customer-account.ts'
-import { appendCookie, COOKIE, isHttpsRequest } from '../../../lib/shopify/customer-account/cookies.ts'
+} from '../../../services/shopify-customer-account'
 
-const PKCE_COOKIE_MAX_AGE = 600 // 10 minutes: just long enough to complete the redirect round trip
+export function sanitizeReturnTo(value: unknown): string {
+  if (typeof value !== 'string' || !value) return '/account'
+  if (!value.startsWith('/') || value.startsWith('//') || value.includes('\\') || value.includes(':')) {
+    return '/account'
+  }
+  return value.trim()
+}
 
-// Ensure sanitizeReturnTo validates that !value.startsWith('/') or value.startsWith('//') rejects open redirects
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
-    res.setHeader('Allow', 'GET')
-    return res.status(405).json({ error: 'Method not allowed. Use GET.' })
+    return res.status(405).json({ error: 'Method not allowed' })
   }
 
   try {
-    const verifier = generateCodeVerifier()
-    const challenge = generateCodeChallenge(verifier)
+    const returnTo = sanitizeReturnTo(req.query.returnTo)
+    const codeVerifier = generateCodeVerifier()
+    const codeChallenge = generateCodeChallenge(codeVerifier)
     const state = generateState()
     const nonce = generateNonce()
-    const returnTo = sanitizeReturnTo(req.query.returnTo)
-    const secure = isHttpsRequest(req)
+    const redirectUri = getCallbackUrl(req)
 
-    appendCookie(res, COOKIE.verifier, verifier, { maxAge: PKCE_COOKIE_MAX_AGE, secure })
-    appendCookie(res, COOKIE.state, state, { maxAge: PKCE_COOKIE_MAX_AGE, secure })
-    appendCookie(res, COOKIE.nonce, nonce, { maxAge: PKCE_COOKIE_MAX_AGE, secure })
-    appendCookie(res, COOKIE.returnTo, returnTo, { maxAge: PKCE_COOKIE_MAX_AGE, secure })
-
-    const authorizeUrl = buildAuthorizeUrl({
-      redirectUri: getCallbackUrl(req),
+    const authUrl = buildAuthorizeUrl({
+      redirectUri,
       state,
       nonce,
-      codeChallenge: challenge,
+      codeChallenge,
     })
 
-    res.redirect(302, authorizeUrl)
-  } catch (error) {
-    console.error('[account/login] Failed to start login', error)
-    res.status(500).json({ error: 'Failed to start Customer Account API login' })
+    const isSecure = process.env.NODE_ENV === 'production'
+    const cookieOptions = `Path=/; HttpOnly; SameSite=Lax; Max-Age=600${isSecure ? '; Secure' : ''}`
+
+    res.setHeader('Set-Cookie', [
+      `shopify_pkce_verifier=${codeVerifier}; ${cookieOptions}`,
+      `shopify_oauth_state=${state}; ${cookieOptions}`,
+      `shopify_oauth_nonce=${nonce}; ${cookieOptions}`,
+      `shopify_oauth_return_to=${encodeURIComponent(returnTo)}; ${cookieOptions}`,
+    ])
+
+    return res.redirect(302, authUrl)
+  } catch (err: any) {
+    console.error('[CustomerAccount:Login] Failed to build authorize URL:', err)
+    return res.status(500).json({ error: err?.message || 'Authentication initialization error' })
   }
 }

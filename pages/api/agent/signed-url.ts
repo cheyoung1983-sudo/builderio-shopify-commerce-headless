@@ -12,11 +12,14 @@ interface SignedUrlResponse {
   signedUrl?: string
   authenticated?: boolean
   agentId?: string
+  fallbackAgentId?: string
+  isFallback?: boolean
   error?: string
   message?: string
 }
 
-const DEFAULT_AGENT_ID = 'agent_3101m30qaxc1f3981zq05pp86ax1'
+export const PRIMARY_AGENT_ID = 'agent_3101m30qaxc1f3981zq05pp86ax1'
+export const FALLBACK_AGENT_ID = 'agent_6301kqxr35beedj8n91eq7gz73d7'
 const AGENT_ID_PATTERN = /^agent_[a-zA-Z0-9]{20,64}$/
 const rateLimiter = createRateLimiter({ maxRequests: 30, windowMs: 60_000 })
 
@@ -45,14 +48,19 @@ function createSecurityResponse(res: NextApiResponse) {
   }
 }
 
-function getAgentId(req: NextApiRequest): string | undefined {
+function getAgentId(req: NextApiRequest): string {
   const body = req.body
   const bodyAgentId =
     body && typeof body === 'object' && !Array.isArray(body)
       ? (body as Record<string, unknown>).agentId
       : undefined
-  const requestedAgentId = bodyAgentId ?? req.query.agentId ?? process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID ?? DEFAULT_AGENT_ID
-  return readBoundedString(requestedAgentId, { maxLength: 70, truncate: false })
+  const requestedAgentId =
+    bodyAgentId ??
+    req.query.agentId ??
+    process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID ??
+    PRIMARY_AGENT_ID
+  const bound = readBoundedString(requestedAgentId, { maxLength: 70, truncate: false })
+  return bound && AGENT_ID_PATTERN.test(bound) ? bound : PRIMARY_AGENT_ID
 }
 
 export default async function handler(
@@ -81,51 +89,47 @@ export default async function handler(
   }
 
   const agentId = getAgentId(req)
-  if (!agentId || !AGENT_ID_PATTERN.test(agentId)) {
-    return res.status(400).json({ error: 'Invalid agent ID' })
-  }
+  const apiKey = (process.env.ELEVENLABS_API_KEY || process.env.XI_API_KEY || '').trim()
 
-  const apiKey = (process.env.ELEVENLABS_API_KEY || '').trim()
-  if (!apiKey || !apiKey.startsWith('sk_')) {
-    return res.status(200).json({
-      authenticated: false,
-      agentId,
-      message:
-        'No valid ElevenLabs secret key (sk_*) found. Public agent access with ephemeral conversation tokens should be used.',
-    })
-  }
-
-  try {
-    const url = `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${encodeURIComponent(agentId)}`
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'xi-api-key': apiKey,
-        Accept: 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      console.warn(`[ElevenLabs:SignedUrl] Upstream API returned HTTP ${response.status}`)
-      return res.status(502).json({
-        authenticated: false,
-        agentId,
-        error: 'Failed to generate signed URL',
+  // If a secret API key is available, attempt to generate a signed WebSocket URL from ElevenLabs
+  if (apiKey) {
+    try {
+      const url = `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${encodeURIComponent(agentId)}`
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'xi-api-key': apiKey,
+          Accept: 'application/json',
+        },
       })
-    }
 
-    const data = await response.json()
-    return res.status(200).json({
-      signedUrl: data.signed_url,
-      authenticated: true,
-      agentId,
-    })
-  } catch (error) {
-    console.error('[ElevenLabs:SignedUrl] Exception fetching signed url:', error)
-    return res.status(502).json({
-      authenticated: false,
-      agentId,
-      error: 'Failed to generate signed URL',
-    })
+      if (response.ok) {
+        const data = await response.json()
+        if (data && typeof data.signed_url === 'string') {
+          return res.status(200).json({
+            signedUrl: data.signed_url,
+            authenticated: true,
+            agentId,
+            fallbackAgentId: FALLBACK_AGENT_ID,
+            isFallback: agentId === FALLBACK_AGENT_ID,
+          })
+        }
+      } else {
+        const errText = await response.text().catch(() => '')
+        console.warn(`[ElevenLabs:SignedUrl] Upstream API returned HTTP ${response.status}: ${errText}`)
+      }
+    } catch (error) {
+      console.warn('[ElevenLabs:SignedUrl] Exception fetching signed url:', error)
+    }
   }
+
+  // Fallback: If signed URL could not be generated (e.g. key ID without sk_ secret, or public agent),
+  // return metadata guiding the client to connect via direct WebSocket or ephemeral token
+  return res.status(200).json({
+    authenticated: false,
+    agentId,
+    fallbackAgentId: FALLBACK_AGENT_ID,
+    isFallback: agentId === FALLBACK_AGENT_ID,
+    message: 'Proceeding with standard WebSocket or ephemeral token connection.',
+  })
 }

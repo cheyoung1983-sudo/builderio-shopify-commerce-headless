@@ -66,7 +66,7 @@ const LazyPredictiveSearch = dynamic(
 const productCardFields: Input[] = [
   { name: 'imgWidth', type: 'number', defaultValue: 540 },
   { name: 'imgHeight', type: 'number', defaultValue: 540 },
-  { name: 'imgPriority', type: 'boolean', advanced: true, defaultValue: true },
+  { name: 'imgPriority', type: 'boolean', advanced: true, defaultValue: false },
   {
     name: 'imgLoading',
     type: 'enum',
@@ -89,9 +89,9 @@ const productGridSchema: Input[] = [
   {
     name: 'cardProps',
     defaultValue: {
-      imgPriority: true,
+      imgPriority: false,
       imgLayout: 'responsive',
-      imgLoading: 'eager',
+      imgLoading: 'lazy',
       imgWidth: 540,
       imgHeight: 540,
       layout: 'fixed',
@@ -142,9 +142,9 @@ const collectionBoxSchema: Input[] = [
     subFields: productGridSchema,
     defaultValue: {
       cardProps: {
-        imgPriority: true,
+        imgPriority: false,
         imgLayout: 'responsive',
-        imgLoading: 'eager',
+        imgLoading: 'lazy',
         imgWidth: 540,
         imgHeight: 540,
         layout: 'fixed',

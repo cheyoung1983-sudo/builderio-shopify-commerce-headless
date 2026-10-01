@@ -83,10 +83,7 @@ function preflight() {
   }
 
   log('Checking project is linked to Vercel...')
-  const hasLinkedFile = Boolean(findLinkedProjectFile(repoRoot))
-  const projectCheck = runCapture('vercel', ['project', 'ls'])
-  const isLinkedCli = projectCheck.status === 0
-  if (!hasLinkedFile && !isLinkedCli) {
+  if (!findLinkedProjectFile(repoRoot)) {
     fail('Project is not linked. Run `vercel link` first, then re-run this script.')
   }
 

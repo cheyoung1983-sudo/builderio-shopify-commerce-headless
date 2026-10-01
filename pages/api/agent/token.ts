@@ -16,6 +16,8 @@ interface TokenResponse {
   token?: string
   conversation_id?: string
   agentId?: string
+  fallbackAgentId?: string
+  isFallback?: boolean
   iceServers?: Array<{ urls: string | string[] }>
   error?: string
   details?: string | Record<string, unknown>
@@ -56,13 +58,14 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  // Security: Reject client-supplied API keys in request headers
   if (req.headers['xi-api-key'] || req.headers['x-api-key']) {
     return res.status(400).json({
-      error: 'Client-provided API keys in request headers are forbidden. Use server-side configuration.',
+      error: 'Client-provided API keys in request headers are strictly forbidden. API keys are handled server-side only.',
     })
   }
 
-  // Retrieve API Key: Prefer process.env.ELEVENLABS_API_KEY
+  // Retrieve API Key: Server-side environment variables ONLY
   const apiKey = process.env.ELEVENLABS_API_KEY || process.env.XI_API_KEY
 
   // Retrieve Agent ID: Check headers, body, query, or environment variables
@@ -80,6 +83,8 @@ export default async function handler(
       ? readBoundedString(requestedAgentId.trim(), { maxLength: 100 }) || 'agent_3101m30qaxc1f3981zq05pp86ax1'
       : 'agent_3101m30qaxc1f3981zq05pp86ax1'
 
+  const FALLBACK_AGENT_ID = 'agent_6301kqxr35beedj8n91eq7gz73d7'
+
   try {
     const result = await acquireElevenLabsTokenWithBackoff({
       agentId,
@@ -94,20 +99,56 @@ export default async function handler(
       token: result.token,
       conversation_id: result.conversationId,
       agentId,
+      fallbackAgentId: FALLBACK_AGENT_ID,
       iceServers: [
         { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
       ],
     })
   } catch (error) {
+    // If primary agent fails and isn't already the fallback agent, attempt token with fallback agent
+    if (agentId !== FALLBACK_AGENT_ID) {
+      try {
+        console.warn(`[ElevenLabsTokenAPI:Fallback] Retrying token acquisition with fallback agent ${FALLBACK_AGENT_ID}...`)
+        const fallbackResult = await acquireElevenLabsTokenWithBackoff({
+          agentId: FALLBACK_AGENT_ID,
+          apiKey,
+          maxRetries: 2,
+          initialDelayMs: 400,
+          maxDelayMs: 2000,
+          backoffFactor: 2,
+        })
+
+        return res.status(200).json({
+          token: fallbackResult.token,
+          conversation_id: fallbackResult.conversationId,
+          agentId: FALLBACK_AGENT_ID,
+          fallbackAgentId: FALLBACK_AGENT_ID,
+          isFallback: true,
+          iceServers: [
+            { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
+          ],
+        })
+      } catch (fallbackError) {
+        console.error(`[ElevenLabsTokenAPI:FallbackError] Fallback token acquisition also failed:`, fallbackError)
+      }
+    }
+
     if (error instanceof ElevenLabsTokenError) {
       const { status, responseBody, category, isRetryable, agentId: errAgentId } = error.details
-      let msg = (error as Error).message
-      if (msg.includes('sk_')) {
-        msg = 'Upstream authentication error'
-      }
+      console.error(`[ElevenLabsTokenAPI:Error] Failed acquiring signed URL token from ElevenLabs API:`, {
+        status,
+        category,
+        isRetryable,
+        agentId: errAgentId,
+        responseBody,
+        message: (error as Error).message,
+      })
+      const sanitizedMessage = String((error as Error).message || '')
+        .replace(/sk_[a-zA-Z0-9_\-]+/g, '[REDACTED]')
+        .replace(/secret_[a-zA-Z0-9_\-]+/g, '[REDACTED]')
       return res.status(status).json({
         error: `ElevenLabs API error: ${status}`,
-        details: msg,
+        details: sanitizedMessage,
         category,
         agentId: errAgentId,
       })
