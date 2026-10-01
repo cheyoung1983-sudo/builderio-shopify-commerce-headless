@@ -44,7 +44,7 @@ const DEV_PORTS = [3000]
 const PROTECTED_BRANCHES = new Set(['main', 'master'])
 
 function run(cmd, args, opts = {}) {
-  return spawnSync(cmd, args, { cwd: repoRoot, encoding: 'utf8', ...opts })
+  return spawnSync(cmd, args, { cwd: repoRoot, encoding: 'utf8', shell: isWindows, ...opts })
 }
 
 function section(title) {
