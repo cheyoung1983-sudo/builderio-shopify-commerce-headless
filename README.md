@@ -64,7 +64,7 @@ cp .env.example .env.local
 - `BUILDER_PUBLIC_KEY` / `NEXT_PUBLIC_BUILDER_PUBLIC_KEY` — from this store's Builder.io space.
 - `SHOPIFY_STOREFRONT_API_TOKEN` (server-side) and/or `NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN` (public, browser-exposed — never a private `shpat_`/`shpua_` token here).
 - `SHOPIFY_CUSTOMER_ACCOUNT_API_CLIENT_ID` — required for buyer sign-in; `getShopId()`/`getCustomerAccountClientId()` throw loudly if either this or the shop ID is missing, by design.
-- `NEXT_PUBLIC_SITE_URL` — for local dev, `http://localhost:3000`; in production this should be `https://www.displaycellpros.com` (the OAuth redirect URI and SEO base URL fall back to that domain automatically if unset — see [`services/shopify-customer-account.ts#getSiteUrl`](./services/shopify-customer-account.ts#L39) and [`lib/seo.ts#getBaseUrl`](./lib/seo.ts#L81)).
+- `NEXT_PUBLIC_SITE_URL` — for local dev, `http://localhost:3000`; in production this should be `https://www.displaycellpros.com` (the OAuth redirect URI and SEO base URL fall back to that domain automatically if unset — see [`services/shopify-customer-account.ts`](./services/shopify-customer-account.ts) and [`lib/seo.ts`](./lib/seo.ts)).
 
 ### 2. Install and run
 
@@ -160,7 +160,8 @@ The following strategies are identified as potential fixes for the source code:
 
 ## 🔒 Security & Best Practices
 
-> [!IMPORTANT] > **Never commit your `.env` or `.env.local` files.** [`.gitignore`](./.gitignore) excludes them by default.
+> [!IMPORTANT]
+> **Never commit your `.env` or `.env.local` files.** [`.gitignore`](./.gitignore) excludes them by default.
 
 - **Secrets check**: `npm run check:secrets` scans for hardcoded credentials and fallback literals baked in for sensitive env vars.
 - **Customer Account API login flow check**: `npm run check:customer-account-auth-health` guards the OAuth/PKCE login flow specifically (identity-env fallbacks, domain drift, open-redirect sanitizer completeness).
