@@ -1,11 +1,17 @@
 ---
 name: speech-to-text
-description: Transcribe audio to text using ElevenLabs Scribe v2. Use when converting audio/video to text, generating subtitles, transcribing meetings, or processing spoken content.
+description: Transcribe audio to text using ElevenLabs Scribe v2. Use when
+  converting audio/video to text, generating subtitles, transcribing meetings,
+  or processing spoken content.
 license: MIT
 compatibility: Requires internet access and an ElevenLabs API key (ELEVENLABS_API_KEY).
-metadata: {"openclaw": {"requires": {"env": ["ELEVENLABS_API_KEY"]}, "primaryEnv": "ELEVENLABS_API_KEY"}}
+metadata:
+  openclaw:
+    requires:
+      env:
+        - ELEVENLABS_API_KEY
+    primaryEnv: ELEVENLABS_API_KEY
 ---
-
 # ElevenLabs Speech-to-Text
 
 Transcribe audio to text with Scribe v2 - supports 90+ languages, speaker diarization, and word-level timestamps.
