@@ -19,6 +19,7 @@
   },
   "scripts": {
     "dev": "next dev -p 3000 -H 0.0.0.0",
+    "start:speech-engine": "tsx server/speech-engine-server.ts",
     "build": "node scripts/build.cjs",
     "start": "next start",
     "lint": "eslint blocks components config context lib pages services",
@@ -103,6 +104,7 @@
     "@emotion/react": "^11.10.6",
     "@firebase/eslint-plugin-security-rules": "^0.0.2",
     "@google/genai": "^2.23.0",
+    "@heygen/liveavatar-web-sdk": "^0.0.19",
     "@radix-ui/react-dialog": "^1.0.2",
     "@reach/dialog": "^0.18.0",
     "@reach/portal": "0.14.0",
