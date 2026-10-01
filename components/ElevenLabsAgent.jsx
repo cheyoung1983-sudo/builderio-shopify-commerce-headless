@@ -978,16 +978,20 @@ export default function ElevenLabsAgent() {
           if (!mountedRef.current || currentGen !== generationRef.current) return;
           console.warn("[ElevenLabsAgent:Session] ElevenLabs runtime session error/warning:", err?.message);
           const errMsg = String(err?.message || "");
-          const isPublisherError =
+          const isConnectionError =
             errMsg.includes("could not establish Publisher connection") ||
             errMsg.includes("Publisher connection") ||
             errMsg.includes("ConnectionError") ||
+            errMsg.includes("SessionConnectionError") ||
+            errMsg.includes("socket") ||
+            errMsg.includes("network") ||
+            errMsg.includes("closed due to a socket error") ||
             errMsg.includes("ice") ||
             errMsg.includes("ICE");
 
-          // Automatic failover: if WebRTC publisher fails during session, fallback seamlessly to WebSocket
-          if (connectionModeRef.current === "webrtc" && isPublisherError && mountedRef.current && currentGen === generationRef.current) {
-            console.warn("[ElevenLabsAgent:Session] WebRTC publisher error encountered, automatically failing over to WebSocket transport...", errMsg);
+          // Automatic failover: if WebRTC connection fails during session, fallback seamlessly to WebSocket
+          if (connectionModeRef.current === "webrtc" && isConnectionError && mountedRef.current && currentGen === generationRef.current) {
+            console.warn("[ElevenLabsAgent:Session] WebRTC connection error encountered, automatically failing over to WebSocket transport...", errMsg);
             connectionModeRef.current = "websocket";
             setConnectionMode("websocket");
             connectingRef.current = false;
@@ -997,6 +1001,28 @@ export default function ElevenLabsAgent() {
               conv.endSession().catch(() => {});
             }
             startSessionRef.current?.({ connectionMode: "websocket", isUserInitiated: false });
+            return;
+          }
+
+          // If socket / connection error occurs, trigger reconnect logic via scheduled retry
+          if (isConnectionError && mountedRef.current && currentGen === generationRef.current) {
+            console.warn("[ElevenLabsAgent:Session] Connection/socket error encountered during session, triggering reconnect...", errMsg);
+            if (conversationRef.current) {
+              const conv = conversationRef.current;
+              conversationRef.current = null;
+              conv.endSession().catch(() => {});
+            }
+            connectingRef.current = false;
+            if (!reconnectTimerRef.current && reconnectAttemptRef.current < 4) {
+              const attempt = reconnectAttemptRef.current;
+              const delay = Math.min(1000 * Math.pow(2, attempt), 15000);
+              reconnectAttemptRef.current++;
+              reconnectTimerRef.current = setTimeout(() => {
+                reconnectTimerRef.current = null;
+                if (!mountedRef.current || connectingRef.current || conversationRef.current || currentGen !== generationRef.current) return;
+                startSessionRef.current?.({ isUserInitiated: false, connectionMode: connectionModeRef.current });
+              }, delay);
+            }
             return;
           }
 
@@ -1111,20 +1137,24 @@ export default function ElevenLabsAgent() {
     } catch (err) {
       console.warn("[ElevenLabsAgent:Init:Error] Caught exception during Conversation.startSession:", err);
       const errMsg = String(err?.message || "");
-      const isPublisherError =
+      const isConnectionError =
         errMsg.includes("could not establish Publisher connection") ||
         errMsg.includes("Publisher connection") ||
         errMsg.includes("ConnectionError") ||
+        errMsg.includes("SessionConnectionError") ||
+        errMsg.includes("socket") ||
+        errMsg.includes("network") ||
+        errMsg.includes("closed due to a socket error") ||
         errMsg.includes("ice") ||
         errMsg.includes("ICE") ||
         errMsg.includes("peerconnection") ||
         errMsg.includes("PeerConnection") ||
         errMsg.includes("disconnected");
 
-      // Auto-failover from WebRTC to WebSocket on publisher / connection failures
-      if (transportMode === "webrtc" && isPublisherError && mountedRef.current && currentGen === generationRef.current) {
+      // Auto-failover from WebRTC to WebSocket on connection failures
+      if (transportMode === "webrtc" && isConnectionError && mountedRef.current && currentGen === generationRef.current) {
         console.warn(
-          `[ElevenLabsAgent:Init] WebRTC publisher connection failed (${errMsg}). Automatically failing over to WebSocket transport...`
+          `[ElevenLabsAgent:Init] WebRTC connection failed (${errMsg}). Automatically failing over to WebSocket transport...`
         );
         connectionModeRef.current = "websocket";
         setConnectionMode("websocket");
@@ -1134,6 +1164,23 @@ export default function ElevenLabsAgent() {
           connectionMode: "websocket",
           isUserInitiated: false,
         });
+      }
+
+      // If connection error occurs on WebSocket or after failover, schedule an automatic retry/reconnect with backoff
+      if (isConnectionError && mountedRef.current && currentGen === generationRef.current && reconnectAttemptRef.current < 4) {
+        const attempt = reconnectAttemptRef.current;
+        const delay = Math.min(1000 * Math.pow(2, attempt), 15000);
+        reconnectAttemptRef.current++;
+        console.warn(`[ElevenLabsAgent:Init] Connection/socket error (${errMsg}). Automatically retrying session start in ${delay}ms (attempt ${attempt + 1})...`);
+        connectingRef.current = false;
+        if (!reconnectTimerRef.current) {
+          reconnectTimerRef.current = setTimeout(() => {
+            reconnectTimerRef.current = null;
+            if (!mountedRef.current || connectingRef.current || conversationRef.current || currentGen !== generationRef.current) return;
+            startSessionRef.current?.({ isUserInitiated: false, connectionMode: connectionModeRef.current });
+          }, delay);
+        }
+        return;
       }
 
       if (mountedRef.current && currentGen === generationRef.current) {
@@ -1159,11 +1206,15 @@ export default function ElevenLabsAgent() {
         msg.includes("could not establish Publisher connection") ||
         msg.includes("Publisher connection") ||
         msg.includes("ConnectionError") ||
+        msg.includes("SessionConnectionError") ||
+        msg.includes("socket") ||
+        msg.includes("network") ||
+        msg.includes("closed due to a socket error") ||
         msg.includes("could not establish pc connection")
       ) {
         event.preventDefault();
         console.warn(
-          "[ElevenLabsAgent:Global] Handled WebRTC publisher connection failure asynchronously. Gracefully falling back to WebSocket transport...",
+          "[ElevenLabsAgent:Global] Handled network/socket connection failure asynchronously. Gracefully falling back / retrying...",
           msg
         );
         connectionModeRef.current = "websocket";
