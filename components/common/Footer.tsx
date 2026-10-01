@@ -202,6 +202,34 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
             <ul className="space-y-2.5 text-xs sm:text-sm">
               <li>
                 <Link
+                  href="/services-faq"
+                  id="footer-services-faq-link"
+                  className="text-neutral-600 hover:text-neutral-950 transition-colors inline-flex items-center gap-1 font-medium"
+                >
+                  <ChevronRight className="w-3 h-3 text-neutral-400" />
+                  <span>Services &amp; FAQ</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/services-faq#tribal-overview"
+                  className="text-amber-800 hover:text-amber-950 transition-colors inline-flex items-center gap-1 font-medium"
+                >
+                  <ChevronRight className="w-3 h-3 text-amber-600" />
+                  <span>20% Tribal Discount &amp; Tax</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/services-faq#mail-in-overview"
+                  className="text-emerald-800 hover:text-emerald-950 transition-colors inline-flex items-center gap-1 font-medium"
+                >
+                  <ChevronRight className="w-3 h-3 text-emerald-600" />
+                  <span>Mail-In Device Repair</span>
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/order-tracking"
                   id="footer-track-order-link"
                   className="text-neutral-600 hover:text-neutral-950 transition-colors inline-flex items-center gap-1 font-medium"

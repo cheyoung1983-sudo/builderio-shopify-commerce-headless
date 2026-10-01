@@ -53,9 +53,9 @@ service cloud.firestore {
       );
 
       allow update: if isVerified() && isValidId(uid) && (
-        // Action: Self-Profile Update (Limited fields)
+        // Action: Self-Profile Update (Limited fields + Tribal verification sync)
         (isOwner(uid) && 
-         incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt']) &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'tribalVerified', 'tribalNation', 'tribalMaskedId', 'tribalVerifiedAt']) &&
          incoming().updatedAt == request.time) ||
         
         // Action: Admin Role Management
@@ -73,6 +73,33 @@ service cloud.firestore {
     match /admins/{uid} {
       allow read: if isVerified();
       allow write: if isVerified() && (isOwnerEmail() || isAdminLevel());
+    }
+
+    // 4. Tribal Master Registry (BIA & Nation Verification Index)
+    match /tribal_registry/{enrollmentHash} {
+      allow read: if isVerified();
+      allow write: if isVerified() && (isOwnerEmail() || isAdminLevel());
+    }
+
+    // 5. Tribal Enrollments (Enrollment Uniqueness & Customer Lock)
+    match /tribal_enrollments/{enrollmentHash} {
+      allow read: if isVerified();
+      allow create: if isVerified() && 
+        incoming().claimedByEmail == request.auth.token.email &&
+        incoming().status == 'active';
+      allow update: if isVerified() && (
+        (existing().claimedByEmail == request.auth.token.email && incoming().claimedByEmail == request.auth.token.email) ||
+        isAdminLevel()
+      );
+      allow delete: if isAdminLevel();
+    }
+
+    // 6. Repair Requests & Mail-In Shipping Kits
+    match /repair_requests/{rmsNumber} {
+      allow read: if isVerified() || (isSignedIn() && resource.data.shippingKit.email == request.auth.token.email);
+      allow create: if incoming().rmsNumber == rmsNumber;
+      allow update: if isVerified() || isAdminLevel();
+      allow delete: if isAdminLevel();
     }
   }
 }

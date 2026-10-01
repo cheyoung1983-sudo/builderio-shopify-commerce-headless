@@ -127,6 +127,12 @@ const Navbar: FC = () => {
                     All Products
                   </Link>
                   <Link
+                    href="/services-faq"
+                    className="px-2.5 py-1.5 text-sm font-medium text-neutral-700 hover:text-emerald-700 transition-colors rounded-md whitespace-nowrap"
+                  >
+                    Services &amp; FAQ
+                  </Link>
+                  <Link
                     href="/trends"
                     className="ml-1 inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors"
                   >
@@ -237,6 +243,14 @@ const Navbar: FC = () => {
                     className="py-2.5 px-3 text-base font-semibold text-neutral-900 hover:bg-neutral-50 rounded-lg border-b border-neutral-100 transition-colors"
                   >
                     All Products
+                  </Link>
+                  <Link
+                    id="mobile-drawer-services-faq-link"
+                    href="/services-faq"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="py-2.5 px-3 text-base font-semibold text-neutral-900 hover:bg-neutral-50 rounded-lg border-b border-neutral-100 transition-colors"
+                  >
+                    Services, 20% Tribal &amp; FAQ
                   </Link>
                 </>
               )}

@@ -9,7 +9,10 @@ import {
 } from '../../services/shopify-customer-account'
 import { appendCookie, COOKIE, isHttpsRequest } from '../../lib/shopify/customer-account/cookies'
 import { OrderHistory } from '../../components/account'
-import { User, MapPin, Mail, LogOut, Package, ShieldCheck, Truck } from 'lucide-react'
+import { TribalEligibilityChecker } from '../../components/tribal/TribalEligibilityChecker'
+import { TribalDiscountAccountCard } from '../../components/account/TribalDiscountAccountCard'
+import { useAuth } from '../../hooks/useAuth'
+import { User, MapPin, Mail, LogOut, Package, ShieldCheck, Truck, Sparkles } from 'lucide-react'
 
 interface AccountPageProps {
   customer: CustomerAccountProfile | null
@@ -63,6 +66,7 @@ export const getServerSideProps: GetServerSideProps<AccountPageProps> = async (c
 }
 
 export default function AccountPage({ customer, loginError }: AccountPageProps) {
+  const { user } = useAuth()
   const customerOrders = (customer?.orders?.edges || []).map((edge) => edge.node)
   const customerEmail = customer?.emailAddress?.emailAddress || ''
 
@@ -155,6 +159,19 @@ export default function AccountPage({ customer, loginError }: AccountPageProps) 
                 </div>
               </div>
 
+              {/* Tribal Discount Status & Validation History Section */}
+              <div className="mb-8">
+                <TribalDiscountAccountCard userUid={user?.uid} customerEmail={customerEmail} />
+              </div>
+
+              {/* Tribal Member 20% Discount & Benefits Section */}
+              <div className="mb-8">
+                <TribalEligibilityChecker
+                  initialEmail={customerEmail}
+                  compact={false}
+                />
+              </div>
+
               {/* Secure Order History Section */}
               <OrderHistory
                 orders={customerOrders}
@@ -163,36 +180,56 @@ export default function AccountPage({ customer, loginError }: AccountPageProps) 
             </div>
           ) : (
             /* Unauthenticated View */
-            <div className="mx-auto max-w-md rounded-2xl bg-white p-8 sm:p-10 shadow-xs border border-border-subtle text-center">
-              <div className="w-14 h-14 rounded-2xl bg-neutral-100 text-neutral-800 flex items-center justify-center mx-auto mb-4">
-                <User className="w-7 h-7" />
+            <div className="mx-auto max-w-2xl space-y-6">
+              <div className="rounded-2xl bg-white p-8 sm:p-10 shadow-xs border border-border-subtle text-center">
+                <div className="w-14 h-14 rounded-2xl bg-neutral-100 text-neutral-800 flex items-center justify-center mx-auto mb-4">
+                  <User className="w-7 h-7" />
+                </div>
+
+                <h1 className="text-xl font-bold text-neutral-900 tracking-tight mb-2">
+                  Customer Account Login
+                </h1>
+                <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed mb-6">
+                  Sign in with your Shopify Customer Account to view your secure purchase history, order invoices, and shipment tracking.
+                </p>
+
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- full navigation to an API route redirect */}
+                <a
+                  href="/api/account/login?returnTo=/account"
+                  className="w-full py-3 px-6 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-semibold inline-flex items-center justify-center gap-2 shadow-xs transition-colors"
+                >
+                  <span>Sign in with Shopify</span>
+                </a>
+
+                <div className="mt-8 pt-6 border-t border-neutral-200">
+                  <p className="text-xs text-neutral-600 mb-2">
+                    Need to track a recent delivery without logging in?
+                  </p>
+                  <Link
+                    href="/order-tracking"
+                    className="text-xs font-semibold text-neutral-900 underline hover:text-neutral-700 inline-flex items-center gap-1"
+                  >
+                    <Package className="w-3.5 h-3.5" />
+                    <span>Track Order by ID & Email →</span>
+                  </Link>
+                </div>
               </div>
 
-              <h1 className="text-xl font-bold text-neutral-900 tracking-tight mb-2">
-                Customer Account Login
-              </h1>
-              <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed mb-6">
-                Sign in with your Shopify Customer Account to view your secure purchase history, order invoices, and shipment tracking.
-              </p>
-
-              {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- full navigation to an API route redirect */}
-              <a
-                href="/api/account/login?returnTo=/account"
-                className="w-full py-3 px-6 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-semibold inline-flex items-center justify-center gap-2 shadow-xs transition-colors"
-              >
-                <span>Sign in with Shopify</span>
-              </a>
-
-              <div className="mt-8 pt-6 border-t border-neutral-200">
-                <p className="text-xs text-neutral-600 mb-2">
-                  Need to track a recent delivery without logging in?
+              {/* Unauthenticated Tribal Eligibility Check Option */}
+              <div className="rounded-2xl border border-amber-300 bg-amber-50/50 p-6 text-left shadow-xs">
+                <div className="flex items-center gap-2 text-amber-900 font-bold text-sm mb-1">
+                  <Sparkles className="w-4 h-4 text-amber-700" />
+                  <span>Enrolled Tribal Member? Check Your 20% Discount</span>
+                </div>
+                <p className="text-xs text-neutral-600 leading-relaxed mb-4">
+                  Verify your enrollment number to lock the official 20% discount on wholesale displays and batteries to your account.
                 </p>
                 <Link
-                  href="/order-tracking"
-                  className="text-xs font-semibold text-neutral-900 underline hover:text-neutral-700 inline-flex items-center gap-1"
+                  href="/services-faq#interactive-tools"
+                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs inline-flex items-center gap-1.5 transition-colors"
                 >
-                  <Package className="w-3.5 h-3.5" />
-                  <span>Track Order by ID & Email →</span>
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Open Tribal Eligibility Checker</span>
                 </Link>
               </div>
             </div>
