@@ -1,0 +1,47 @@
+{
+  "platform_settings": {
+    "guardrails": {
+      "version": "1",
+      "focus": {
+        "is_enabled": true
+      },
+      "prompt_injection": {
+        "is_enabled": true
+      },
+      "content": {
+        "config": {
+          "harassment": {
+            "is_enabled": true,
+            "threshold": 0.4
+          },
+          "profanity": {
+            "is_enabled": true,
+            "threshold": 0.3
+          },
+          "medical_and_legal_information": {
+            "is_enabled": true,
+            "threshold": 0.5
+          }
+        }
+      },
+      "custom": {
+        "config": {
+          "configs": [
+            {
+              "is_enabled": true,
+              "name": "E-commerce Policy Enforcement",
+              "prompt": "Block the agent from offering unauthorized discounts, refunds, or making false shipping guarantees.",
+              "execution_mode": "blocking",
+              "model": "gemini-2.5-flash-lite",
+              "history_message_count": 2,
+              "trigger_action": {
+                "type": "retry",
+                "feedback": "Policy Warning: {{trigger_reason}}. Please adhere to standard storefront policies."
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

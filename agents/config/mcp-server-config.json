@@ -1,0 +1,29 @@
+{
+  "mcp_servers": [
+    {
+      "id": "mcp_shopify_storefront",
+      "name": "Shopify Storefront MCP Server",
+      "url": "https://api.shopify.com/mcp",
+      "auth_type": "oauth",
+      "approval_policy": {
+        "mode": "require_approval_for_writes",
+        "auto_approve_reads": true
+      },
+      "tool_configurations": [
+        {
+          "tool_name": "get_product_inventory",
+          "execution_mode": "automatic",
+          "timeout_secs": 15
+        },
+        {
+          "tool_name": "create_draft_order",
+          "execution_mode": "require_approval",
+          "timeout_secs": 30
+        }
+      ],
+      "request_meta": {
+        "client_source": "elevenlabs-agent-hosted"
+      }
+    }
+  ]
+}
