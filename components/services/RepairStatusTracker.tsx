@@ -117,18 +117,44 @@ export const RepairStatusTracker: React.FC<RepairStatusTrackerProps> = ({
   const [previewImg, setPreviewImg] = useState<string | null>(null)
   const [isLiveConnected, setIsLiveConnected] = useState<boolean>(false)
 
+  const fetchFromApi = React.useCallback(async (rms: string) => {
+    try {
+      const res = await fetch(`/api/repair-requests/${encodeURIComponent(rms)}`)
+      const json = await res.json()
+      if (res.ok && json.success && json.record) {
+        setRecord(json.record)
+        setIsLiveConnected(false)
+        if (onTracked) onTracked(json.record)
+      } else {
+        setRecord(null)
+        setErrorMessage(
+          json.error || `No repair request found for RMS #${rms}. Please verify your tracking number.`
+        )
+      }
+    } catch {
+      setRecord(null)
+      setErrorMessage('Could not connect to tracking server. Please check your network connection.')
+    } finally {
+      setLoading(false)
+    }
+  }, [onTracked])
+
   // Real-time Firestore onSnapshot Subscription
   useEffect(() => {
     if (!activeRms.trim()) {
-      setRecord(null)
-      return
+      const timer = setTimeout(() => {
+        setRecord(null)
+      }, 0)
+      return () => clearTimeout(timer)
     }
 
     const cleanRms = activeRms.trim().toUpperCase()
-    setLoading(true)
-    setErrorMessage('')
 
     let unsubscribe: (() => void) | null = null
+    const timer = setTimeout(() => {
+      setLoading(true)
+      setErrorMessage('')
+    }, 0)
 
     if (db) {
       try {
@@ -144,48 +170,27 @@ export const RepairStatusTracker: React.FC<RepairStatusTrackerProps> = ({
               if (onTracked) onTracked(data)
             } else {
               // Try API fallback for demo or seeded records
-              fetchFromApi(cleanRms)
+              setTimeout(() => fetchFromApi(cleanRms), 0)
             }
           },
           (err) => {
             console.warn('[Firestore onSnapshot] Listening fallback:', err?.message)
-            fetchFromApi(cleanRms)
+            setTimeout(() => fetchFromApi(cleanRms), 0)
           }
         )
       } catch (err) {
         console.warn('Direct listener init error, calling API fallback:', err)
-        fetchFromApi(cleanRms)
+        setTimeout(() => fetchFromApi(cleanRms), 0)
       }
     } else {
-      fetchFromApi(cleanRms)
+      setTimeout(() => fetchFromApi(cleanRms), 0)
     }
 
     return () => {
+      clearTimeout(timer)
       if (unsubscribe) unsubscribe()
     }
-  }, [activeRms])
-
-  const fetchFromApi = async (rms: string) => {
-    try {
-      const res = await fetch(`/api/repair-requests/${encodeURIComponent(rms)}`)
-      const json = await res.json()
-      if (res.ok && json.success && json.record) {
-        setRecord(json.record)
-        setIsLiveConnected(false)
-        if (onTracked) onTracked(json.record)
-      } else {
-        setRecord(null)
-        setErrorMessage(
-          json.error || `No repair request found for RMS #${rms}. Please verify your tracking number.`
-        )
-      }
-    } catch (apiErr: any) {
-      setRecord(null)
-      setErrorMessage('Could not connect to tracking server. Please check your network connection.')
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [activeRms, fetchFromApi, onTracked])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -476,7 +481,7 @@ export const RepairStatusTracker: React.FC<RepairStatusTrackerProps> = ({
                 <div className="pt-3 border-t border-neutral-200">
                   <span className="text-neutral-500 block text-[11px] font-semibold">Customer Issue Description:</span>
                   <p className="text-neutral-700 text-xs italic mt-0.5 bg-white p-2.5 rounded-lg border border-neutral-200">
-                    "{record.itemDetails.notes}"
+                    &quot;{record.itemDetails.notes}&quot;
                   </p>
                 </div>
               )}

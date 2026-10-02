@@ -13,7 +13,10 @@ import {
 } from 'lucide-react'
 import { ShopifyProductNode } from '../../services/shopify'
 import { ProductCardSkeleton } from './ProductCardSkeleton'
-import { useWishlist, useQuickView } from '../../context'
+import { useWishlist, useQuickView, useToast } from '../../context'
+import { CartContext } from '../../context/CartContext'
+import { useUI } from '../common/context'
+import { useSafeRouter } from '../../lib/hooks/useSafeRouter'
 import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
 import { useIntersectionObserver } from '../../lib/hooks/useIntersectionObserver'
 import { motion } from 'motion/react'
@@ -82,8 +85,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   cardRef,
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false)
+  const [internalAdding, setInternalAdding] = useState(false)
+  const [internalAdded, setInternalAdded] = useState(false)
   const { isInWishlist, toggleWishlist } = useWishlist()
   const { openQuickView } = useQuickView()
+  const { showCartToast } = useToast()
+  const { openSidebar } = useUI()
+  const cart = React.useContext(CartContext)
+  const router = useSafeRouter()
   const isSaved = product ? isInWishlist(product.id) : false
 
   // Determine if card is initially above the fold (e.g. top 4 products get eager/priority loading)
@@ -150,10 +159,61 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     }
   }
 
-  const handleAddToCartClick = (e: React.MouseEvent) => {
+  const handleAddToCartClick = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    onQuickAddToCart?.(product, e)
+
+    if (onQuickAddToCart) {
+      onQuickAddToCart(product, e)
+      return
+    }
+
+    if (!cart || !product) return
+    setInternalAdding(true)
+    try {
+      const firstVariant = product.variants?.edges?.[0]?.node
+      const variantId = firstVariant?.id || product.id
+      const price = firstVariant?.price?.amount || product.priceRange?.minVariantPrice?.amount || '0'
+      const itemCurrency = firstVariant?.price?.currencyCode || product.priceRange?.minVariantPrice?.currencyCode || 'USD'
+      const compare = firstVariant?.compareAtPrice?.amount || product.compareAtPriceRange?.minVariantPrice?.amount
+      const imageUrl = product.featuredImage?.url || product.images?.edges?.[0]?.node?.url
+
+      await cart.addItem({
+        variantId,
+        quantity: 1,
+        title: product.title,
+        handle: product.handle,
+        variantTitle: firstVariant?.title,
+        price: { amount: price, currencyCode: itemCurrency },
+        compareAtPrice: compare ? { amount: compare, currencyCode: itemCurrency } : null,
+        image: imageUrl || null,
+        vendor: product.vendor,
+      })
+
+      setInternalAdded(true)
+      const formattedPrice = price ? `$${parseFloat(price).toFixed(2)} ${itemCurrency}` : null
+      showCartToast({
+        title: product.title,
+        image: imageUrl || null,
+        price: formattedPrice,
+        variantTitle: firstVariant?.title && firstVariant.title !== 'Default Title' ? firstVariant.title : null,
+        quantity: 1,
+        duration: 3000,
+        actionLabel: 'View Cart',
+        onViewBag: () => {
+          if (typeof openSidebar === 'function') {
+            openSidebar()
+          } else {
+            router.push('/cart')
+          }
+        },
+      })
+      setTimeout(() => setInternalAdded(false), 1500)
+    } catch (err) {
+      console.warn('Direct quick add notice:', err)
+    } finally {
+      setInternalAdding(false)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -468,26 +528,26 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               id={`product-card-add-btn-${product.id.replace(/[^a-zA-Z0-9]/g, '-')}`}
               type="button"
               onClick={handleAddToCartClick}
-              disabled={isAddingToCart}
-              aria-label={`Add ${product.title} to shopping bag`}
+              disabled={isAddingToCart || internalAdding}
+              aria-label={`Quick add ${product.title} to shopping bag`}
               className={`inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                isAdded
+                isAdded || internalAdded
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-200 hover:border-emerald-600'
               }`}
-              title="Add to Shopping Bag"
+              title="Quick Add to Shopping Bag"
             >
-              {isAdded ? (
+              {isAdded || internalAdded ? (
                 <>
                   <Check className="w-3.5 h-3.5 animate-scaleIn" />
                   <span className="hidden sm:inline">Added!</span>
                 </>
-              ) : isAddingToCart ? (
+              ) : isAddingToCart || internalAdding ? (
                 <div className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
                   <ShoppingBag className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Add</span>
+                  <span className="hidden sm:inline">Quick Add</span>
                 </>
               )}
             </button>

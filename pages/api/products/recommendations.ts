@@ -47,6 +47,7 @@ export default async function handler(
     const handle = req.query.handle as string | undefined
     const vendor = req.query.vendor as string | undefined
     const productType = req.query.productType as string | undefined
+    const tags = req.query.tags as string | undefined
     const intent = (req.query.intent as 'RELATED' | 'COMPLEMENTARY') || 'RELATED'
     const limit = Math.min(Math.max(parseInt((req.query.limit as string) || '8', 10), 1), 16)
 
@@ -92,8 +93,8 @@ export default async function handler(
     // 2. Fallback: Search by productType or vendor, or fetch top available products
     let fallbackProducts: ShopifyProductNode[] = []
 
-    if (productType || vendor) {
-      const searchTerm = [vendor, productType].filter(Boolean).join(' ')
+    if (productType || vendor || tags) {
+      const searchTerm = [vendor, productType, tags].filter(Boolean).join(' ')
       try {
         const searchRes = await searchStorefrontProducts(searchTerm, {
           maxProducts: limit + 2,

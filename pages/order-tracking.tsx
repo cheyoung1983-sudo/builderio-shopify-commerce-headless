@@ -16,10 +16,13 @@ export default function OrderTrackingPage() {
   const [activeTab, setActiveTab] = useState<'parts' | 'repairs'>(rmsQuery ? 'repairs' : 'parts')
 
   useEffect(() => {
-    if (rmsQuery) {
-      setActiveTab('repairs')
+    if (rmsQuery && activeTab !== 'repairs') {
+      const timer = setTimeout(() => {
+        setActiveTab('repairs')
+      }, 0)
+      return () => clearTimeout(timer)
     }
-  }, [rmsQuery])
+  }, [rmsQuery, activeTab])
 
   return (
     <>

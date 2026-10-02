@@ -70,28 +70,31 @@ export const MailInRepairRequest: React.FC<MailInRepairRequestProps> = ({
 
   // Load draft from sessionStorage on mount
   useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        const savedDraft = sessionStorage.getItem('dcp_mail_in_repair_draft')
-        if (savedDraft) {
-          const parsed = JSON.parse(savedDraft)
-          if (parsed.deviceModel) setDeviceModel(parsed.deviceModel)
-          if (parsed.serialNumber) setSerialNumber(parsed.serialNumber)
-          if (parsed.issueDescription) setIssueDescription(parsed.issueDescription)
-          if (parsed.passcode) setPasscode(parsed.passcode)
-          if (parsed.recipientName) setRecipientName(parsed.recipientName)
-          if (parsed.email) setEmail(parsed.email)
-          if (parsed.street) setStreet(parsed.street)
-          if (parsed.city) setCity(parsed.city)
-          if (parsed.state) setState(parsed.state)
-          if (parsed.zip) setZip(parsed.zip)
-          if (parsed.imageUrls && Array.isArray(parsed.imageUrls)) setImageUrls(parsed.imageUrls)
-          setDraftRestoredNotice(true)
+    const timer = setTimeout(() => {
+      try {
+        if (typeof window !== 'undefined') {
+          const savedDraft = sessionStorage.getItem('dcp_mail_in_repair_draft')
+          if (savedDraft) {
+            const parsed = JSON.parse(savedDraft)
+            if (parsed.deviceModel) setDeviceModel(parsed.deviceModel)
+            if (parsed.serialNumber) setSerialNumber(parsed.serialNumber)
+            if (parsed.issueDescription) setIssueDescription(parsed.issueDescription)
+            if (parsed.passcode) setPasscode(parsed.passcode)
+            if (parsed.recipientName) setRecipientName(parsed.recipientName)
+            if (parsed.email) setEmail(parsed.email)
+            if (parsed.street) setStreet(parsed.street)
+            if (parsed.city) setCity(parsed.city)
+            if (parsed.state) setState(parsed.state)
+            if (parsed.zip) setZip(parsed.zip)
+            if (parsed.imageUrls && Array.isArray(parsed.imageUrls)) setImageUrls(parsed.imageUrls)
+            setDraftRestoredNotice(true)
+          }
         }
+      } catch (err) {
+        console.warn('Failed to load repair draft from sessionStorage:', err)
       }
-    } catch (err) {
-      console.warn('Failed to load repair draft from sessionStorage:', err)
-    }
+    }, 0)
+    return () => clearTimeout(timer)
   }, [])
 
   // Save draft to sessionStorage on change

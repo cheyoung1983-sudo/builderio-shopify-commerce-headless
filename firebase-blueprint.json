@@ -25,6 +25,19 @@
         "uid": { "type": "string" }
       },
       "required": ["uid"]
+    },
+    "RepairRequest": {
+      "title": "Repair Request",
+      "description": "Definition of a repair request record.",
+      "type": "object",
+      "properties": {
+        "rmsNumber": { "type": "string" },
+        "status": { "type": "string" },
+        "deviceModel": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["rmsNumber", "status", "deviceModel", "createdAt", "updatedAt"]
     }
   },
   "firestore": {
@@ -35,6 +48,10 @@
     "/admins/{uid}": {
       "schema": "AdminRef",
       "description": "Helper collection for O(1) exists() checks in security rules."
+    },
+    "/repair_requests/{rmsNumber}": {
+      "schema": "RepairRequest",
+      "description": "Repair request tracking records."
     }
   }
 }

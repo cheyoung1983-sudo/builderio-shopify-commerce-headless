@@ -22,6 +22,7 @@ export interface ProductRecommendationsCarouselProps {
   productTitle?: string
   productVendor?: string
   productType?: string
+  tags?: string[]
   productBaseUrl?: string
   onProductSelect?: (product: ShopifyProductNode) => void
   onCloseDrawer?: () => void
@@ -36,6 +37,7 @@ export const ProductRecommendationsCarousel: React.FC<
   productTitle,
   productVendor,
   productType,
+  tags,
   productBaseUrl = '/product',
   onProductSelect,
   onCloseDrawer,
@@ -74,6 +76,7 @@ export const ProductRecommendationsCarousel: React.FC<
     if (productHandle) params.set('handle', productHandle)
     if (productVendor) params.set('vendor', productVendor)
     if (productType) params.set('productType', productType)
+    if (tags && tags.length > 0) params.set('tags', tags.join(','))
     params.set('limit', '8')
 
     fetch(`/api/products/recommendations?${params.toString()}`)
@@ -104,7 +107,7 @@ export const ProductRecommendationsCarousel: React.FC<
     return () => {
       isMounted = false
     }
-  }, [productId, productHandle, productVendor, productType, checkScrollability])
+  }, [productId, productHandle, productVendor, productType, tags, checkScrollability])
 
   // Scroll controls
   const scroll = (direction: 'left' | 'right') => {

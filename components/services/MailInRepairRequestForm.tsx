@@ -113,9 +113,12 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
   // Sync auth user email
   useEffect(() => {
     if (user?.email && !email) {
-      setEmail(user.email)
+      const timer = setTimeout(() => {
+        setEmail(user.email || '')
+      }, 0)
+      return () => clearTimeout(timer)
     }
-  }, [user?.email])
+  }, [user?.email, email])
 
   const handleProcessFiles = async (files: FileList | File[]) => {
     const fileArray = Array.from(files).filter((f) => f.type.startsWith('image/'))

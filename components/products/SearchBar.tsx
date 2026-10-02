@@ -5,6 +5,7 @@ import {
   Search,
   Sparkles,
   X,
+  Mic,
 } from 'lucide-react'
 import {
   searchStorefrontProducts,
@@ -12,6 +13,7 @@ import {
   StorefrontGraphQLError,
 } from '../../services/shopify'
 import { parseShopifySearchQuery } from '../../lib/shopify-search-syntax'
+import { useVoiceSearch } from '../../hooks/useVoiceSearch'
 
 export interface SearchBarProps {
   /** Placeholder text in the search input */
@@ -84,6 +86,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   sortKey,
   reverse,
 }) => {
+  const { isListening, error, startListening, stopListening } = useVoiceSearch()
   const isControlled = controlledValue !== undefined
   const [internalValue, setInternalValue] = useState<string>(defaultValue)
   const [isQuerying, setIsQuerying] = useState<boolean>(false)
@@ -261,6 +264,30 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               <X className="w-4 h-4" />
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={() => {
+              if (isListening) {
+                stopListening()
+              } else {
+                startListening((transcript) => {
+                  if (!isControlled) {
+                    setInternalValue(transcript)
+                  }
+                  onChange?.(transcript)
+                  executeQuery(transcript)
+                })
+              }
+            }}
+            className={`p-1 rounded-md transition-colors ${
+              isListening ? 'text-emerald-600 bg-emerald-100 animate-pulse' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60'
+            }`}
+            title="Search by voice"
+            aria-label={isListening ? 'Stop listening' : 'Start voice search'}
+          >
+            <Mic className="w-4 h-4" />
+          </button>
 
           <button
             id={`${id}-submit-btn`}

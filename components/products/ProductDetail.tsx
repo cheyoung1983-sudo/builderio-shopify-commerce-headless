@@ -39,6 +39,7 @@ import { ProductImageZoom } from './ProductImageZoom'
 import { Breadcrumbs } from '../common/Breadcrumbs'
 import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
 import { sanitizeRichText } from '../../lib/sanitize-html'
+import { ProductRecommendationsCarousel } from './ProductRecommendationsCarousel'
 
 export interface ProductDetailProps {
   /** The Shopify product handle to fetch and display */
@@ -926,6 +927,19 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               )}
             </div>
           </div>
+        </div>
+        {/* Related Products Recommendation Carousel */}
+        <div className="mt-12 border-t border-neutral-200 pt-8">
+          <ProductRecommendationsCarousel
+            productId={product.id}
+            productHandle={product.handle}
+            productTitle={product.title}
+            productVendor={product.vendor}
+            productType={product.productType}
+            tags={product.tags}
+            productBaseUrl={productBaseUrl}
+            className="px-6 md:px-8 lg:px-10"
+          />
         </div>
       </div>
     )

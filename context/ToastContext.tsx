@@ -61,6 +61,8 @@ export interface ShowCartToastParams {
   totalQuantity?: number | null
   onViewBag?: () => void
   onCheckout?: () => void
+  duration?: number
+  actionLabel?: string
 }
 
 export interface ToastContextValue {
@@ -128,11 +130,11 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         price: params.price || null,
         quantity: qty,
         action: {
-          label: 'View Bag',
+          label: params.actionLabel || 'View Cart',
           onClick: params.onViewBag,
           href: !params.onViewBag ? '/cart' : undefined,
         },
-        duration: DEFAULT_DURATION,
+        duration: typeof params.duration === 'number' ? params.duration : DEFAULT_DURATION,
       })
     },
     [showToast]

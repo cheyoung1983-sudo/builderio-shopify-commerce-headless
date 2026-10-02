@@ -96,9 +96,38 @@ service cloud.firestore {
 
     // 6. Repair Requests & Mail-In Shipping Kits
     match /repair_requests/{rmsNumber} {
-      allow read: if isVerified() || (isSignedIn() && resource.data.shippingKit.email == request.auth.token.email);
-      allow create: if incoming().rmsNumber == rmsNumber;
-      allow update: if isVerified() || isAdminLevel();
+      function isValidRepairRequest(data) {
+        return data.keys().hasAll(['rmsNumber', 'status', 'deviceModel', 'createdAt', 'updatedAt']) &&
+               data.keys().hasSubset(['rmsNumber', 'status', 'deviceModel', 'serialNumber', 'issueDescription', 'passcode', 'imageUrls', 'contact', 'shippingKit', 'createdAt', 'updatedAt']) &&
+               data.rmsNumber is string && data.rmsNumber.size() <= 64 &&
+               data.status is string &&
+               data.deviceModel is string && data.deviceModel.size() <= 256 &&
+               data.createdAt == request.time &&
+               data.updatedAt == request.time;
+      }
+
+      function isOwnerByEmail(data) {
+        return isSignedIn() && data.shippingKit.email == request.auth.token.email;
+      }
+
+      allow read: if isVerified() && (isAdminLevel() || isOwnerByEmail(resource.data));
+      
+      allow create: if isVerified() && 
+        isValidId(rmsNumber) &&
+        incoming().rmsNumber == rmsNumber &&
+        isValidRepairRequest(incoming()) &&
+        isOwnerByEmail(incoming());
+        
+      allow update: if isVerified() && 
+        isValidId(rmsNumber) &&
+        (isAdminLevel() || (
+          isOwnerByEmail(existing()) &&
+          incoming().status != 'completed' && // Lock terminal state
+          incoming().rmsNumber == existing().rmsNumber && // Immutable
+          incoming().createdAt == existing().createdAt && // Immutable
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt', 'issueDescription'])
+        ));
+      
       allow delete: if isAdminLevel();
     }
   }

@@ -115,9 +115,12 @@ export const TribalEligibilityChecker: React.FC<TribalEligibilityCheckerProps> =
   // Sync auth state
   useEffect(() => {
     if (user?.email && !customerEmail) {
-      setCustomerEmail(user.email)
+      const timer = setTimeout(() => {
+        setCustomerEmail(user.email || '')
+      }, 0)
+      return () => clearTimeout(timer)
     }
-  }, [user?.email])
+  }, [user?.email, customerEmail])
 
   const activeTribalNation = selectedTribalNation.startsWith('Other')
     ? customNation.trim()
