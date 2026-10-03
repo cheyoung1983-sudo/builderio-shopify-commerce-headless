@@ -629,6 +629,7 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
                     key={idx}
                     className="relative group rounded-xl border border-neutral-200 overflow-hidden bg-neutral-100 aspect-4/3 shadow-2xs"
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={url}
                       alt={`Damaged Device Photo ${idx + 1}`}
@@ -1156,6 +1157,7 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
                             key={pIdx}
                             className="rounded-lg border border-neutral-200 overflow-hidden bg-neutral-100 aspect-4/3"
                           >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={url}
                               alt={`Diagnostic Photo ${pIdx + 1}`}
@@ -1213,6 +1215,7 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
           onClick={() => setPreviewModalImg(null)}
         >
           <div className="relative max-w-3xl max-h-[85vh] rounded-2xl overflow-hidden bg-black flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={previewModalImg}
               alt="Enlarged Diagnostic Photo"

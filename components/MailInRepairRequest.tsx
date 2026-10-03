@@ -610,6 +610,7 @@ export const MailInRepairRequest: React.FC<MailInRepairRequestProps> = ({
                     key={idx}
                     className="relative group rounded-xl border border-neutral-200 overflow-hidden bg-neutral-100 aspect-4/3 shadow-2xs"
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={url} alt={`Damage Photo ${idx + 1}`} className="w-full h-full object-cover" />
                     <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-mono text-white">
                       #{idx + 1}
@@ -718,6 +719,7 @@ export const MailInRepairRequest: React.FC<MailInRepairRequestProps> = ({
           onClick={() => setPreviewModalImg(null)}
         >
           <div className="relative max-w-3xl max-h-[85vh] rounded-2xl overflow-hidden bg-black flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={previewModalImg} alt="Zoomed" className="max-w-full max-h-[85vh] object-contain rounded-xl" />
             <button
               type="button"

@@ -500,6 +500,7 @@ export const RepairStatusTracker: React.FC<RepairStatusTrackerProps> = ({
                         onClick={() => setPreviewImg(url)}
                         className="relative group rounded-lg border border-neutral-200 overflow-hidden bg-neutral-200 aspect-4/3 shadow-2xs hover:opacity-90 transition-opacity cursor-pointer"
                       >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={url}
                           alt={`Uploaded Photo ${i + 1}`}
@@ -570,6 +571,7 @@ export const RepairStatusTracker: React.FC<RepairStatusTrackerProps> = ({
           onClick={() => setPreviewImg(null)}
         >
           <div className="relative max-w-3xl max-h-[85vh] rounded-2xl overflow-hidden bg-black flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={previewImg}
               alt="Enlarged Diagnostic Photo"
