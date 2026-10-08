@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Head from 'next/head'
 import {
   ShieldCheck,
   ShieldAlert,
@@ -119,6 +120,10 @@ export function AdminTribalAuditDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
+      <Head>
+        <title>Tribal Tax Audit | Admin</title>
+        <meta name="robots" key="robots" content="noindex, nofollow" />
+      </Head>
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Admin Header */}
         <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
