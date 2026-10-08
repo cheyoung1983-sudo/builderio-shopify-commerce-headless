@@ -876,7 +876,7 @@ export const OrderTracking: React.FC<OrderTrackingProps> = ({
               </div>
               <div className="p-3 rounded-lg bg-neutral-50 flex items-center justify-between">
                 <span>Support Hours:</span>
-                <span className="font-medium">Mon–Fri 8:00 AM – 6:00 PM EST</span>
+                <span className="font-medium">Mon–Fri 8:00 AM – 6:00 PM PT</span>
               </div>
             </div>
 

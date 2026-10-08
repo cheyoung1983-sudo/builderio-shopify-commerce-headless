@@ -11,6 +11,8 @@ import {
   Headphones,
 } from 'lucide-react'
 import { NewsletterSubscription } from './NewsletterSubscription'
+import { LocalBusinessJsonLd } from './LocalBusinessJsonLd'
+import { openCookiePreferences } from '@lib/hooks/useAcceptCookies'
 
 export interface FooterProps {
   className?: string
@@ -42,7 +44,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
                 Fast Dispatch
               </h4>
               <p className="text-xs text-neutral-600 leading-relaxed">
-                Orders placed before 2 PM EST ship the same business day.
+                Orders placed before 2 PM PT ship the same business day.
               </p>
             </div>
           </div>
@@ -145,7 +147,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
             </p>
             <div className="text-xs text-neutral-600 space-y-1">
               <p>Email: <span className="text-neutral-800 font-medium">support@displaycellpros.com</span></p>
-              <p>Hours: Mon – Fri, 8:00 AM – 6:00 PM EST</p>
+              <p>Hours: Mon – Fri, 8:00 AM – 6:00 PM PT</p>
             </div>
           </div>
 
@@ -312,21 +314,46 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-neutral-600">
-            <span className="hover:text-neutral-800 transition-colors cursor-pointer">
+            <Link
+              id="footer-privacy-policy-link"
+              href="/policies/privacy-policy"
+              className="hover:text-neutral-800 transition-colors"
+            >
               Privacy Policy
-            </span>
-            <span className="hover:text-neutral-800 transition-colors cursor-pointer">
+            </Link>
+            <Link
+              id="footer-terms-of-service-link"
+              href="/policies/terms-of-service"
+              className="hover:text-neutral-800 transition-colors"
+            >
               Terms of Service
-            </span>
-            <span className="hover:text-neutral-800 transition-colors cursor-pointer">
+            </Link>
+            <Link
+              id="footer-shipping-policy-link"
+              href="/policies/shipping-policy"
+              className="hover:text-neutral-800 transition-colors"
+            >
               Shipping Information
-            </span>
-            <span className="hover:text-neutral-800 transition-colors cursor-pointer">
+            </Link>
+            <Link
+              id="footer-refund-policy-link"
+              href="/policies/refund-policy"
+              className="hover:text-neutral-800 transition-colors"
+            >
+              Refund Policy
+            </Link>
+            <button
+              id="footer-cookie-preferences-btn"
+              type="button"
+              onClick={openCookiePreferences}
+              className="hover:text-neutral-800 transition-colors cursor-pointer"
+            >
               Cookie Preferences
-            </span>
+            </button>
           </div>
         </div>
       </div>
+      <LocalBusinessJsonLd />
     </footer>
   )
 }

@@ -13,8 +13,6 @@ const nextConfig = {
   // ProductDetail/QuickViewDrawer/PredictiveSearch, i.e. the shared layout).
   transpilePackages: ['sanitize-html', 'htmlparser2'],
   allowedDevOrigins: [
-    'ais-dev-jexmzfsqsgf4mbwujko5hx-367327296310.us-west2.run.app',
-    'ais-pre-jexmzfsqsgf4mbwujko5hx-367327296310.us-west2.run.app',
     'localhost:3000',
     '127.0.0.1:3000',
   ],
@@ -28,7 +26,6 @@ const nextConfig = {
       { protocol: 'https', hostname: 'res.cloudinary.com' },
       { protocol: 'https', hostname: 'cdn.shopify.com' },
       { protocol: 'https', hostname: 'cdn.builder.io' },
-      { protocol: 'https', hostname: 'via.placeholder.com' },
     ],
   },
   async headers() {
@@ -83,9 +80,9 @@ const nextConfig = {
               // from the browser, and the Vercel Toolbar/Live feedback widget on
               // preview deployments (fixes the sw.js/geist.woff2 console noise).
               // ws://localhost:* is for next dev's Fast Refresh websocket.
-              "connect-src 'self' https://cdn.builder.io https://builder.io https://*.builder.io https://*.myshopify.com https://vercel.live https://*.vercel.live wss://*.pusher.com https://vitals.vercel-insights.com ws://localhost:* https://ais-dev-jexmzfsqsgf4mbwujko5hx-367327296310.us-west2.run.app https://ais-pre-jexmzfsqsgf4mbwujko5hx-367327296310.us-west2.run.app https://ai.studio https://api.elevenlabs.io https://*.elevenlabs.io wss://api.elevenlabs.io wss://*.elevenlabs.io https://*.rtc.elevenlabs.io wss://*.rtc.elevenlabs.io https://*.rtc.eu.residency.elevenlabs.io wss://*.rtc.eu.residency.elevenlabs.io https://*.livekit.cloud wss://*.livekit.cloud https://www.googletagmanager.com https://www.google.com https://*.google-analytics.com https://*.google.com https://*.g.doubleclick.net https://pagead2.googlesyndication.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://ad.doubleclick.net https://*.merchant-center-analytics.goog",
+              "connect-src 'self' https://cdn.builder.io https://builder.io https://*.builder.io https://*.myshopify.com https://vercel.live https://*.vercel.live wss://*.pusher.com https://vitals.vercel-insights.com ws://localhost:* https://api.elevenlabs.io https://*.elevenlabs.io wss://api.elevenlabs.io wss://*.elevenlabs.io https://*.rtc.elevenlabs.io wss://*.rtc.elevenlabs.io https://*.rtc.eu.residency.elevenlabs.io wss://*.rtc.eu.residency.elevenlabs.io https://*.livekit.cloud wss://*.livekit.cloud https://www.googletagmanager.com https://www.google.com https://*.google-analytics.com https://*.google.com https://*.g.doubleclick.net https://pagead2.googlesyndication.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://ad.doubleclick.net https://*.merchant-center-analytics.goog",
               // img-src: mirrors the remotePatterns allowed by next/image above.
-              "img-src 'self' data: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://via.placeholder.com https://vercel.live https://vercel.com https://*.vercel-insights.com https://www.googletagmanager.com https://ssl.gstatic.com https://www.gstatic.com https://*.google-analytics.com https://*.google.com https://*.g.doubleclick.net https://www.googleadservices.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://ad.doubleclick.net https://ade.googlesyndication.com https://adservice.google.com https://*.merchant-center-analytics.goog",
+              "img-src 'self' data: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://vercel.live https://vercel.com https://*.vercel-insights.com https://www.googletagmanager.com https://ssl.gstatic.com https://www.gstatic.com https://*.google-analytics.com https://*.google.com https://*.g.doubleclick.net https://www.googleadservices.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://ad.doubleclick.net https://ade.googlesyndication.com https://adservice.google.com https://*.merchant-center-analytics.goog",
               "font-src 'self' data: https://vercel.live https://fonts.gstatic.com",
             ].join('; '),
           },
@@ -98,7 +95,7 @@ const nextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(self "https://ai.studio" "https://ais-dev-jexmzfsqsgf4mbwujko5hx-367327296310.us-west2.run.app"), geolocation=(), usb=(), payment=()',
+            value: 'camera=(), microphone=(self), geolocation=(), usb=(), payment=()',
           },
           {
             key: 'Strict-Transport-Security',
@@ -111,7 +108,7 @@ const nextConfig = {
   env: {
     // Only explicitly public values are exposed to browser bundles.
     NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN: process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN,
-    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || 'https://displaycellpros.com',
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || 'https://www.displaycellpros.com',
     NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN: process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || process.env.SHOPIFY_STORE_DOMAIN,
     SHOPIFY_STOREFRONT_API_VERSION: process.env.SHOPIFY_STOREFRONT_API_VERSION || '2024-07',
     NEXT_PUBLIC_BUILDER_PUBLIC_KEY: process.env.NEXT_PUBLIC_BUILDER_PUBLIC_KEY || process.env.BUILDER_PUBLIC_KEY,

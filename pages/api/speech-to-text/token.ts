@@ -1,48 +1,41 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 
+/**
+ * Issues a short-lived, single-use ElevenLabs realtime Scribe token.
+ *
+ * Security: the raw ELEVENLABS_API_KEY must never be returned to the client.
+ * On any failure this endpoint returns an error and no token.
+ */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  res.setHeader('Cache-Control', 'no-store')
+
   if (req.method !== 'POST' && req.method !== 'GET') {
     return res.status(405).json({ ok: false, error: 'Method not allowed' })
   }
 
-  const apiKey = process.env.ELEVENLABS_API_KEY || process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY
+  const apiKey = process.env.ELEVENLABS_API_KEY
   if (!apiKey) {
-    return res.status(200).json({
-      ok: true,
-      token: null,
-      warning: 'ELEVENLABS_API_KEY is not configured in environment. Using client-side key or unauthenticated mode if permitted.',
-    })
+    return res.status(503).json({ ok: false, token: null, error: 'Speech-to-text is not configured.' })
   }
 
   try {
-    // Request a single-use token or proxy token from ElevenLabs API if endpoint exists,
-    // or return simulated/ephemeral token for client WSS connection.
-    const response = await fetch('https://api.elevenlabs.io/v1/convai/conversation/token', {
+    const response = await fetch('https://api.elevenlabs.io/v1/single-use-token/realtime_scribe', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'xi-api-key': apiKey,
-      },
-      body: JSON.stringify({}),
+      headers: { 'xi-api-key': apiKey },
     })
 
     if (!response.ok) {
-      // Fallback: return apiKey masked or session token
-      return res.status(200).json({
-        ok: true,
-        token: apiKey,
-      })
+      return res.status(502).json({ ok: false, token: null, error: 'Failed to obtain speech-to-text token.' })
     }
 
-    const data = await response.json()
-    return res.status(200).json({
-      ok: true,
-      token: data.token || apiKey,
-    })
-  } catch (err) {
-    return res.status(200).json({
-      ok: true,
-      token: apiKey,
-    })
+    const data = (await response.json().catch(() => null)) as { token?: unknown } | null
+    const token = data && typeof data.token === 'string' ? data.token : null
+    if (!token || token === apiKey) {
+      return res.status(502).json({ ok: false, token: null, error: 'Failed to obtain speech-to-text token.' })
+    }
+
+    return res.status(200).json({ ok: true, token })
+  } catch {
+    return res.status(502).json({ ok: false, token: null, error: 'Failed to obtain speech-to-text token.' })
   }
 }
