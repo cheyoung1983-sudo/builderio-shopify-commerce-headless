@@ -36,54 +36,69 @@ const nextConfig = {
           {
             key: 'Content-Security-Policy',
             value: [
+              // This is the ONLY place the CSP is defined. vercel.json used to
+              // set a second, stricter Content-Security-Policy header that
+              // silently overrode this one in production (it blocked the
+              // ElevenLabs voice agent's websocket). Keep it here.
+              //
+              // frame-ancestors * lets the Builder.io visual editor iframe the
+              // site (X-Frame-Options can't express an origin allowlist).
               'frame-ancestors *',
-              // default-src is the fallback for any resource type not given its
-              // own directive below (e.g. worker-src, manifest-src) — this repo
-              // doesn't use any of those, so 'self' is a safe backstop.
+              // Fallback for anything without its own directive below.
               "default-src 'self'",
-              // script-src: without this, script-src falls back to default-src,
-              // but a *missing* script-src previously meant NO restriction on
-              // script execution at all — the CSP did nothing to contain an XSS
-              // payload. 'self' covers Next.js's own bundled/hydration scripts
-              // (all served from /_next/static, no inline script needed for
-              // that). cdn.builder.io/builder.io/*.builder.io covers the visual
-              // editor's embed bridge script; vercel.live covers the Toolbar/
-              // Live feedback widget on preview deployments.
-              `script-src 'self' blob: data: 'unsafe-inline' https://cdn.builder.io https://builder.io https://*.builder.io https://vercel.live https://www.googletagmanager.com https://tagmanager.google.com https://www.googleadservices.com https://www.google.com${
+              // script-src: no 'unsafe-inline' (the app ships no inline
+              // executable scripts; __NEXT_DATA__ and JSON-LD are data blocks)
+              // and no 'unsafe-eval' outside `next dev`.
+              //  - cdn.builder.io / builder.io / *.builder.io: Builder.io
+              //    visual-editor bridge.
+              //  - vercel.live: Vercel Toolbar on preview deployments.
+              //  - www.googletagmanager.com: GTM / gtag.js (GA4) loader.
+              //  - blob: + the pinned jsdelivr path: AudioWorklet modules used
+              //    by @elevenlabs/client. It falls back to blob: worklets when
+              //    /rawAudioProcessor.js isn't reachable, and loads the
+              //    libsamplerate worklet from jsdelivr on browsers without
+              //    getUserMedia sampleRate support (e.g. Firefox).
+              `script-src 'self' blob: https://cdn.builder.io https://builder.io https://*.builder.io https://vercel.live https://www.googletagmanager.com https://cdn.jsdelivr.net/npm/@alexanderolsen/libsamplerate-js@2.1.2/${
                 process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''
               }`,
-              // worker-src: required for Web Workers and AudioWorklet processors (e.g. ElevenLabs conversational client)
-              "worker-src 'self' blob: data:",
-              // style-src: 'unsafe-inline' is required because this app uses
-              // Emotion/theme-ui (CSS-in-JS), which injects <style> tags at
-              // runtime with computed class names — there's no static nonce to
-              // pin here without a much larger Emotion-cache/nonce migration.
-              // This is a much smaller risk than the missing script-src above:
-              // inline styles can't execute arbitrary JS.
-              "style-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://tagmanager.google.com https://fonts.googleapis.com",
-              // object-src 'none': blocks <object>/<embed>/<applet> entirely —
-              // there's no legitimate use of any of them in this app, and they
-              // were an unrestricted vector under the old policy.
+              // AudioWorklet / Web Worker processors created from blob: URLs.
+              "worker-src 'self' blob:",
+              // 'unsafe-inline' is required by Emotion/theme-ui (CSS-in-JS
+              // injects <style> tags at runtime). Inline styles can't run JS.
+              "style-src 'self' 'unsafe-inline'",
+              // <object>/<embed> are never used.
               "object-src 'none'",
-              // base-uri 'self': stops an injected <base href> tag from
-              // silently rewriting where every relative URL on the page
-              // (including script/link src) resolves to.
+              // Stops an injected <base href> from re-pointing relative URLs.
               "base-uri 'self'",
-              // frame-src: the Vercel Live feedback widget on preview
-              // deployments renders its UI in an iframe from vercel.live —
-              // without this, adding default-src 'self' above would silently
-              // break it (it was unrestricted before this change).
-              "frame-src 'self' https://vercel.live https://www.googletagmanager.com https://*.fls.doubleclick.net",
-              // connect-src: covers client-side fetches — Builder.io content API
-              // (builder.get() calls from the browser, e.g. Navbar's announcement
-              // bar), the shopify-buy SDK talking to the Storefront API directly
-              // from the browser, and the Vercel Toolbar/Live feedback widget on
-              // preview deployments (fixes the sw.js/geist.woff2 console noise).
-              // ws://localhost:* is for next dev's Fast Refresh websocket.
-              "connect-src 'self' https://cdn.builder.io https://builder.io https://*.builder.io https://*.myshopify.com https://vercel.live https://*.vercel.live wss://*.pusher.com https://vitals.vercel-insights.com ws://localhost:* https://api.elevenlabs.io https://*.elevenlabs.io wss://api.elevenlabs.io wss://*.elevenlabs.io https://*.rtc.elevenlabs.io wss://*.rtc.elevenlabs.io https://*.rtc.eu.residency.elevenlabs.io wss://*.rtc.eu.residency.elevenlabs.io https://*.livekit.cloud wss://*.livekit.cloud https://www.googletagmanager.com https://www.google.com https://*.google-analytics.com https://*.google.com https://*.g.doubleclick.net https://pagead2.googlesyndication.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://ad.doubleclick.net https://*.merchant-center-analytics.goog",
-              // img-src: mirrors the remotePatterns allowed by next/image above.
-              "img-src 'self' data: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://vercel.live https://vercel.com https://*.vercel-insights.com https://www.googletagmanager.com https://ssl.gstatic.com https://www.gstatic.com https://*.google-analytics.com https://*.google.com https://*.g.doubleclick.net https://www.googleadservices.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://ad.doubleclick.net https://ade.googlesyndication.com https://adservice.google.com https://*.merchant-center-analytics.goog",
-              "font-src 'self' data: https://vercel.live https://fonts.gstatic.com",
+              // Vercel Toolbar iframe (previews) and GTM's iframe/preview mode.
+              "frame-src 'self' https://vercel.live https://www.googletagmanager.com",
+              // connect-src: browser-side fetch/XHR/WebSocket targets.
+              //  - Builder.io content API; Shopify Storefront API (shopify-buy).
+              //  - ElevenLabs voice agent: REST + websocket on api.elevenlabs.io,
+              //    WebRTC signalling on livekit.rtc.elevenlabs.io (the client's
+              //    default, non-residency hosts).
+              //  - GA4 collection endpoints + GTM.
+              //  - us-atlas map data for the order-tracking map overlay.
+              //  - Vercel Toolbar (previews) and Speed Insights.
+              //  - 'self' also covers same-origin wss:// (/api/agent/ws-proxy).
+              [
+                "connect-src 'self'",
+                'https://cdn.builder.io https://builder.io https://*.builder.io',
+                'https://*.myshopify.com',
+                'https://api.elevenlabs.io wss://api.elevenlabs.io',
+                'https://livekit.rtc.elevenlabs.io wss://livekit.rtc.elevenlabs.io',
+                'https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com https://region1.analytics.google.com',
+                'https://cdn.jsdelivr.net/npm/us-atlas@3/',
+                'https://vercel.live https://*.vercel.live wss://*.pusher.com https://vitals.vercel-insights.com',
+                process.env.NODE_ENV === 'development' ? 'ws://localhost:*' : '',
+              ]
+                .filter(Boolean)
+                .join(' '),
+              // img-src: mirrors next/image remotePatterns + GA4/GTM pixels.
+              "img-src 'self' data: blob: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://vercel.live https://vercel.com https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com",
+              // <audio> players use data: (base64 TTS) and blob: URLs.
+              "media-src 'self' data: blob:",
+              "font-src 'self' data: https://vercel.live",
             ].join('; '),
           },
           // X-Frame-Options is intentionally omitted: it can't express "allow
