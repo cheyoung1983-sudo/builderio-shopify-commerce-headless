@@ -8,10 +8,12 @@ import {
   Search,
   CheckCircle2,
   Mail,
+  PhoneCall,
   Sparkles,
   HelpCircle,
   X,
 } from 'lucide-react'
+import { BUSINESS_INFO } from '@lib/business-info'
 
 export interface FAQItem {
   id: string
@@ -535,9 +537,17 @@ export const FAQAccordion: React.FC<FAQAccordionProps> = ({
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <a
+                id="faq-cta-call-btn"
+                href={BUSINESS_INFO.phoneHref}
+                className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-emerald-800"
+              >
+                <PhoneCall className="h-4 w-4" aria-hidden="true" />
+                <span>Call {BUSINESS_INFO.phoneDisplay}</span>
+              </a>
+              <a
                 id="faq-cta-email-btn"
                 href="mailto:support@displaycellpros.com?subject=Repair%20question"
-                className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-emerald-800"
+                className="inline-flex items-center gap-2 rounded-xl border border-emerald-700 bg-white px-5 py-3 text-sm font-semibold text-emerald-800 shadow-2xs transition hover:bg-emerald-50"
               >
                 <Mail className="h-4 w-4" aria-hidden="true" />
                 <span>Email a Technician</span>
