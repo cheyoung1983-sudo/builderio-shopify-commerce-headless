@@ -127,8 +127,12 @@ export default function SpeechToTextRealtimePage() {
     try {
       addLog('system', { message: 'Acquiring ephemeral token...' });
       const res = await fetch('/api/speech-to-text/token', { method: 'POST' });
-      const data = await res.json();
-      const token = data.token;
+      const data = await res.json().catch(() => ({}));
+      const token = typeof data?.token === 'string' ? data.token : '';
+      if (!res.ok || !token) {
+        addLog('error', { message: data?.error || 'Could not acquire a speech-to-text token.' });
+        return;
+      }
 
       // Construct WebSocket URL with query parameters
       const params = new URLSearchParams({
@@ -140,12 +144,10 @@ export default function SpeechToTextRealtimePage() {
         entity_detection: entityDetection,
       });
       if (languageCode) params.append('language_code', languageCode);
-      if (token && token.length > 20) {
-        params.append('token', token);
-      }
+      params.append('token', token);
 
       const wssUrl = `wss://api.elevenlabs.io/v1/speech-to-text/realtime?${params.toString()}`;
-      addLog('system', { message: `Connecting to ${wssUrl}` });
+      addLog('system', { message: 'Connecting to wss://api.elevenlabs.io/v1/speech-to-text/realtime' });
 
       const ws = new WebSocket(wssUrl);
       wsRef.current = ws;

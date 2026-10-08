@@ -417,7 +417,7 @@ export default function ServicesFaqPage() {
                 Ready to Order Replacement Parts or Book a Repair?
               </h3>
               <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed">
-                Browse our full catalog of OEM-grade OLED displays, tested batteries, and technician toolkits with same-day dispatch before 2 PM EST.
+                Browse our full catalog of OEM-grade OLED displays, tested batteries, and technician toolkits with same-day dispatch before 2 PM PT.
               </p>
             </div>
 

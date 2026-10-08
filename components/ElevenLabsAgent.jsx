@@ -443,7 +443,7 @@ export default function ElevenLabsAgent() {
         repair_name: repairName || "Display & Touchscreen Assembly",
         service_name: serviceName || "DisplayCellPros Express Technical Repair",
         store_location: "Spokane, WA",
-        store_phone: "(509) 555-CELL",
+        store_phone: "support@displaycellpros.com",
         warranty_policy: "1-Year Comprehensive Warranty",
         turnaround_time: "25 to 45 minutes on-site",
         ...(options.dynamicVariables || {}),

@@ -7,7 +7,7 @@ import {
   Wrench,
   Search,
   CheckCircle2,
-  PhoneCall,
+  Mail,
   Sparkles,
   HelpCircle,
   X,
@@ -535,12 +535,12 @@ export const FAQAccordion: React.FC<FAQAccordionProps> = ({
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <a
-                id="faq-cta-call-btn"
-                href="tel:5095550199"
+                id="faq-cta-email-btn"
+                href="mailto:support@displaycellpros.com?subject=Repair%20question"
                 className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-emerald-800"
               >
-                <PhoneCall className="h-4 w-4" aria-hidden="true" />
-                <span>Call or Text Technician</span>
+                <Mail className="h-4 w-4" aria-hidden="true" />
+                <span>Email a Technician</span>
               </a>
               <Link
                 id="faq-cta-browse-parts-btn"

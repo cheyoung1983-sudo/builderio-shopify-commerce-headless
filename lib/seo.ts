@@ -86,7 +86,7 @@ export function getBaseUrl(): string {
       ? trimmed.replace(/\/$/, '')
       : `https://${trimmed.replace(/\/$/, '')}`
   }
-  return 'https://displaycellpros.com'
+  return 'https://www.displaycellpros.com'
 }
 
 /**

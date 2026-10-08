@@ -61,7 +61,7 @@ export function getSiteUrl(req?: { headers: Record<string, string | string[] | u
     return normalized;
   }
 
-  return 'https://displaycellpros.com'
+  return 'https://www.displaycellpros.com'
 }
 
 export function getCallbackUrl(req?: { headers: Record<string, string | string[] | undefined> }): string {

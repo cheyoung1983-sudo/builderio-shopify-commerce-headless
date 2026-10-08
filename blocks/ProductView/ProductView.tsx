@@ -151,7 +151,7 @@ const ProductBox: React.FC<Props> = ({
                   ? allImages
                   : [
                       {
-                        src: `https://via.placeholder.com/1050x1050`,
+                        src: '/placeholder-product.svg',
                       },
                     ]
               }

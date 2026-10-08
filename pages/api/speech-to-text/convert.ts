@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ ok: false, error: 'Method not allowed. Use POST.' })
   }
 
-  const apiKey = process.env.ELEVENLABS_API_KEY || process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY
+  const apiKey = process.env.ELEVENLABS_API_KEY
   if (!apiKey) {
     return res.status(400).json({ ok: false, error: 'ELEVENLABS_API_KEY is not configured in environment.' })
   }
