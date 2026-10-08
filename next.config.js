@@ -58,7 +58,9 @@ const nextConfig = {
               //    /rawAudioProcessor.js isn't reachable, and loads the
               //    libsamplerate worklet from jsdelivr on browsers without
               //    getUserMedia sampleRate support (e.g. Firefox).
-              `script-src 'self' blob: https://cdn.builder.io https://builder.io https://*.builder.io https://vercel.live https://www.googletagmanager.com https://cdn.jsdelivr.net/npm/@alexanderolsen/libsamplerate-js@2.1.2/${
+              //  - apis.google.com: gapi loader Firebase Auth uses for
+              //    signInWithPopup (tribal eligibility checker / account).
+              `script-src 'self' blob: https://cdn.builder.io https://builder.io https://*.builder.io https://vercel.live https://www.googletagmanager.com https://cdn.jsdelivr.net/npm/@alexanderolsen/libsamplerate-js@2.1.2/ https://apis.google.com${
                 process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''
               }`,
               // AudioWorklet / Web Worker processors created from blob: URLs.
@@ -70,8 +72,9 @@ const nextConfig = {
               "object-src 'none'",
               // Stops an injected <base href> from re-pointing relative URLs.
               "base-uri 'self'",
-              // Vercel Toolbar iframe (previews) and GTM's iframe/preview mode.
-              "frame-src 'self' https://vercel.live https://www.googletagmanager.com",
+              // Vercel Toolbar iframe (previews), GTM's iframe/preview mode, and
+              // the Firebase Auth helper iframe on the project's auth domain.
+              "frame-src 'self' https://vercel.live https://www.googletagmanager.com https://dcpllcrev4.firebaseapp.com",
               // connect-src: browser-side fetch/XHR/WebSocket targets.
               //  - Builder.io content API; Shopify Storefront API (shopify-buy).
               //  - ElevenLabs voice agent: REST + websocket on api.elevenlabs.io,
@@ -89,13 +92,20 @@ const nextConfig = {
                 'https://livekit.rtc.elevenlabs.io wss://livekit.rtc.elevenlabs.io',
                 'https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com https://region1.analytics.google.com',
                 'https://cdn.jsdelivr.net/npm/us-atlas@3/',
+                // Firebase (firebase-applet-config.json): Firestore for the
+                // mail-in repair form / repair tracker / tribal checker, and
+                // Firebase Auth (Google sign-in) token endpoints + auth domain.
+                'https://firestore.googleapis.com',
+                'https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://dcpllcrev4.firebaseapp.com',
                 'https://vercel.live https://*.vercel.live wss://*.pusher.com https://vitals.vercel-insights.com',
                 process.env.NODE_ENV === 'development' ? 'ws://localhost:*' : '',
               ]
                 .filter(Boolean)
                 .join(' '),
-              // img-src: mirrors next/image remotePatterns + GA4/GTM pixels.
-              "img-src 'self' data: blob: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://vercel.live https://vercel.com https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com",
+              // img-src: mirrors next/image remotePatterns + GA4/GTM pixels, Unsplash
+              // images on /services-faq, and the cleardot.gif connectivity probe
+              // Firestore's WebChannel transport loads.
+              "img-src 'self' data: blob: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://images.unsplash.com https://www.google.com/images/cleardot.gif https://vercel.live https://vercel.com https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com",
               // <audio> players use data: (base64 TTS) and blob: URLs.
               "media-src 'self' data: blob:",
               "font-src 'self' data: https://vercel.live",
