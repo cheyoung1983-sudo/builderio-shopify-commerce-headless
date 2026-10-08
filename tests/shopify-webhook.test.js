@@ -3,7 +3,7 @@ const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const crypto = require('node:crypto')
 
-function runWebhookScript(testFnBody) {
+function runWebhookScript(testFnBody, extraEnv = {}) {
   const repoRoot = path.resolve(__dirname, '..')
   const webhookHandlerUrl = pathToFileURL(path.join(repoRoot, 'pages/api/webhooks/shopify.ts')).href
   const reconciliationUrl = pathToFileURL(path.join(repoRoot, 'lib/tribal/order-reconciler.ts')).href
@@ -18,7 +18,18 @@ function runWebhookScript(testFnBody) {
   const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
     cwd: repoRoot,
     encoding: 'utf8',
-    env: { ...process.env, NODE_ENV: 'test', SHOPIFY_WEBHOOK_SECRET: 'test_webhook_secret_key_123' },
+    env: {
+      ...process.env,
+      NODE_ENV: 'test',
+      // Never let tests reach a real store: blank out Admin credentials.
+      SHOPIFY_STORE_DOMAIN: '',
+      NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN: '',
+      SHOPIFY_CLIENT_ID: '',
+      SHOPIFY_CLIENT_SECRET: '',
+      SHOPIFY_ADMIN_ACCESS_TOKEN: '',
+      SHOPIFY_WEBHOOK_SECRET: 'test_webhook_secret_key_123',
+      ...extraEnv,
+    },
   })
 
   return JSON.parse(output.trim())
@@ -273,10 +284,37 @@ describe('Shopify Order Webhooks & Real-Time Tax/Discount Reconciler', () => {
           'x-shopify-hmac-sha256': 'invalid_signature_test',
           'x-shopify-shop-domain': 'displaycellpros.myshopify.com',
         },
-        body: ${JSON.stringify(payload)},
+        body: ${JSON.stringify(payloadStr)},
       }
       const invalidHmacRes = createMockRes()
       await handler(invalidHmacReq, invalidHmacRes)
+
+      // Test 2b: Missing HMAC header must be rejected (401), not waved through
+      const missingHmacReq = {
+        method: 'POST',
+        headers: { 'x-shopify-topic': 'orders/updated' },
+        body: ${JSON.stringify(payloadStr)},
+      }
+      const missingHmacRes = createMockRes()
+      await handler(missingHmacReq, missingHmacRes)
+
+      // Test 2c: A pre-parsed object body can't be verified (original bytes lost) => 401
+      const parsedBodyReq = {
+        method: 'POST',
+        headers: { 'x-shopify-hmac-sha256': ${JSON.stringify(validHmac)} },
+        body: ${JSON.stringify(payload)},
+      }
+      const parsedBodyRes = createMockRes()
+      await handler(parsedBodyReq, parsedBodyRes)
+
+      // Test 2d: Valid signature but body tampered => 401
+      const tamperedReq = {
+        method: 'POST',
+        headers: { 'x-shopify-hmac-sha256': ${JSON.stringify(validHmac)} },
+        body: ${JSON.stringify(payloadStr.replace('100.00', '1.00'))},
+      }
+      const tamperedRes = createMockRes()
+      await handler(tamperedReq, tamperedRes)
 
       // Test 3: Valid POST with HMAC acceptance (200)
       const validReq = {
@@ -286,24 +324,84 @@ describe('Shopify Order Webhooks & Real-Time Tax/Discount Reconciler', () => {
           'x-shopify-hmac-sha256': ${JSON.stringify(validHmac)},
           'x-shopify-shop-domain': 'displaycellpros.myshopify.com',
         },
-        body: ${JSON.stringify(payload)},
+        body: ${JSON.stringify(payloadStr)},
       }
       const validRes = createMockRes()
       await handler(validReq, validRes)
 
+      // Test 4: Raw request stream (bodyParser disabled, real Next.js behaviour) => 200
+      const { Readable } = await import('node:stream')
+      const streamReq = Readable.from([Buffer.from(${JSON.stringify(payloadStr)}, 'utf8')])
+      streamReq.method = 'POST'
+      streamReq.headers = {
+        'x-shopify-topic': 'orders/updated',
+        'x-shopify-hmac-sha256': ${JSON.stringify(validHmac)},
+      }
+      const streamRes = createMockRes()
+      await handler(streamReq, streamRes)
+
       console.log(JSON.stringify({
         getMethodStatus: getRes.statusCode,
         invalidHmacStatus: invalidHmacRes.statusCode,
+        missingHmacStatus: missingHmacRes.statusCode,
+        parsedBodyStatus: parsedBodyRes.statusCode,
+        tamperedStatus: tamperedRes.statusCode,
         validStatus: validRes.statusCode,
+        streamStatus: streamRes.statusCode,
         validResponseBody: validRes.body,
       }))
     `)
 
     expect(result.getMethodStatus).toBe(405)
     expect(result.invalidHmacStatus).toBe(401)
+    expect(result.missingHmacStatus).toBe(401)
+    expect(result.parsedBodyStatus).toBe(401)
+    expect(result.tamperedStatus).toBe(401)
     expect(result.validStatus).toBe(200)
+    expect(result.streamStatus).toBe(200)
     expect(result.validResponseBody.success).toBe(true)
     expect(result.validResponseBody.orderId).toBe(778899)
     expect(result.validResponseBody.reconciliation).toBeDefined()
+  })
+
+  test('API Route rejects every request when no webhook secret is configured', () => {
+    const payloadStr = JSON.stringify({ id: 42, name: '#1042' })
+    const result = runWebhookScript(
+      `
+      const handler = webhookModule.default
+      const res = { statusCode: 200, headers: {}, body: null, setHeader() {}, status(c) { this.statusCode = c; return this }, json(o) { this.body = o; return this } }
+      const origError = console.error
+      const origWarn = console.warn
+      console.error = () => {}
+      console.warn = () => {}
+      await handler({ method: 'POST', headers: { 'x-shopify-hmac-sha256': 'anything' }, body: ${JSON.stringify(payloadStr)} }, res)
+      console.error = origError
+      console.warn = origWarn
+      console.log(JSON.stringify({ status: res.statusCode }))
+    `,
+      { SHOPIFY_WEBHOOK_SECRET: '', SHOPIFY_CLIENT_SECRET: '' }
+    )
+    expect(result.status).toBe(401)
+  })
+
+  test('verifyShopifyWebhookHmac falls back to SHOPIFY_CLIENT_SECRET and never accepts without a secret', () => {
+    const payload = JSON.stringify({ id: 1 })
+    const clientSecretHmac = computeHmac(payload, 'app_client_secret_xyz')
+    const withClientSecret = runWebhookScript(
+      `
+      const { verifyShopifyWebhookHmac } = reconcilerModule
+      console.log(JSON.stringify({ ok: verifyShopifyWebhookHmac(${JSON.stringify(payload)}, ${JSON.stringify(clientSecretHmac)}) }))
+    `,
+      { SHOPIFY_WEBHOOK_SECRET: '', SHOPIFY_CLIENT_SECRET: 'app_client_secret_xyz' }
+    )
+    const noSecret = runWebhookScript(
+      `
+      const { verifyShopifyWebhookHmac } = reconcilerModule
+      console.log(JSON.stringify({ ok: verifyShopifyWebhookHmac(${JSON.stringify(payload)}, ${JSON.stringify(clientSecretHmac)}) }))
+    `,
+      { SHOPIFY_WEBHOOK_SECRET: '', SHOPIFY_CLIENT_SECRET: '', NODE_ENV: 'test' }
+    )
+    expect(withClientSecret.ok).toBe(true)
+    expect(noSecret.ok).toBe(false)
   })
 })

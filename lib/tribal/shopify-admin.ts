@@ -1,7 +1,13 @@
 /**
  * Shopify Admin GraphQL Mutation & Customer Metafield Synchronization
  * Updates customer tags, tax exemption status, and audit metafields.
+ *
+ * Uses the shared Admin client (client-credentials token). Requires the
+ * write_customers scope. Returns success:false when Admin isn't configured;
+ * it never reports a simulated success.
  */
+
+import { isShopifyAdminConfigured, shopifyAdminFetch } from '../../services/shopify-admin.ts'
 
 export interface ShopifyCustomerUpdateInput {
   id: string
@@ -61,9 +67,6 @@ export async function updateShopifyCustomerTribalStatus(params: {
 }) {
   const { customerId, tagsToAdd = ['tribal-member-verified'], taxExempt = false, taxExemptions = [], audit } = params
 
-  const domain = process.env.SHOPIFY_STORE_DOMAIN || process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || ''
-  const adminToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || process.env.SHOPIFY_STOREFRONT_API_TOKEN
-
   const formattedId = customerId.startsWith('gid://shopify/Customer/')
     ? customerId
     : `gid://shopify/Customer/${customerId}`
@@ -112,61 +115,38 @@ export async function updateShopifyCustomerTribalStatus(params: {
     metafields,
   }
 
-  // If live admin token is present, perform actual GraphQL mutation
-  if (adminToken && process.env.SHOPIFY_ADMIN_ACCESS_TOKEN) {
-    const adminEndpoint = `https://${domain}/admin/api/2026-01/graphql.json`
-    try {
-      const res = await fetch(adminEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Shopify-Access-Token': adminToken,
-        },
-        body: JSON.stringify({
-          query: CUSTOMER_UPDATE_MUTATION,
-          variables: { input },
-        }),
-      })
-
-      if (res.ok) {
-        const json = await res.json()
-        if (json.data?.customerUpdate?.customer) {
-          return {
-            success: !json.data?.customerUpdate?.userErrors?.length,
-            data: json.data.customerUpdate.customer,
-            userErrors: json.data?.customerUpdate?.userErrors || [],
-          }
-        }
-        if (json.data?.customerUpdate?.userErrors?.length) {
-          return {
-            success: false,
-            data: {
-              id: formattedId,
-              taxExempt,
-              taxExemptions: input.taxExemptions,
-              tags: tagsToAdd,
-            },
-            userErrors: json.data.customerUpdate.userErrors,
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('Shopify Admin GraphQL call failed, returning simulated response:', err)
+  if (!isShopifyAdminConfigured()) {
+    // No simulated success: without Admin access nothing was written to Shopify.
+    return {
+      success: false,
+      notConfigured: true,
+      data: null,
+      userErrors: [{ field: null, message: 'Shopify Admin API is not configured; customer was not updated.' }],
     }
   }
 
-  // Standard simulated return for sandbox / development
+  const result = await shopifyAdminFetch<{
+    customerUpdate?: { customer?: any; userErrors?: Array<{ field: string[] | null; message: string }> }
+  }>({
+    query: CUSTOMER_UPDATE_MUTATION,
+    variables: { input },
+  })
+
+  const userErrors = result.data?.customerUpdate?.userErrors || []
+  const customer = result.data?.customerUpdate?.customer
+
+  if (customer && userErrors.length === 0 && !result.errors?.length) {
+    return { success: true, data: customer, userErrors: [] }
+  }
+
   return {
-    success: true,
-    data: {
-      id: formattedId,
-      taxExempt,
-      taxExemptions: input.taxExemptions,
-      tags: tagsToAdd,
-      metafields: metafields.map((m) => ({
-        node: { namespace: m.namespace, key: m.key, value: m.value },
-      })),
-    },
-    userErrors: [],
+    success: false,
+    data: customer || null,
+    userErrors: userErrors.length
+      ? userErrors
+      : (result.errors || [{ message: 'Shopify customerUpdate failed.' }]).map((e) => ({
+          field: null,
+          message: e.message,
+        })),
   }
 }
