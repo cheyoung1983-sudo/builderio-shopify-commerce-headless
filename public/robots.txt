@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /account
+Disallow: /cart
+Disallow: /api/
+
+Sitemap: https://www.displaycellpros.com/sitemap.xml
