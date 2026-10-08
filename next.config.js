@@ -5,6 +5,13 @@ const nextConfig = {
   // inference doesn't get confused by an unrelated lockfile in a parent
   // directory (e.g. a stray package-lock.json in the user's home dir).
   turbopack: { root: __dirname },
+  // Bundle sanitize-html (and its ESM-only htmlparser2@12 dependency) into
+  // the server chunks instead of loading them with a runtime require().
+  // Left external, the Vercel serverless runtime throws ERR_REQUIRE_ESM when
+  // sanitize-html's CommonJS entry require()s htmlparser2, which crashed
+  // every server-rendered route (lib/sanitize-html.ts is imported by
+  // ProductDetail/QuickViewDrawer/PredictiveSearch, i.e. the shared layout).
+  transpilePackages: ['sanitize-html', 'htmlparser2'],
   allowedDevOrigins: [
     'ais-dev-jexmzfsqsgf4mbwujko5hx-367327296310.us-west2.run.app',
     'ais-pre-jexmzfsqsgf4mbwujko5hx-367327296310.us-west2.run.app',
