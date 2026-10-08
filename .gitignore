@@ -58,3 +58,4 @@ turborepo/
 .artifacts/
 .env*
 /chrome-devtools-mcp
+!.env.example
