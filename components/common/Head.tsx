@@ -14,11 +14,8 @@ const Head: FC<{ seoInfo: any }> = (props) => {
           key="site-manifest"
           crossOrigin="use-credentials"
         />
-        <link
-          rel="icon"
-          type="image/png"
-          href="https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F2d86a5bb30f44d2db3564aa2962bb093"
-        />
+        {/* Favicons (/favicon.svg, /favicon-32x32.png, /favicon.ico) are
+            declared once in pages/_document.tsx. */}
       </NextHead>
     </>
   )
