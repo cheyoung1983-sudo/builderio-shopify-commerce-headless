@@ -1,7 +1,8 @@
 import type { GetServerSideProps } from 'next'
 import shopifyConfig from '@config/shopify'
 import { getAllCollectionPaths } from '@lib/shopify/storefront-data-hooks/src/api/operations'
-import { fetchAllAvailableProducts } from '../services/shopify'
+import { fetchAllAvailableProducts, storefrontFetch } from '../services/shopify'
+import { POLICY_ROUTES, SHOP_POLICIES_QUERY, type PolicyHandle } from '../lib/shopify-policies'
 
 const SITE_URL = 'https://www.displaycellpros.com'
 
@@ -70,6 +71,32 @@ async function getCollectionHandles(): Promise<string[]> {
   }
 }
 
+/**
+ * Policy pages that have content in Shopify. Empty policies render a
+ * placeholder with noindex (pages/policies/[handle].tsx), so they're left out
+ * of the sitemap; if Shopify can't be reached, all policies are left out.
+ */
+async function getIndexablePolicyHandles(): Promise<PolicyHandle[]> {
+  try {
+    const result = await withTimeout(
+      storefrontFetch<{ shop?: Record<string, { body?: string | null } | null> }>({
+        query: SHOP_POLICIES_QUERY,
+        timeoutMs: SHOPIFY_TIMEOUT_MS,
+        retries: 0,
+      }),
+      SHOPIFY_TIMEOUT_MS + 1000
+    )
+    if (!result.ok) return []
+    return (Object.keys(POLICY_ROUTES) as PolicyHandle[]).filter((handle) => {
+      const body = result.data?.shop?.[POLICY_ROUTES[handle].field]?.body
+      return typeof body === 'string' && body.trim() !== ''
+    })
+  } catch (err) {
+    console.error('[sitemap.xml] Failed to load policies from Shopify:', err)
+    return []
+  }
+}
+
 export function buildSitemapXml(paths: string[]): string {
   const unique = Array.from(new Set(paths))
   const urls = unique
@@ -79,10 +106,15 @@ export function buildSitemapXml(paths: string[]): string {
 }
 
 export const getServerSideProps: GetServerSideProps = async ({ res }) => {
-  const [products, collections] = await Promise.all([getProductHandles(), getCollectionHandles()])
+  const [products, collections, policies] = await Promise.all([
+    getProductHandles(),
+    getCollectionHandles(),
+    getIndexablePolicyHandles(),
+  ])
 
   const xml = buildSitemapXml([
     ...STATIC_PATHS,
+    ...policies.map((handle) => `/policies/${handle}`),
     ...collections.map((handle) => `/collection/${handle}`),
     ...products.map((handle) => `/product/${handle}`),
   ])
