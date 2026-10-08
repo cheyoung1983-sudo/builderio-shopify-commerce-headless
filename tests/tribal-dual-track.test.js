@@ -212,7 +212,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
   })
 
   describe('Next.js API Route /api/tribal/verify & Shopify GraphQL customerUpdate Mutation', () => {
-    test('Verifies enrollment and returns Shopify customer update payload with tribal-member-verified tag', () => {
+    test('Builds the customerUpdate mutation and reports failure (not simulated success) when Shopify Admin is unconfigured', () => {
       const repoRoot = path.resolve(__dirname, '..')
       const verificationUrl = pathToFileURL(path.join(repoRoot, 'lib/tribal/verification.ts')).href
       const shopifyAdminUrl = pathToFileURL(path.join(repoRoot, 'lib/tribal/shopify-admin.ts')).href
@@ -253,13 +253,22 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: {
+          ...process.env,
+          NODE_ENV: 'test',
+          SHOPIFY_STORE_DOMAIN: '',
+          NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN: '',
+          SHOPIFY_CLIENT_ID: '',
+          SHOPIFY_CLIENT_SECRET: '',
+          SHOPIFY_ADMIN_ACCESS_TOKEN: '',
+        },
       })
 
       const { verification, shopifySyncResult, mutation } = JSON.parse(output.trim())
       expect(verification.verified).toBe(true)
-      expect(shopifySyncResult.success).toBe(true)
-      expect(shopifySyncResult.data.tags).toContain('tribal-member-verified')
+      // Without Shopify Admin access nothing is written, and no simulated success is reported.
+      expect(shopifySyncResult.success).toBe(false)
+      expect(shopifySyncResult.notConfigured).toBe(true)
       expect(verification.discountTrack.eligible).toBe(true)
       expect(verification.discountTrack.discountPercentage).toBe(20)
       expect(mutation).toContain('customerUpdate(input: $input)')

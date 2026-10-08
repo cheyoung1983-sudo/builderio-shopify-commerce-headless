@@ -284,902 +284,122 @@ describe('Tribal Verification API (/api/tribal/verify) Unit Tests', () => {
     })
   })
 
-  describe('Tribal Enrollment Data Verification (Valid vs Invalid)', () => {
-    test('Rejects enrollment ID with fewer than 4 characters with HTTP 422 Unprocessable Entity', () => {
-      const result = runVerifyApiScript(`
-        let statusCode = 200
-        let responseJson = null
-
-        const req = {
-          method: 'POST',
-          body: {
-            firstName: 'Mary',
-            lastName: 'Tsosie',
-            tribalNation: 'Navajo Nation',
-            tribalEnrollmentId: '123',
-            customerId: 'cust_456',
-          },
-          headers: {},
-          socket: { remoteAddress: '127.0.0.1' },
+  // There is no real tribal-enrollment backend. The route must never simulate
+  // success: valid-looking requests get 501 "manual verification required",
+  // with no cookies, no Shopify Admin calls and no discount.
+  const RES_HARNESS = `
+    let statusCode = 200
+    let responseJson = null
+    const headers = {}
+    const fetchCalls = []
+    globalThis.fetch = async (url, options) => {
+      fetchCalls.push(String(url))
+      throw new Error('fetch must not be called by /api/tribal/verify')
+    }
+    const res = {
+      setHeader: (name, val) => { headers[name.toLowerCase()] = val },
+      getHeader: (name) => headers[name.toLowerCase()],
+      status: (code) => {
+        statusCode = code
+        return {
+          json: (data) => { responseJson = data },
+          end: () => {},
         }
+      },
+    }
+  `
 
-        const res = {
-          setHeader: () => {},
-          status: (code) => {
-            statusCode = code
-            return {
-              json: (data) => { responseJson = data },
-              end: () => {},
-            }
-          },
-        }
+  const ADMIN_ENV = {
+    SHOPIFY_STORE_DOMAIN: 'test-shop.myshopify.com',
+    SHOPIFY_CLIENT_ID: 'test_client_id',
+    SHOPIFY_CLIENT_SECRET: 'test_client_secret',
+  }
 
-        await handler(req, res)
-        console.log(JSON.stringify({ statusCode, responseJson }))
-      `)
+  function postVerify(body, envVars = {}, reqExtras = '') {
+    return runVerifyApiScript(
+      `
+      ${RES_HARNESS}
+      const req = {
+        method: 'POST',
+        body: ${JSON.stringify(body)},
+        headers: { 'x-forwarded-proto': 'https' },
+        socket: { remoteAddress: '10.0.0.${Math.floor(Math.random() * 200) + 1}' },
+        ${reqExtras}
+      }
+      await handler(req, res)
+      console.log(JSON.stringify({ statusCode, headers, responseJson, fetchCalls }))
+    `,
+      envVars
+    )
+  }
 
-      expect(result.statusCode).toBe(422)
+  describe('No simulated verification (manual verification required)', () => {
+    const validBody = {
+      firstName: 'Mary',
+      lastName: 'Tsosie',
+      tribalNation: 'Navajo Nation',
+      tribalEnrollmentId: 'NAV-98442',
+      customerId: 'cust_778899',
+      shippingAddress: { address1: '10 Tribal Way', city: 'Window Rock', province: 'AZ', zip: '86515' },
+    }
+
+    test('Returns 501 manualVerificationRequired for a valid-looking request and never grants a discount', () => {
+      const result = postVerify(validBody, ADMIN_ENV)
+
+      expect(result.statusCode).toBe(501)
       expect(result.responseJson.success).toBe(false)
       expect(result.responseJson.verified).toBe(false)
-      expect(result.responseJson.message).toContain('unsuccessful')
-      expect(result.responseJson.result.customerTagApplied).toBe(false)
-      expect(result.responseJson.result.discountTrack.eligible).toBe(false)
+      expect(result.responseJson.manualVerificationRequired).toBe(true)
+      expect(result.responseJson.discountApplied).toBe(false)
+      expect(result.responseJson.taxExemptionApplied).toBe(false)
+      expect(result.responseJson.message).toMatch(/manual verification/i)
+      expect(result.responseJson.result).toBeUndefined()
+      expect(result.responseJson.shopifySync).toBeUndefined()
     })
 
-    test('Rejects enrollment ID containing "INVALID" with HTTP 422 Unprocessable Entity', () => {
-      const result = runVerifyApiScript(`
-        let statusCode = 200
-        let responseJson = null
-
-        const req = {
-          method: 'POST',
-          body: {
-            firstName: 'Mary',
-            lastName: 'Tsosie',
-            tribalNation: 'Navajo Nation',
-            tribalEnrollmentId: 'NAV-INVALID-9988',
-            customerId: 'cust_456',
-          },
-          headers: {},
-          socket: { remoteAddress: '127.0.0.1' },
-        }
-
-        const res = {
-          setHeader: () => {},
-          status: (code) => {
-            statusCode = code
-            return {
-              json: (data) => { responseJson = data },
-              end: () => {},
-            }
-          },
-        }
-
-        await handler(req, res)
-        console.log(JSON.stringify({ statusCode, responseJson }))
-      `)
-
-      expect(result.statusCode).toBe(422)
-      expect(result.responseJson.success).toBe(false)
-      expect(result.responseJson.verified).toBe(false)
-      expect(result.responseJson.result.discountTrack.eligible).toBe(false)
+    test('Does not call Shopify Admin (no customerUpdate) even when Admin credentials are configured', () => {
+      const result = postVerify(validBody, ADMIN_ENV)
+      expect(result.statusCode).toBe(501)
+      expect(result.fetchCalls).toEqual([])
     })
 
-    test('Rejects enrollment ID containing "TEST_FAIL" with HTTP 422 Unprocessable Entity', () => {
-      const result = runVerifyApiScript(`
-        let statusCode = 200
-        let responseJson = null
-
-        const req = {
-          method: 'POST',
-          body: {
-            firstName: 'John',
-            lastName: 'Doe',
-            tribalNation: 'Cherokee Nation',
-            tribalEnrollmentId: 'CHER-TEST_FAIL-001',
-          },
-          headers: {},
-          socket: { remoteAddress: '127.0.0.1' },
-        }
-
-        const res = {
-          setHeader: () => {},
-          status: (code) => {
-            statusCode = code
-            return {
-              json: (data) => { responseJson = data },
-              end: () => {},
-            }
-          },
-        }
-
-        await handler(req, res)
-        console.log(JSON.stringify({ statusCode, responseJson }))
-      `)
-
-      expect(result.statusCode).toBe(422)
-      expect(result.responseJson.success).toBe(false)
-      expect(result.responseJson.verified).toBe(false)
+    test('Sets no tribal verification cookies', () => {
+      const result = postVerify(validBody, ADMIN_ENV)
+      expect(result.statusCode).toBe(501)
+      expect(result.headers['set-cookie']).toBeUndefined()
     })
 
-    test('Successfully verifies valid enrollment data with HTTP 200 and assigns 20% discount', () => {
-      const result = runVerifyApiScript(`
-        let statusCode = 200
-        let responseJson = null
-
-        const req = {
-          method: 'POST',
-          body: {
-            firstName: 'Mary',
-            lastName: 'Tsosie',
-            tribalNation: 'Navajo Nation',
-            tribalEnrollmentId: 'NAV-98442',
-            customerId: 'cust_778899',
-          },
-          headers: {},
-          socket: { remoteAddress: '127.0.0.1' },
-        }
-
-        const res = {
-          setHeader: () => {},
-          status: (code) => {
-            statusCode = code
-            return {
-              json: (data) => { responseJson = data },
-              end: () => {},
-            }
-          },
-        }
-
-        await handler(req, res)
-        console.log(JSON.stringify({ statusCode, responseJson }))
-      `)
-
-      expect(result.statusCode).toBe(200)
-      expect(result.responseJson.success).toBe(true)
-      expect(result.responseJson.verified).toBe(true)
-
-      // Verify Commercial Discount Track
-      const discount = result.responseJson.result.discountTrack
-      expect(discount.eligible).toBe(true)
-      expect(discount.discountPercentage).toBe(20)
-      expect(discount.code).toBe('TRIBAL-MEMBER-20')
-
-      // Verify Audit Record
-      const audit = result.responseJson.result.audit
-      expect(audit.tribalNation).toBe('Navajo Nation')
-      expect(audit.maskedEnrollmentId).toBe('••••8442')
-      expect(audit.verificationHash).toMatch(/^[a-f0-9]{64}$/)
-      expect(audit.verifiedAt).toBeDefined()
-    })
-  })
-
-  describe('Shopify customerUpdate Mutation Execution - Live GraphQL Admin API', () => {
-    test('Calls Shopify Admin GraphQL mutation with correct endpoint, headers, and customerUpdate mutation string', () => {
-      const result = runVerifyApiScript(
-        `
-        let capturedFetch = null
-
-        globalThis.fetch = async (url, options) => {
-          capturedFetch = {
-            url,
-            method: options.method,
-            headers: options.headers,
-            body: JSON.parse(options.body),
-          }
-
-          return {
-            ok: true,
-            json: async () => ({
-              data: {
-                customerUpdate: {
-                  customer: {
-                    id: 'gid://shopify/Customer/cust_778899',
-                    taxExempt: false,
-                    taxExemptions: [],
-                    tags: ['tribal-member-verified'],
-                    metafields: {
-                      edges: [
-                        {
-                          node: {
-                            namespace: 'custom',
-                            key: 'tribal_nation',
-                            value: 'Navajo Nation',
-                          },
-                        },
-                      ],
-                    },
-                  },
-                  userErrors: [],
-                },
-              },
-            }),
-          }
-        }
-
-        let statusCode = 200
-        let responseJson = null
-
-        const req = {
-          method: 'POST',
-          body: {
-            firstName: 'Mary',
-            lastName: 'Tsosie',
-            tribalNation: 'Navajo Nation',
-            tribalEnrollmentId: 'NAV-98442',
-            customerId: 'cust_778899',
-          },
-          headers: {},
-          socket: { remoteAddress: '127.0.0.1' },
-        }
-
-        const res = {
-          setHeader: () => {},
-          status: (code) => {
-            statusCode = code
-            return {
-              json: (data) => { responseJson = data },
-              end: () => {},
-            }
-          },
-        }
-
-        await handler(req, res)
-        console.log(JSON.stringify({ statusCode, capturedFetch, responseJson }))
-      `,
-        {
-          SHOPIFY_ADMIN_ACCESS_TOKEN: 'shpat_live_test_access_token_123',
-          SHOPIFY_STORE_DOMAIN: 'displaycellpros.myshopify.com',
-        }
-      )
-
-      expect(result.statusCode).toBe(200)
-      expect(result.capturedFetch).toBeDefined()
-      expect(result.capturedFetch.url).toBe('https://displaycellpros.myshopify.com/admin/api/2026-01/graphql.json')
-      expect(result.capturedFetch.method).toBe('POST')
-      expect(result.capturedFetch.headers['Content-Type']).toBe('application/json')
-      expect(result.capturedFetch.headers['X-Shopify-Access-Token']).toBe('shpat_live_test_access_token_123')
-
-      // Verify GraphQL mutation query structure
-      expect(result.capturedFetch.body.query).toContain('mutation customerUpdate($input: CustomerInput!)')
-      expect(result.capturedFetch.body.query).toContain('customerUpdate(input: $input)')
-
-      // Verify input variables
-      const input = result.capturedFetch.body.variables.input
-      expect(input.id).toBe('gid://shopify/Customer/cust_778899')
-      expect(input.tags).toEqual(['tribal-member-verified'])
-      expect(input.taxExempt).toBe(false)
-      expect(input.taxExemptions).toEqual([])
-
-      // Verify audit metafields
-      expect(Array.isArray(input.metafields)).toBe(true)
-      const metafieldKeys = input.metafields.map((m) => m.key)
-      expect(metafieldKeys).toContain('tribal_verification_hash')
-      expect(metafieldKeys).toContain('tribal_verified_at')
-      expect(metafieldKeys).toContain('tribal_nation')
-      expect(metafieldKeys).toContain('tribal_enrollment_id_masked')
-
-      const nationMetafield = input.metafields.find((m) => m.key === 'tribal_nation')
-      expect(nationMetafield.value).toBe('Navajo Nation')
-
-      const maskedMetafield = input.metafields.find((m) => m.key === 'tribal_enrollment_id_masked')
-      expect(maskedMetafield.value).toBe('••••8442')
-
-      // Verify response returned by API
-      expect(result.responseJson.shopifySync.success).toBe(true)
-      expect(result.responseJson.shopifySync.data.id).toBe('gid://shopify/Customer/cust_778899')
-      expect(result.responseJson.shopifySync.data.tags).toContain('tribal-member-verified')
+    test('Guest and omitted customerId requests are also 501 with no cookies', () => {
+      const guest = postVerify({ ...validBody, customerId: 'guest' })
+      const omitted = postVerify({ ...validBody, customerId: undefined })
+      for (const result of [guest, omitted]) {
+        expect(result.statusCode).toBe(501)
+        expect(result.responseJson.verified).toBe(false)
+        expect(result.headers['set-cookie']).toBeUndefined()
+        expect(result.fetchCalls).toEqual([])
+      }
     })
 
-    test('Preserves already formatted gid://shopify/Customer/ ID without duplication', () => {
-      const result = runVerifyApiScript(
-        `
-        let capturedFetch = null
-
-        globalThis.fetch = async (url, options) => {
-          capturedFetch = {
-            body: JSON.parse(options.body),
-          }
-          return {
-            ok: true,
-            json: async () => ({
-              data: {
-                customerUpdate: {
-                  customer: { id: 'gid://shopify/Customer/990011', tags: ['tribal-member-verified'] },
-                  userErrors: [],
-                },
-              },
-            }),
-          }
-        }
-
-        let statusCode = 200
-        let responseJson = null
-
-        const req = {
-          method: 'POST',
-          body: {
-            firstName: 'Mary',
-            lastName: 'Tsosie',
-            tribalNation: 'Navajo Nation',
-            tribalEnrollmentId: 'NAV-98442',
-            customerId: 'gid://shopify/Customer/990011',
-          },
-          headers: {},
-          socket: { remoteAddress: '127.0.0.1' },
-        }
-
-        const res = {
-          setHeader: () => {},
-          status: (code) => {
-            statusCode = code
-            return {
-              json: (data) => { responseJson = data },
-              end: () => {},
-            }
-          },
-        }
-
-        await handler(req, res)
-        console.log(JSON.stringify({ statusCode, capturedFetch, responseJson }))
-      `,
-        {
-          SHOPIFY_ADMIN_ACCESS_TOKEN: 'shpat_live_test_access_token_123',
-          SHOPIFY_STORE_DOMAIN: 'displaycellpros.myshopify.com',
-        }
-      )
-
-      expect(result.statusCode).toBe(200)
-      expect(result.capturedFetch.body.variables.input.id).toBe('gid://shopify/Customer/990011')
-    })
-
-    test('Gracefully handles Shopify GraphQL userErrors (e.g. Customer not found)', () => {
-      const result = runVerifyApiScript(
-        `
-        globalThis.fetch = async () => ({
-          ok: true,
-          json: async () => ({
-            data: {
-              customerUpdate: {
-                customer: null,
-                userErrors: [
-                  {
-                    field: ['id'],
-                    message: 'Could not find customer with id gid://shopify/Customer/non_existent_99',
-                  },
-                ],
-              },
-            },
-          }),
-        })
-
-        let statusCode = 200
-        let responseJson = null
-
-        const req = {
-          method: 'POST',
-          body: {
-            firstName: 'Mary',
-            lastName: 'Tsosie',
-            tribalNation: 'Navajo Nation',
-            tribalEnrollmentId: 'NAV-98442',
-            customerId: 'non_existent_99',
-          },
-          headers: {},
-          socket: { remoteAddress: '127.0.0.1' },
-        }
-
-        const res = {
-          setHeader: () => {},
-          status: (code) => {
-            statusCode = code
-            return {
-              json: (data) => { responseJson = data },
-              end: () => {},
-            }
-          },
-        }
-
-        await handler(req, res)
-        console.log(JSON.stringify({ statusCode, responseJson }))
-      `,
-        {
-          SHOPIFY_ADMIN_ACCESS_TOKEN: 'shpat_live_test_access_token_123',
-          SHOPIFY_STORE_DOMAIN: 'displaycellpros.myshopify.com',
-        }
-      )
-
-      expect(result.statusCode).toBe(200)
-      expect(result.responseJson.verified).toBe(true)
-      expect(result.responseJson.shopifySync.success).toBe(false)
-      expect(result.responseJson.shopifySync.userErrors).toHaveLength(1)
-      expect(result.responseJson.shopifySync.userErrors[0].message).toContain('Could not find customer')
-    })
-
-    test('Falls back gracefully to simulated response if Shopify Admin GraphQL throws network error', () => {
-      const result = runVerifyApiScript(
-        `
-        globalThis.fetch = async () => {
-          throw new Error('Network timeout connecting to Shopify Admin GraphQL')
-        }
-
-        let statusCode = 200
-        let responseJson = null
-
-        const req = {
-          method: 'POST',
-          body: {
-            firstName: 'Mary',
-            lastName: 'Tsosie',
-            tribalNation: 'Navajo Nation',
-            tribalEnrollmentId: 'NAV-98442',
-            customerId: 'cust_778899',
-          },
-          headers: {},
-          socket: { remoteAddress: '127.0.0.1' },
-        }
-
-        const res = {
-          setHeader: () => {},
-          status: (code) => {
-            statusCode = code
-            return {
-              json: (data) => { responseJson = data },
-              end: () => {},
-            }
-          },
-        }
-
-        await handler(req, res)
-        console.log(JSON.stringify({ statusCode, responseJson }))
-      `,
-        {
-          SHOPIFY_ADMIN_ACCESS_TOKEN: 'shpat_live_test_access_token_123',
-          SHOPIFY_STORE_DOMAIN: 'displaycellpros.myshopify.com',
-        }
-      )
-
-      expect(result.statusCode).toBe(200)
-      expect(result.responseJson.success).toBe(true)
-      expect(result.responseJson.verified).toBe(true)
-      // Verify fallback handled the synchronization
-      expect(result.responseJson.shopifySync.success).toBe(true)
-      expect(result.responseJson.shopifySync.data.tags).toContain('tribal-member-verified')
-    })
-  })
-
-  describe('Dual-Track Tax Exemption Mutation Integration', () => {
-    test('Applies taxExempt: true and EXEMPT_INDIAN_IN_CANADA_OR_USA when delivery is on-reservation', () => {
-      const result = runVerifyApiScript(
-        `
-        let capturedFetch = null
-
-        globalThis.fetch = async (url, options) => {
-          capturedFetch = {
-            body: JSON.parse(options.body),
-          }
-          return {
-            ok: true,
-            json: async () => ({
-              data: {
-                customerUpdate: {
-                  customer: {
-                    id: 'gid://shopify/Customer/cust_tax_exempt_1',
-                    taxExempt: true,
-                    taxExemptions: ['EXEMPT_INDIAN_IN_CANADA_OR_USA'],
-                    tags: ['tribal-member-verified'],
-                  },
-                  userErrors: [],
-                },
-              },
-            }),
-          }
-        }
-
-        let statusCode = 200
-        let responseJson = null
-
-        const req = {
-          method: 'POST',
-          body: {
-            firstName: 'Mary',
-            lastName: 'Tsosie',
-            tribalNation: 'Navajo Nation',
-            tribalEnrollmentId: 'NAV-98442',
-            customerId: 'cust_tax_exempt_1',
-            shippingAddress: {
-              address1: '100 Tribal Route 12',
-              city: 'Window Rock',
-              province: 'AZ',
-              zip: '86515',
-              country: 'United States',
-            },
-          },
-          headers: {},
-          socket: { remoteAddress: '127.0.0.1' },
-        }
-
-        const res = {
-          setHeader: () => {},
-          status: (code) => {
-            statusCode = code
-            return {
-              json: (data) => { responseJson = data },
-              end: () => {},
-            }
-          },
-        }
-
-        await handler(req, res)
-        console.log(JSON.stringify({ statusCode, capturedFetch, responseJson }))
-      `,
-        {
-          SHOPIFY_ADMIN_ACCESS_TOKEN: 'shpat_live_test_access_token_123',
-          SHOPIFY_STORE_DOMAIN: 'displaycellpros.myshopify.com',
-        }
-      )
-
-      expect(result.statusCode).toBe(200)
-      expect(result.responseJson.verified).toBe(true)
-
-      // Verify endpoint determined on-reservation tax exemption
-      const taxTrack = result.responseJson.result.taxExemptionTrack
-      expect(taxTrack.onReservation).toBe(true)
-      expect(taxTrack.taxExempt).toBe(true)
-      expect(taxTrack.entityUseCode).toBe('C')
-
-      // Verify GraphQL mutation sent tax exemption fields
-      const input = result.capturedFetch.body.variables.input
-      expect(input.taxExempt).toBe(true)
-      expect(input.taxExemptions).toEqual(['EXEMPT_INDIAN_IN_CANADA_OR_USA'])
-      expect(input.tags).toEqual(['tribal-member-verified'])
-    })
-
-    test('Keeps taxExempt: false when delivery is off-reservation', () => {
-      const result = runVerifyApiScript(
-        `
-        let capturedFetch = null
-
-        globalThis.fetch = async (url, options) => {
-          capturedFetch = {
-            body: JSON.parse(options.body),
-          }
-          return {
-            ok: true,
-            json: async () => ({
-              data: {
-                customerUpdate: {
-                  customer: {
-                    id: 'gid://shopify/Customer/cust_off_res_1',
-                    taxExempt: false,
-                    taxExemptions: [],
-                    tags: ['tribal-member-verified'],
-                  },
-                  userErrors: [],
-                },
-              },
-            }),
-          }
-        }
-
-        let statusCode = 200
-        let responseJson = null
-
-        const req = {
-          method: 'POST',
-          body: {
-            firstName: 'Mary',
-            lastName: 'Tsosie',
-            tribalNation: 'Navajo Nation',
-            tribalEnrollmentId: 'NAV-98442',
-            customerId: 'cust_off_res_1',
-            shippingAddress: {
-              address1: '100 North Central Ave',
-              city: 'Phoenix',
-              province: 'AZ',
-              zip: '85001',
-              country: 'United States',
-            },
-          },
-          headers: {},
-          socket: { remoteAddress: '127.0.0.1' },
-        }
-
-        const res = {
-          setHeader: () => {},
-          status: (code) => {
-            statusCode = code
-            return {
-              json: (data) => { responseJson = data },
-              end: () => {},
-            }
-          },
-        }
-
-        await handler(req, res)
-        console.log(JSON.stringify({ statusCode, capturedFetch, responseJson }))
-      `,
-        {
-          SHOPIFY_ADMIN_ACCESS_TOKEN: 'shpat_live_test_access_token_123',
-          SHOPIFY_STORE_DOMAIN: 'displaycellpros.myshopify.com',
-        }
-      )
-
-      expect(result.statusCode).toBe(200)
-
-      // Verify off-reservation results in taxExempt: false
-      const taxTrack = result.responseJson.result.taxExemptionTrack
-      expect(taxTrack.onReservation).toBe(false)
-      expect(taxTrack.taxExempt).toBe(false)
-
-      // Commercial discount is still active
-      expect(result.responseJson.result.discountTrack.eligible).toBe(true)
-
-      // Mutation input specifies taxExempt: false
-      const input = result.capturedFetch.body.variables.input
-      expect(input.taxExempt).toBe(false)
-      expect(input.taxExemptions).toEqual([])
-    })
-
-    test('Attaches signed certificate reference to Shopify customer metafields when certificate is provided', () => {
-      const result = runVerifyApiScript(
-        `
-        let capturedFetch = null
-
-        globalThis.fetch = async (url, options) => {
-          capturedFetch = {
-            body: JSON.parse(options.body),
-          }
-          return {
-            ok: true,
-            json: async () => ({
-              data: {
-                customerUpdate: {
-                  customer: { id: 'gid://shopify/Customer/cust_cert_1', tags: ['tribal-member-verified'] },
-                  userErrors: [],
-                },
-              },
-            }),
-          }
-        }
-
-        let statusCode = 200
-        let responseJson = null
-
-        const req = {
-          method: 'POST',
-          body: {
-            firstName: 'Mary',
-            lastName: 'Tsosie',
-            tribalNation: 'Navajo Nation',
-            tribalEnrollmentId: 'NAV-98442',
-            customerId: 'cust_cert_1',
-            shippingAddress: {
-              address1: '100 Tribal Route 12',
-              city: 'Window Rock',
-              province: 'AZ',
-              zip: '86515',
-            },
-            certificate: {
-              carrierDeliveryMethod: 'COMMON_CARRIER',
-              deliveryConfirmationRef: '1Z9999999999999999',
-              signatureBase64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-              signedDate: '2026-09-23',
-            },
-          },
-          headers: {},
-          socket: { remoteAddress: '127.0.0.1' },
-        }
-
-        const res = {
-          setHeader: () => {},
-          status: (code) => {
-            statusCode = code
-            return {
-              json: (data) => { responseJson = data },
-              end: () => {},
-            }
-          },
-        }
-
-        await handler(req, res)
-        console.log(JSON.stringify({ statusCode, capturedFetch, responseJson }))
-      `,
-        {
-          SHOPIFY_ADMIN_ACCESS_TOKEN: 'shpat_live_test_access_token_123',
-          SHOPIFY_STORE_DOMAIN: 'displaycellpros.myshopify.com',
-        }
-      )
-
-      expect(result.statusCode).toBe(200)
-      const input = result.capturedFetch.body.variables.input
-      const certMetafield = input.metafields.find((m) => m.key === 'tribal_exemption_cert_ref')
-      expect(certMetafield).toBeDefined()
-      expect(certMetafield.value).toMatch(/^CERT-/)
-      expect(result.responseJson.result.taxExemptionTrack.certificateCompleted).toBe(true)
-    })
-  })
-
-  describe('Guest Customer Checkout Verification', () => {
-    test('Handles customerId: "guest" without attempting external Shopify customer ID mutation', () => {
-      const result = runVerifyApiScript(
-        `
-        let fetchAttempted = false
-        globalThis.fetch = async () => {
-          fetchAttempted = true
-          throw new Error('Should not call fetch for guest!')
-        }
-
-        let statusCode = 200
-        let responseJson = null
-
-        const req = {
-          method: 'POST',
-          body: {
-            firstName: 'Mary',
-            lastName: 'Tsosie',
-            tribalNation: 'Navajo Nation',
-            tribalEnrollmentId: 'NAV-98442',
-            customerId: 'guest',
-          },
-          headers: {},
-          socket: { remoteAddress: '127.0.0.1' },
-        }
-
-        const res = {
-          setHeader: () => {},
-          status: (code) => {
-            statusCode = code
-            return {
-              json: (data) => { responseJson = data },
-              end: () => {},
-            }
-          },
-        }
-
-        await handler(req, res)
-        console.log(JSON.stringify({ statusCode, fetchAttempted, responseJson }))
-      `,
-        {
-          SHOPIFY_ADMIN_ACCESS_TOKEN: 'shpat_live_test_access_token_123',
-          SHOPIFY_STORE_DOMAIN: 'displaycellpros.myshopify.com',
-        }
-      )
-
-      expect(result.statusCode).toBe(200)
-      expect(result.fetchAttempted).toBe(false)
-      expect(result.responseJson.shopifySync.isGuest).toBe(true)
-      expect(result.responseJson.shopifySync.tagsAssigned).toEqual(['tribal-member-verified'])
-      expect(result.responseJson.shopifySync.mutationUsed).toContain('mutation customerUpdate')
-    })
-
-    test('Defaults omitted customerId to guest session handling', () => {
-      const result = runVerifyApiScript(`
-        let statusCode = 200
-        let responseJson = null
-
-        const req = {
-          method: 'POST',
-          body: {
-            firstName: 'Mary',
-            lastName: 'Tsosie',
-            tribalNation: 'Navajo Nation',
-            tribalEnrollmentId: 'NAV-98442',
-            // customerId omitted
-          },
-          headers: {},
-          socket: { remoteAddress: '127.0.0.1' },
-        }
-
-        const res = {
-          setHeader: () => {},
-          status: (code) => {
-            statusCode = code
-            return {
-              json: (data) => { responseJson = data },
-              end: () => {},
-            }
-          },
-        }
-
-        await handler(req, res)
-        console.log(JSON.stringify({ statusCode, responseJson }))
-      `)
-
-      expect(result.statusCode).toBe(200)
-      expect(result.responseJson.shopifySync.isGuest).toBe(true)
-      expect(result.responseJson.shopifySync.tagsAssigned).toContain('tribal-member-verified')
-    })
-  })
-
-  describe('Secure Cookie Session State Storage', () => {
-    test('Sets tribal_member_verified and tribal_on_reservation secure cookies on successful verification', () => {
-      const result = runVerifyApiScript(`
-        let statusCode = 200
-        let responseJson = null
-        const headers = {}
-
-        const req = {
-          method: 'POST',
-          body: {
-            firstName: 'Mary',
-            lastName: 'Tsosie',
-            tribalNation: 'Navajo Nation',
-            tribalEnrollmentId: 'NAV-98442',
-            customerId: 'cust_778899',
-          },
-          headers: { 'x-forwarded-proto': 'https' },
-          socket: { remoteAddress: '127.0.0.1' },
-        }
-
-        const res = {
-          setHeader: (name, val) => { headers[name.toLowerCase()] = val },
-          getHeader: (name) => headers[name.toLowerCase()],
-          status: (code) => {
-            statusCode = code
-            return {
-              json: (data) => { responseJson = data },
-              end: () => {},
-            }
-          },
-        }
-
-        await handler(req, res)
-        console.log(JSON.stringify({ statusCode, headers, responseJson }))
-      `)
-
-      expect(result.statusCode).toBe(200)
-      expect(result.headers['set-cookie']).toBeDefined()
-      const setCookies = Array.isArray(result.headers['set-cookie'])
-        ? result.headers['set-cookie']
-        : [result.headers['set-cookie']]
-
-      const cookieStr = setCookies.join('; ')
-      expect(cookieStr).toContain('tribal_member_verified=true')
-      expect(cookieStr).toContain('tribal_on_reservation=')
-      expect(cookieStr).toContain('Secure')
-      expect(cookieStr).toContain('HttpOnly')
-      expect(cookieStr).toContain('SameSite=Lax')
+    test('IDs the old mock accepted or rejected are treated the same (no fake 200/422 decisions)', () => {
+      for (const id of ['AB12', 'NAV-INVALID-1', 'TEST_FAIL_9', 'X9']) {
+        const result = postVerify({ ...validBody, tribalEnrollmentId: id })
+        expect(result.statusCode).toBe(501)
+        expect(result.responseJson.verified).toBe(false)
+      }
     })
   })
 
   describe('Rate Limiting & Brute-Force Protection', () => {
     test('Includes X-RateLimit response headers on verification attempts', () => {
-      const result = runVerifyApiScript(`
-        let statusCode = 200
-        let responseJson = null
-        const headers = {}
+      const result = postVerify({
+        firstName: 'Sarah',
+        lastName: 'Jim',
+        tribalNation: 'Yakama Nation',
+        tribalEnrollmentId: 'YAK-99201',
+        customerId: 'cust_ratelimit_test_1',
+      })
 
-        const req = {
-          method: 'POST',
-          body: {
-            firstName: 'Sarah',
-            lastName: 'Jim',
-            tribalNation: 'Yakama Nation',
-            tribalEnrollmentId: 'YAK-99201',
-            customerId: 'cust_ratelimit_test_1',
-          },
-          headers: { 'x-forwarded-proto': 'https' },
-          socket: { remoteAddress: '192.168.1.50' },
-        }
-
-        const res = {
-          setHeader: (name, val) => { headers[name.toLowerCase()] = val },
-          getHeader: (name) => headers[name.toLowerCase()],
-          status: (code) => {
-            statusCode = code
-            return {
-              json: (data) => { responseJson = data },
-              end: () => {},
-            }
-          },
-        }
-
-        await handler(req, res)
-        console.log(JSON.stringify({ statusCode, headers, responseJson }))
-      `)
-
-      expect(result.statusCode).toBe(200)
+      expect(result.statusCode).toBe(501)
       expect(result.headers['x-ratelimit-limit']).toBeDefined()
       expect(result.headers['x-ratelimit-remaining']).toBeDefined()
       expect(result.headers['x-ratelimit-reset']).toBeDefined()
@@ -1187,12 +407,9 @@ describe('Tribal Verification API (/api/tribal/verify) Unit Tests', () => {
   })
 
   describe('Internal Server Error & Exception Handling', () => {
-    test('Returns HTTP 500 when unexpected error occurs during verification execution', () => {
+    test('Returns HTTP 500 without leaking internal error details', () => {
       const result = runVerifyApiScript(`
-        let statusCode = 200
-        let responseJson = null
-
-        // Pass an object whose properties throw when accessed or stringified
+        ${RES_HARNESS}
         const req = {
           method: 'POST',
           get body() {
@@ -1201,32 +418,95 @@ describe('Tribal Verification API (/api/tribal/verify) Unit Tests', () => {
           headers: {},
           socket: { remoteAddress: '127.0.0.1' },
         }
-
-        const res = {
-          setHeader: () => {},
-          status: (code) => {
-            statusCode = code
-            return {
-              json: (data) => { responseJson = data },
-              end: () => {},
-            }
-          },
-        }
-
-        // Suppress console.error in test
         const origError = console.error
         console.error = () => {}
-
         await handler(req, res)
         console.error = origError
-
         console.log(JSON.stringify({ statusCode, responseJson }))
       `)
 
       expect(result.statusCode).toBe(500)
       expect(result.responseJson.success).toBe(false)
       expect(result.responseJson.error).toContain('internal error occurred')
-      expect(result.responseJson.details).toContain('Database connection failed')
+      expect(JSON.stringify(result.responseJson)).not.toContain('Database connection failed')
+    })
+  })
+
+  describe('lib/tribal/shopify-admin.ts updateShopifyCustomerTribalStatus (no simulated success)', () => {
+    const audit = {
+      verificationHash: 'abc123',
+      verifiedAt: '2026-10-08T12:00:00.000Z',
+      tribalNation: 'Navajo Nation',
+      maskedEnrollmentId: '••••8442',
+    }
+
+    test('Returns success:false when Shopify Admin is not configured', () => {
+      const result = runVerifyApiScript(
+        `
+        const fetchCalls = []
+        globalThis.fetch = async (url) => { fetchCalls.push(String(url)); throw new Error('no fetch expected') }
+        const r = await shopifyAdminModule.updateShopifyCustomerTribalStatus({ customerId: '123', audit: ${JSON.stringify(audit)} })
+        console.log(JSON.stringify({ r, fetchCalls }))
+      `,
+        { SHOPIFY_STORE_DOMAIN: '', NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN: '', SHOPIFY_CLIENT_ID: '', SHOPIFY_CLIENT_SECRET: '', SHOPIFY_ADMIN_ACCESS_TOKEN: '' }
+      )
+      expect(result.r.success).toBe(false)
+      expect(result.r.notConfigured).toBe(true)
+      expect(result.fetchCalls).toEqual([])
+    })
+
+    test('Uses a client-credentials token and sends customerUpdate to the Admin GraphQL endpoint', () => {
+      const result = runVerifyApiScript(
+        `
+        const calls = []
+        globalThis.fetch = async (url, options) => {
+          calls.push({ url: String(url), headers: options.headers, body: options.body })
+          if (String(url).endsWith('/admin/oauth/access_token')) {
+            return { ok: true, status: 200, json: async () => ({ access_token: 'shpat_cc_token', scope: 'write_customers', expires_in: 86399 }) }
+          }
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ data: { customerUpdate: { customer: { id: 'gid://shopify/Customer/123', tags: ['tribal-member-verified'] }, userErrors: [] } } }),
+          }
+        }
+        const r = await shopifyAdminModule.updateShopifyCustomerTribalStatus({ customerId: '123', audit: ${JSON.stringify(audit)} })
+        console.log(JSON.stringify({ r, calls }))
+      `,
+        { ...ADMIN_ENV, SHOPIFY_ADMIN_ACCESS_TOKEN: '' }
+      )
+      expect(result.r.success).toBe(true)
+      expect(result.calls[0].url).toBe('https://test-shop.myshopify.com/admin/oauth/access_token')
+      expect(result.calls[0].body).toContain('grant_type=client_credentials')
+      expect(result.calls[1].url).toMatch(/^https:\/\/test-shop\.myshopify\.com\/admin\/api\/[\w-]+\/graphql\.json$/)
+      expect(result.calls[1].headers['X-Shopify-Access-Token']).toBe('shpat_cc_token')
+      const gql = JSON.parse(result.calls[1].body)
+      expect(gql.query).toContain('customerUpdate(input: $input)')
+      expect(gql.variables.input.id).toBe('gid://shopify/Customer/123')
+    })
+
+    test('Returns success:false on Shopify userErrors and on network failure', () => {
+      const result = runVerifyApiScript(
+        `
+        let mode = 'userErrors'
+        globalThis.fetch = async (url) => {
+          if (String(url).endsWith('/admin/oauth/access_token')) {
+            return { ok: true, status: 200, json: async () => ({ access_token: 'tok', expires_in: 86399 }) }
+          }
+          if (mode === 'network') throw new Error('ECONNRESET')
+          return { ok: true, status: 200, json: async () => ({ data: { customerUpdate: { customer: null, userErrors: [{ field: ['id'], message: 'Customer does not exist' }] } } }) }
+        }
+        const a = await shopifyAdminModule.updateShopifyCustomerTribalStatus({ customerId: 'gid://shopify/Customer/999', audit: ${JSON.stringify(audit)} })
+        mode = 'network'
+        const b = await shopifyAdminModule.updateShopifyCustomerTribalStatus({ customerId: '999', audit: ${JSON.stringify(audit)} })
+        console.log(JSON.stringify({ a, b }))
+      `,
+        { ...ADMIN_ENV, SHOPIFY_ADMIN_ACCESS_TOKEN: '' }
+      )
+      expect(result.a.success).toBe(false)
+      expect(result.a.userErrors[0].message).toContain('Customer does not exist')
+      expect(result.b.success).toBe(false)
+      expect(result.b.userErrors[0].message).toContain('ECONNRESET')
     })
   })
 })

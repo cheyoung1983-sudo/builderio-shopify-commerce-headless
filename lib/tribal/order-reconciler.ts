@@ -9,11 +9,11 @@
  * 5. Cryptographic Shopify Webhook HMAC-SHA256 signature verification
  */
 
-import crypto from 'node:crypto'
 import { evaluateAddressGeofence } from './geofencing.ts'
 import { getRequiredCertificateType } from './certificates.ts'
 import { logVerificationEvent } from '../audit.ts'
 import { shopifyAdminFetch } from '../../services/shopify-admin.ts'
+import { getShopifyWebhookSecret, verifyShopifyHmac } from '../shopify/webhook-hmac.ts'
 
 export interface ShopifyOrderWebhookPayload {
   id: number | string
@@ -116,46 +116,16 @@ export interface OrderReconciliationResult {
 }
 
 /**
- * Validates Shopify webhook HMAC-SHA256 signature
+ * Validates a Shopify webhook HMAC-SHA256 signature over the raw body.
+ * Delegates to the shared timing-safe helper (lib/shopify/webhook-hmac.ts).
+ * Missing header or missing secret => false (never accepted).
  */
 export function verifyShopifyWebhookHmac(
   rawBody: string | Buffer,
   hmacHeader?: string | null,
   secret?: string
 ): boolean {
-  if (!hmacHeader) return false
-
-  const webhookSecret =
-    secret ||
-    process.env.SHOPIFY_WEBHOOK_SECRET ||
-    process.env.SHOPIFY_CLIENT_SECRET ||
-    process.env.SHOPIFY_API_SECRET_KEY ||
-    ''
-
-  if (!webhookSecret) {
-    // If no secret configured in test/dev environment, accept safely or log warning
-    return process.env.NODE_ENV === 'test'
-  }
-
-  try {
-    const bodyStr = typeof rawBody === 'string' ? rawBody : rawBody.toString('utf8')
-    const calculatedHmac = crypto
-      .createHmac('sha256', webhookSecret)
-      .update(bodyStr, 'utf8')
-      .digest('base64')
-
-    const calculatedBuf = new Uint8Array(Buffer.from(calculatedHmac, 'utf8'))
-    const headerBuf = new Uint8Array(Buffer.from(hmacHeader, 'utf8'))
-
-    if (calculatedBuf.length !== headerBuf.length) {
-      return false
-    }
-
-    return crypto.timingSafeEqual(calculatedBuf, headerBuf)
-  } catch (err) {
-    console.error('Error verifying Shopify webhook HMAC:', err)
-    return false
-  }
+  return verifyShopifyHmac(rawBody, hmacHeader, secret || getShopifyWebhookSecret())
 }
 
 /**

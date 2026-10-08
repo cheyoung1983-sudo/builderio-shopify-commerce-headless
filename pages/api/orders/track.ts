@@ -1,35 +1,44 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import {
-  retrieveOrderStatus,
+import type {
   OrderTrackingData,
   TrackingMilestone,
   TrackedItem,
   OrderLookupResult,
-} from '@services/shopify-orders'
+} from '../../../services/shopify-orders.ts'
+import { lookupOrderByNumberAndEmail } from '../../../lib/shopify/order-lookup.ts'
 
 export type { OrderTrackingData, TrackingMilestone, TrackedItem, OrderLookupResult }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<OrderLookupResult>
-) {
-  if (req.method !== 'POST' && req.method !== 'GET') {
-    res.setHeader('Allow', ['POST', 'GET'])
+/**
+ * POST /api/orders/track  { orderId, email }
+ *
+ * Looks up a real Shopify order (Admin API) by order number + email.
+ * 200 found | 400 invalid input | 404 not found | 503 Admin not configured |
+ * 502 Shopify error. No demo or placeholder orders are ever returned.
+ * (POST only so customer emails don't end up in URLs/logs.)
+ */
+export default async function handler(req: NextApiRequest, res: NextApiResponse<OrderLookupResult>) {
+  res.setHeader('Cache-Control', 'no-store')
+
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST')
     return res.status(405).json({
       success: false,
-      error: `Method ${req.method} not allowed. Please use POST or GET.`,
+      error: `Method ${req.method} not allowed. Please use POST.`,
     })
   }
 
-  const rawOrderId = (req.method === 'POST' ? req.body?.orderId : req.query?.orderId) as
-    | string
-    | undefined
-  const rawEmail = (req.method === 'POST' ? req.body?.email : req.query?.email) as
-    | string
-    | undefined
+  let body: any = req.body
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body)
+    } catch {
+      body = {}
+    }
+  }
 
-  const orderId = String(rawOrderId || '').trim()
-  const email = String(rawEmail || '').trim()
+  const orderId = String(body?.orderId || '').trim()
+  const email = String(body?.email || '').trim()
 
   if (!orderId) {
     return res.status(400).json({
@@ -46,20 +55,28 @@ export default async function handler(
   }
 
   try {
-    const result = await retrieveOrderStatus({
-      orderId,
-      email,
-    })
+    const outcome = await lookupOrderByNumberAndEmail({ orderNumber: orderId, email })
 
-    if (!result.success) {
-      return res.status(400).json(result)
+    switch (outcome.status) {
+      case 'found':
+        return res.status(200).json({ success: true, order: outcome.order })
+      case 'invalid':
+        return res.status(400).json({ success: false, error: outcome.message })
+      case 'not_found':
+        return res.status(404).json({
+          success: false,
+          error: 'We could not find an order with that order number and email. Please check both and try again.',
+        })
+      case 'not_configured':
+        return res.status(503).json({ success: false, error: outcome.message })
+      default:
+        return res.status(502).json({ success: false, error: outcome.message })
     }
-
-    return res.status(200).json(result)
   } catch (error: any) {
+    console.error('[orders/track] Unexpected error:', error?.message || error)
     return res.status(500).json({
       success: false,
-      error: error?.message || 'Internal server error while looking up order tracking status.',
+      error: 'Internal server error while looking up order status.',
     })
   }
 }
