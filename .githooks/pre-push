@@ -1,0 +1,5 @@
+#!/bin/sh
+# Full CI-equivalent check before pushing (same steps as .github/workflows/ci.yml).
+# Skip the slow production build with: SKIP_BUILD=1 git push
+# Bypass in an emergency with: git push --no-verify
+exec node scripts/precheck.mjs

@@ -1,12 +1,7 @@
 #!/bin/sh
-# Blocks commits that introduce hardcoded secrets, hardcoded fallback
-# values for sensitive env vars, a stripped-down CI workflow, or a
-# wholesale-disabled eslint rule. See scripts/check-hardcoded-secrets.js
-# and scripts/check-ci-integrity.js.
-#
-# Enabled automatically via `npm install` (the "prepare" script sets
-# core.hooksPath to this directory). To run manually:
-#   node scripts/check-hardcoded-secrets.js --staged
-#   node scripts/check-ci-integrity.js
-
-node scripts/check-hardcoded-secrets.js --staged && node scripts/check-ci-integrity.js
+# Fast pre-commit: hardcoded-secret scan on staged changes, CI/config
+# integrity, ESLint on staged files, and a type-check.
+# Enabled automatically via `npm install` (the "prepare" script runs
+# scripts/setup-git-hooks.cjs, which sets core.hooksPath to .githooks).
+# Bypass in an emergency with: git commit --no-verify
+exec node scripts/precheck.mjs --staged

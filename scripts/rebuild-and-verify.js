@@ -18,7 +18,7 @@ function run(command, commandArgs) {
 function main() {
   run(npmCommand, ['run', 'check:security-boundaries'])
   run(npmCommand, ['run', 'check:shopify-catalog-health'])
-  run(npmCommand, ['run', 'precheck'])
+  run(npmCommand, ['run', 'precheck:build'])
   run(npmCommand, ['run', 'test:a11y', '--', '--runInBand', '--silent'])
   run(npmCommand, ['run', 'build'])
 

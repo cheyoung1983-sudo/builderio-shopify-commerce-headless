@@ -36,3 +36,17 @@ Agents must:
 All non-trivial changes flow through a pull request. Reviewers should verify the exact head commit, inspect all review feedback, confirm checks are green, and avoid merging their own agent-authored pull requests.
 
 See [AGENT_WORKFLOW.md](AGENT_WORKFLOW.md) for the full workflow, including dependency-bump protocol, merge-conflict handling, and stale-branch cleanup.
+
+## Local pre-check (catch CI failures before you push)
+
+`scripts/precheck.mjs` runs the same steps as `.github/workflows/ci.yml` (node-version, project/CI/dependency health, typecheck, ESLint, secret scan, auth + XSS checks, stylelint a11y, jest incl. axe tests, production build). Requires Node 24, like CI.
+
+- `npm run precheck` — full CI-equivalent run
+- `npm run precheck:fast` — same, without the production build (`SKIP_BUILD=1` also works)
+- `npm run precheck:fix` — first applies safe fixes only (`prettier --write` + `eslint --fix` on changed files), then checks. It never changes tests or logic.
+- `npm run precheck:build` — the security/CSP check chain that `npm run build` runs first (formerly named `precheck`)
+
+Git hooks live in `.githooks/` and are enabled automatically by `npm install` (the `prepare` script runs `git config core.hooksPath .githooks`). To enable manually: `git config core.hooksPath .githooks`.
+
+- **pre-commit** (fast): secret scan of staged changes, CI integrity, ESLint on staged files, typecheck
+- **pre-push** (full): the whole CI suite. `SKIP_BUILD=1 git push` skips the build; `--no-verify` bypasses in an emergency.
