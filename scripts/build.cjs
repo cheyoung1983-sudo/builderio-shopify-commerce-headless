@@ -5,7 +5,7 @@ const projectDir = path.resolve(__dirname, '..')
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 const env = { ...process.env, NODE_ENV: 'production' }
 
-for (const command of [['run', 'precheck'], ['exec', 'next', '--', 'build']]) {
+for (const command of [['run', 'precheck:build'], ['exec', 'next', '--', 'build']]) {
   const result = spawnSync(npmCommand, command, {
     cwd: projectDir,
     env,
