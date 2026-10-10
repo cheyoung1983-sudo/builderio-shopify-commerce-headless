@@ -18,26 +18,16 @@ function run(command, commandArgs) {
 function main() {
   run(npmCommand, ['run', 'check:security-boundaries'])
   run(npmCommand, ['run', 'check:shopify-catalog-health'])
-  run(npmCommand, ['run', 'precheck:build'])
+  run(npmCommand, ['run', 'precheck'])
   run(npmCommand, ['run', 'test:a11y', '--', '--runInBand', '--silent'])
   run(npmCommand, ['run', 'build'])
 
   if (baseUrl) {
-    run(process.execPath, [
-      'scripts/check-shopify-catalog-health.js',
-      '--url',
-      baseUrl,
-    ])
-    run(process.execPath, [
-      'scripts/test-security-boundaries.js',
-      '--url',
-      baseUrl,
-    ])
+    run(process.execPath, ['scripts/check-shopify-catalog-health.js', '--url', baseUrl])
+    run(process.execPath, ['scripts/test-security-boundaries.js', '--url', baseUrl])
     run(process.execPath, ['scripts/test-dev-deployment.js', baseUrl])
   } else {
-    console.log(
-      '\nSkipping live security and route smoke tests. Pass --url <local-preview-url> to enable them.'
-    )
+    console.log('\nSkipping live security and route smoke tests. Pass --url <local-preview-url> to enable them.')
   }
 
   console.log('\nrebuild-and-verify: OK')
