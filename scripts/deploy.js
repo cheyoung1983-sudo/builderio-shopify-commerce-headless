@@ -10,7 +10,7 @@
  *   node scripts/deploy.js production   - `vercel deploy --prod` (requires --yes)
  *
  * Every path runs the same preflight gate first (Vercel CLI present, project
- * linked, `npm run precheck` — node version consistency, typecheck, lint,
+ * linked, `npm run precheck:build` — node version consistency, typecheck, lint,
  * secret scan) so a bad deploy fails before anything reaches Vercel.
  */
 
@@ -48,7 +48,9 @@ function run(cmd, args, opts = {}) {
     ...opts,
   })
   if (result.status !== 0) {
-    throw new Error(`"${cmd} ${args.join(' ')}" exited with code ${result.status}`)
+    throw new Error(
+      `"${cmd} ${args.join(' ')}" exited with code ${result.status}`
+    )
   }
   return result
 }
@@ -84,11 +86,15 @@ function preflight() {
 
   log('Checking project is linked to Vercel...')
   if (!findLinkedProjectFile(repoRoot)) {
-    fail('Project is not linked. Run `vercel link` first, then re-run this script.')
+    fail(
+      'Project is not linked. Run `vercel link` first, then re-run this script.'
+    )
   }
 
-  log('Running precheck (Node version consistency, typecheck, lint, secret scan)...')
-  run('npm', ['run', 'precheck'])
+  log(
+    'Running precheck (Node version consistency, typecheck, lint, secret scan)...'
+  )
+  run('npm', ['run', 'precheck:build'])
 }
 
 function extractDeploymentUrl(output) {
@@ -114,7 +120,9 @@ function inspectDeployment(url) {
 function killProcessTree(child) {
   if (!child.pid) return
   if (isWindows) {
-    spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
+    spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], {
+      stdio: 'ignore',
+    })
   } else {
     try {
       process.kill(-child.pid, 'SIGKILL')
@@ -128,7 +136,10 @@ function killProcessTree(child) {
 // crashed before killProcessTree got a chance to run (or predates this fix).
 function killStaleListener(port) {
   if (isWindows) {
-    const netstat = runCapture('cmd', ['/c', `netstat -ano | findstr :${port} | findstr LISTENING`])
+    const netstat = runCapture('cmd', [
+      '/c',
+      `netstat -ano | findstr :${port} | findstr LISTENING`,
+    ])
     const pids = new Set(
       (netstat.stdout || '')
         .split('\n')
@@ -136,14 +147,18 @@ function killStaleListener(port) {
         .filter((pid) => pid && /^\d+$/.test(pid))
     )
     for (const pid of pids) {
-      log(`Port ${port} is already in use by PID ${pid} (stale process) — terminating it.`)
+      log(
+        `Port ${port} is already in use by PID ${pid} (stale process) — terminating it.`
+      )
       spawnSync('taskkill', ['/pid', pid, '/T', '/F'], { stdio: 'ignore' })
     }
   } else {
     const lsof = runCapture('lsof', ['-ti', `tcp:${port}`])
     const pids = (lsof.stdout || '').split('\n').filter(Boolean)
     for (const pid of pids) {
-      log(`Port ${port} is already in use by PID ${pid} (stale process) — terminating it.`)
+      log(
+        `Port ${port} is already in use by PID ${pid} (stale process) — terminating it.`
+      )
       spawnSync('kill', ['-9', pid], { stdio: 'ignore' })
     }
   }
@@ -153,7 +168,9 @@ async function waitForServer(baseUrl, timeoutMs) {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
     try {
-      const response = await fetch(baseUrl, { signal: AbortSignal.timeout(2000) })
+      const response = await fetch(baseUrl, {
+        signal: AbortSignal.timeout(2000),
+      })
       if (response.status < 500) return true
     } catch {
       // not up yet
@@ -165,7 +182,9 @@ async function waitForServer(baseUrl, timeoutMs) {
 
 function checkRequiredEnvVars() {
   const envLocalPath = path.join(repoRoot, '.env.local')
-  const content = fs.existsSync(envLocalPath) ? fs.readFileSync(envLocalPath, 'utf8') : ''
+  const content = fs.existsSync(envLocalPath)
+    ? fs.readFileSync(envLocalPath, 'utf8')
+    : ''
   return REQUIRED_RUNTIME_ENV_VARS.filter((name) => {
     const pattern = new RegExp(`^${name}=.+$`, 'm')
     return !pattern.test(content)
@@ -175,14 +194,24 @@ function checkRequiredEnvVars() {
 async function deployDev() {
   preflight()
 
-  log('Pulling Development-environment variables from Vercel (vercel env pull)...')
-  const pull = runCapture('vercel', ['env', 'pull', '.env.local', '--environment=development', '--yes'])
+  log(
+    'Pulling Development-environment variables from Vercel (vercel env pull)...'
+  )
+  const pull = runCapture('vercel', [
+    'env',
+    'pull',
+    '.env.local',
+    '--environment=development',
+    '--yes',
+  ])
   console.log(pull.stdout || pull.stderr)
 
   const missing = checkRequiredEnvVars()
   if (missing.length > 0) {
     console.warn(
-      `\n[deploy:dev] WARNING: the Development environment on Vercel has no value for: ${missing.join(', ')}.\n` +
+      `\n[deploy:dev] WARNING: the Development environment on Vercel has no value for: ${missing.join(
+        ', '
+      )}.\n` +
         `Store-dependent pages will render without data and related tests will be SKIPPED, not failed.\n` +
         `Fix with: vercel env add <NAME> development (then re-run this script).`
     )
@@ -216,12 +245,17 @@ async function deployDev() {
     }
 
     log(`Dev server is up at ${baseUrl}. Running functional tests...`)
-    const { runFunctionalTests, printResults } = require('./test-dev-deployment.js')
+    const {
+      runFunctionalTests,
+      printResults,
+    } = require('./test-dev-deployment.js')
     const summary = await runFunctionalTests(baseUrl)
     printResults(summary)
 
     if (summary.failed > 0) {
-      throw new Error(`${summary.failed} functional test(s) failed against the dev deployment.`)
+      throw new Error(
+        `${summary.failed} functional test(s) failed against the dev deployment.`
+      )
     }
 
     log(
@@ -244,7 +278,9 @@ function checkDevHealthGate() {
   const devLogPath = path.join(os.tmpdir(), 'vercel-dev.log')
 
   if (!fs.existsSync(devLogPath)) {
-    log('No local vercel dev log found — skipping dev-health gate (nothing to check).')
+    log(
+      'No local vercel dev log found — skipping dev-health gate (nothing to check).'
+    )
     return
   }
 
@@ -280,7 +316,9 @@ function deployPreview() {
 
   const status = inspectDeployment(url)
   if (status !== 'Ready') {
-    fail(`Preview deployment did not reach Ready state (status: ${status}). Run: vercel inspect ${url} --logs`)
+    fail(
+      `Preview deployment did not reach Ready state (status: ${status}). Run: vercel inspect ${url} --logs`
+    )
   }
 
   log(`Preview deployment ready: ${url}`)
@@ -312,16 +350,22 @@ function deployProduction() {
 
   const status = inspectDeployment(url)
   if (status !== 'Ready') {
-    fail(`Production deployment did not reach Ready state (status: ${status}). Run: vercel inspect ${url} --logs`)
+    fail(
+      `Production deployment did not reach Ready state (status: ${status}). Run: vercel inspect ${url} --logs`
+    )
   }
 
   log(`Production deployment ready: ${url}`)
-  log('Run `vercel logs <url> --level error --since 1h` in ~60s to confirm no runtime errors.')
+  log(
+    'Run `vercel logs <url> --level error --since 1h` in ~60s to confirm no runtime errors.'
+  )
 }
 
 async function main() {
   if (!VALID_TARGETS.includes(TARGET)) {
-    console.error(`Usage: node scripts/deploy.js <${VALID_TARGETS.join('|')}> [--yes]`)
+    console.error(
+      `Usage: node scripts/deploy.js <${VALID_TARGETS.join('|')}> [--yes]`
+    )
     process.exit(1)
   }
 
