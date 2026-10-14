@@ -30,7 +30,6 @@ import {
 } from '../../services/shopify'
 import { useUI } from '../common/context'
 import { useAnnouncer } from '../common/Announcer'
-import { useAddItemToCart } from '../../lib/shopify/storefront-data-hooks/src/hooks/useAddItemToCart'
 import { CartContext } from '../../context/CartContext'
 import { useWishlist } from '../../context'
 import { ProductDetailSkeleton } from './ProductDetailSkeleton'
@@ -109,7 +108,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // Context & Hooks
   const { openSidebar } = useUI()
   const { announce } = useAnnouncer()
-  const addItemToCart = useAddItemToCart()
   const cart = useContext(CartContext)
   const { isInWishlist, toggleWishlist } = useWishlist()
   const isSaved = product ? isInWishlist(product.id) : false
@@ -270,14 +268,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         })
       }
 
-      // Also invoke storefront-data-hooks for backwards compatibility
-      if (typeof addItemToCart === 'function') {
-        try {
-          await addItemToCart(selectedVariant.id, quantity)
-        } catch (e) {
-          // Soft-catch if already processed by modern cart
-        }
-      }
+      // NOTE: do not also call the legacy storefront-data-hooks add here.
+      // Both carts share the same Shopify cart id via localStorage, so a second
+      // add doubled the quantity on Shopify and on /cart (see fix/cart-double-add-sync).
 
       setAddSuccess(true)
       announce(`Product added to cart: ${product.title}`)

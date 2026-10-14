@@ -27,7 +27,6 @@ export default function CartDrawer() {
   }, [cart]);
 
   const items = cart?.items || [];
-  const checkoutUrl = cart?.checkoutUrl;
   const subtotal = cart?.subtotalFormatted || "$0.00";
 
   return (
@@ -44,7 +43,7 @@ export default function CartDrawer() {
       {/* Drawer */}
       <div
         id="cart-drawer-panel"
-        className={`fixed top-0 right-0 h-full w-full sm:w-96 bg-white z-50 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 h-full w-full max-w-full sm:w-96 sm:max-w-[100vw] overflow-x-hidden box-border bg-white z-50 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -135,23 +134,15 @@ export default function CartDrawer() {
               <span className="text-neutral-600 font-medium">Estimated Subtotal</span>
               <span className="text-base font-bold text-neutral-900">{subtotal}</span>
             </div>
-            {checkoutUrl ? (
-              <a
-                href={checkoutUrl}
-                className="w-full flex items-center justify-center py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-xs transition-colors"
-              >
-                Proceed to Checkout
-              </a>
-            ) : (
-              <button
-                onClick={() => {
-                  if (cart?.checkout) cart.checkout();
-                }}
-                className="w-full flex items-center justify-center py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-xs transition-colors"
-              >
-                Proceed to Checkout
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => cart?.proceedToCheckout?.()}
+              disabled={cart?.isSyncing}
+              aria-label="Proceed to checkout"
+              className="w-full flex items-center justify-center py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-70 text-white font-semibold text-sm shadow-xs transition-colors"
+            >
+              Proceed to Checkout
+            </button>
           </div>
         )}
       </div>

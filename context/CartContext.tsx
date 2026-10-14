@@ -19,6 +19,7 @@ import {
   removeStorefrontCartLines,
 } from '../services/shopify'
 import { useToast } from './ToastContext'
+import { reconcileCart, remoteLinesFromCart } from '../lib/cart-reconcile'
 
 // ---------------------------------------------------------------------------
 // Types & Interfaces
@@ -156,7 +157,7 @@ export interface CartContextValue {
   /** Forces a refresh and reconciliation with Shopify Storefront API */
   refreshCart: () => Promise<void>
   /** Redirects the browser to the live Shopify checkout */
-  proceedToCheckout: () => void
+  proceedToCheckout: () => Promise<void>
   /** Checks if a variant is already in the shopping bag */
   isItemInCart: (variantId: string) => boolean
   /** Returns the quantity of a specific variant in the shopping bag */
@@ -224,6 +225,62 @@ export const CartProvider: React.FC<CartProviderProps> = ({
   const isLoadedRef = useRef<boolean>(false)
   const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const syncQueueRef = useRef<Promise<any>>(Promise.resolve())
+  // Authoritative, synchronously updated copies so queued Shopify syncs never
+  // read a stale cart id or item list from a render closure.
+  const itemsRef = useRef<CartItem[]>([])
+  const cartIdRef = useRef<string | null>(null)
+  const checkoutUrlRef = useRef<string | null>(null)
+
+  const commitItems = useCallback((next: CartItem[]) => {
+    itemsRef.current = next
+    setItems(next)
+    persistAllCartData(next, cartIdRef.current, checkoutUrlRef.current)
+  }, [])
+
+  /**
+   * Queue one reconcile of the Shopify cart against the latest local items.
+   * Resolves with the checkoutUrl from the newest Shopify cart response.
+   */
+  const enqueueReconcile = useCallback((): Promise<string | null> => {
+    const run = syncQueueRef.current.then(async () => {
+      setIsSyncing(true)
+      try {
+        const result = await reconcileCart(
+          {
+            fetchCart: fetchStorefrontCart,
+            createCart: (lines) => createStorefrontCart(lines),
+            addLines: addStorefrontCartLines,
+            updateLines: updateStorefrontCartLines,
+            removeLines: removeStorefrontCartLines,
+          },
+          cartIdRef.current,
+          itemsRef.current.map((it) => ({ variantId: it.variantId, quantity: it.quantity }))
+        )
+        cartIdRef.current = result.cartId
+        checkoutUrlRef.current = result.checkoutUrl
+        setCartId(result.cartId)
+        setCheckoutUrl(result.checkoutUrl)
+        if (result.cart) {
+          const lines = remoteLinesFromCart(result.cart)
+          const mapped = itemsRef.current.map((it) => {
+            const line = lines.find((l) => l.variantId === it.variantId)
+            return line ? { ...it, lineId: line.id, id: line.id } : it
+          })
+          itemsRef.current = mapped
+          setItems(mapped)
+        }
+        persistAllCartData(itemsRef.current, result.cartId, result.checkoutUrl)
+        return result.checkoutUrl
+      } catch (err) {
+        console.warn('[CartContext] Shopify cart sync warning:', err)
+        return checkoutUrlRef.current
+      } finally {
+        setIsSyncing(false)
+      }
+    })
+    syncQueueRef.current = run.catch(() => null)
+    return run
+  }, [])
 
   // Show auto-dismissing toast notification
   const triggerNotification = useCallback(
@@ -319,15 +376,15 @@ export const CartProvider: React.FC<CartProviderProps> = ({
       })
 
       startTransition(() => {
-        if (storedItems && Array.isArray(storedItems) && storedItems.length > 0) {
-          setItems(storedItems.map(toCartItem))
-        }
-        if (storedCartId) {
-          setCartId(storedCartId)
-        }
-        if (storedCheckout) {
-          setCheckoutUrl(storedCheckout)
-        }
+        const loaded =
+          storedItems && Array.isArray(storedItems) ? storedItems.map(toCartItem) : []
+        itemsRef.current = loaded
+        setItems(loaded)
+        // A cart id without items is stale: never reuse it.
+        cartIdRef.current = loaded.length > 0 ? storedCartId || null : null
+        checkoutUrlRef.current = loaded.length > 0 ? storedCheckout || null : null
+        setCartId(cartIdRef.current)
+        setCheckoutUrl(checkoutUrlRef.current)
         setIsInitialized(true)
       })
     } catch (err) {
@@ -391,19 +448,23 @@ export const CartProvider: React.FC<CartProviderProps> = ({
             sku: item.sku,
             customAttributes: item.customAttributes,
           })
+          const fresh = freshItems.map(toCartItem)
+          itemsRef.current = fresh
           startTransition(() => {
-            setItems(freshItems.map(toCartItem))
+            setItems(fresh)
           })
         } catch {
           // ignore
         }
       }
       if (e.key === STORAGE_KEYS.CART_ID) {
+        cartIdRef.current = e.newValue || null
         startTransition(() => {
           setCartId(e.newValue || null)
         })
       }
       if (e.key === STORAGE_KEYS.CHECKOUT_URL) {
+        checkoutUrlRef.current = e.newValue || null
         startTransition(() => {
           setCheckoutUrl(e.newValue || null)
         })
@@ -446,74 +507,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({
   // ---------------------------------------------------------------------------
   // Shopify Storefront API Reconciliation Helpers
   // ---------------------------------------------------------------------------
-
-  /**
-   * Syncs an array of line items with the Shopify Storefront Cart API.
-   * If cartId is null or invalid, creates a new cart.
-   */
-  const syncWithStorefront = useCallback(
-    async (currentItems: CartItem[], currentCartId: string | null) => {
-      setIsSyncing(true)
-      try {
-        if (currentItems.length === 0) {
-          return { cartId: currentCartId, checkoutUrl: null }
-        }
-
-        // Format lines for Storefront API
-        const lines = currentItems.map((item) => ({
-          merchandiseId: item.variantId,
-          quantity: item.quantity,
-        }))
-
-        // If we don't have a cartId, create a new cart
-        if (!currentCartId) {
-          const createRes = await createStorefrontCart(lines)
-          if (createRes.ok && createRes.data?.cartCreate?.cart) {
-            const newCart = createRes.data.cartCreate.cart
-            setCartId(newCart.id)
-            setCheckoutUrl(newCart.checkoutUrl)
-
-            // Map lineIds back onto items
-            const lineEdges = newCart.lines?.edges || []
-            setItems((prev) =>
-              prev.map((it) => {
-                const matched = lineEdges.find(
-                  (edge: any) => edge.node?.merchandise?.id === it.variantId
-                )
-                return matched
-                  ? { ...it, lineId: matched.node.id, id: matched.node.id }
-                  : it
-              })
-            )
-            return { cartId: newCart.id, checkoutUrl: newCart.checkoutUrl }
-          }
-        } else {
-          // Verify or update existing cart
-          const fetchRes = await fetchStorefrontCart(currentCartId)
-          if (fetchRes.ok && fetchRes.data?.cart) {
-            const cart = fetchRes.data.cart
-            setCheckoutUrl(cart.checkoutUrl)
-            return { cartId: currentCartId, checkoutUrl: cart.checkoutUrl }
-          } else {
-            // Cart might have expired or been completed; recreate it
-            const createRes = await createStorefrontCart(lines)
-            if (createRes.ok && createRes.data?.cartCreate?.cart) {
-              const newCart = createRes.data.cartCreate.cart
-              setCartId(newCart.id)
-              setCheckoutUrl(newCart.checkoutUrl)
-              return { cartId: newCart.id, checkoutUrl: newCart.checkoutUrl }
-            }
-          }
-        }
-      } catch (err: any) {
-        console.warn('[CartContext] Background Storefront sync warning:', err)
-      } finally {
-        setIsSyncing(false)
-      }
-      return { cartId: currentCartId, checkoutUrl }
-    },
-    [checkoutUrl]
-  )
 
   // ---------------------------------------------------------------------------
   // Cart Actions (Optimistic UI + Background Storefront Sync)
@@ -567,19 +560,16 @@ export const CartProvider: React.FC<CartProviderProps> = ({
         }
 
         let addedItemReference: CartItem | null = null
-        let updatedItemsList: CartItem[] = []
 
         // 1. Optimistically update local state immediately
-        setItems((prev) => {
+        {
+          const prev = itemsRef.current
           const existingIndex = prev.findIndex((it) => it.variantId === variantId)
-
           if (existingIndex > -1) {
-            // Increment existing item quantity
             const existing = prev[existingIndex]
             const updated: CartItem = {
               ...existing,
               quantity: existing.quantity + qtyToAdd,
-              // Update with freshest metadata if provided
               title: input.title || existing.title,
               image: itemImage || existing.image,
               price: {
@@ -590,11 +580,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({
             addedItemReference = updated
             const next = [...prev]
             next[existingIndex] = updated
-            updatedItemsList = next
-            persistAllCartData(next, cartId, checkoutUrl)
-            return next
+            commitItems(next)
           } else {
-            // Add new line item
             const newItem: CartItem = {
               id: variantId,
               variantId,
@@ -602,10 +589,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({
               handle: input.handle || '',
               variantTitle: input.variantTitle || 'Default Title',
               quantity: qtyToAdd,
-              price: {
-                amount: priceAmount,
-                currencyCode: priceCurrency,
-              },
+              price: { amount: priceAmount, currencyCode: priceCurrency },
               compareAtPrice: comparePriceAmount
                 ? { amount: comparePriceAmount, currencyCode: priceCurrency }
                 : null,
@@ -616,12 +600,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({
               customAttributes: input.customAttributes || [],
             }
             addedItemReference = newItem
-            const next = [...prev, newItem]
-            updatedItemsList = next
-            persistAllCartData(next, cartId, checkoutUrl)
-            return next
+            commitItems([...prev, newItem])
           }
-        })
+        }
 
         // 2. Trigger notification
         triggerNotification({
@@ -631,44 +612,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({
           item: addedItemReference || undefined,
         })
 
-        // 3. Queue Storefront API background synchronization
-        syncQueueRef.current = syncQueueRef.current.then(async () => {
-          try {
-            if (!cartId) {
-              const res = await createStorefrontCart([
-                { merchandiseId: variantId, quantity: qtyToAdd },
-              ])
-              if (res.ok && res.data?.cartCreate?.cart) {
-                const newCart = res.data.cartCreate.cart
-                setCartId(newCart.id)
-                setCheckoutUrl(newCart.checkoutUrl)
-
-                const lineEdge = newCart.lines?.edges?.[0]?.node
-                if (lineEdge) {
-                  setItems((curr) =>
-                    curr.map((it) =>
-                      it.variantId === variantId
-                        ? { ...it, lineId: lineEdge.id, id: lineEdge.id }
-                        : it
-                    )
-                  )
-                }
-              }
-            } else {
-              const res = await addStorefrontCartLines(cartId, [
-                { merchandiseId: variantId, quantity: qtyToAdd },
-              ])
-              if (res.ok && res.data?.cartLinesAdd?.cart) {
-                setCheckoutUrl(res.data.cartLinesAdd.cart.checkoutUrl)
-              } else {
-                // If cart was stale, recreate with all items
-                await syncWithStorefront(updatedItemsList, null)
-              }
-            }
-          } catch (syncErr) {
-            console.warn('[CartContext] Background sync notice:', syncErr)
-          }
-        })
+        // 3. Queue Storefront sync (serialized; uses latest cart id, so rapid
+        // adds into a new cart can't create two carts)
+        void enqueueReconcile()
       } catch (err: any) {
         console.error('[CartContext] addItem error:', err)
         setError(err.message || 'Failed to add item to shopping bag.')
@@ -681,7 +627,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({
         setIsLoading(false)
       }
     },
-    [cartId, checkoutUrl, syncWithStorefront, triggerNotification]
+    [commitItems, enqueueReconcile, triggerNotification]
   )
 
   /**
@@ -746,50 +692,28 @@ export const CartProvider: React.FC<CartProviderProps> = ({
    */
   const removeItem = useCallback(
     async (variantOrLineId: string) => {
-      let removedItem: CartItem | null = null
-      let targetLineId: string | undefined
-
-      setItems((prev) => {
-        const match = prev.find(
-          (it) =>
-            it.variantId === variantOrLineId ||
-            it.id === variantOrLineId ||
-            it.lineId === variantOrLineId
-        )
-        if (match) {
-          removedItem = match
-          targetLineId = match.lineId
-        }
-        const next = prev.filter(
-          (it) =>
-            it.variantId !== variantOrLineId &&
-            it.id !== variantOrLineId &&
-            it.lineId !== variantOrLineId
-        )
-        persistAllCartData(next, cartId, checkoutUrl)
-        return next
-      })
+      const prev = itemsRef.current
+      const matches = (it: CartItem) =>
+        it.variantId === variantOrLineId ||
+        it.id === variantOrLineId ||
+        it.lineId === variantOrLineId
+      const removedItem = prev.find(matches) || null
+      commitItems(prev.filter((it) => !matches(it)))
 
       if (removedItem) {
         triggerNotification({
           type: 'remove',
           title: 'Item Removed',
-          message: `${(removedItem as any).title} was removed from your shopping bag.`,
+          message: `${removedItem.title} was removed from your shopping bag.`,
           item: removedItem,
         })
       }
 
-      // Background Storefront sync
-      syncQueueRef.current = syncQueueRef.current.then(async () => {
-        if (!cartId || !targetLineId) return
-        try {
-          await removeStorefrontCartLines(cartId, [targetLineId])
-        } catch (err) {
-          console.warn('[CartContext] Failed to remove line from Shopify:', err)
-        }
-      })
+      // Reconcile removes the line from the same Shopify cart checkout uses,
+      // even if its Shopify line id was never mapped locally.
+      void enqueueReconcile()
     },
-    [cartId, checkoutUrl, triggerNotification]
+    [commitItems, enqueueReconcile, triggerNotification]
   )
 
   /**
@@ -803,21 +727,14 @@ export const CartProvider: React.FC<CartProviderProps> = ({
       }
 
       let updatedItem: CartItem | null = null
-      let targetLineId: string | undefined
-
-      // Optimistically update
-      setItems((prev) => {
-        const next = prev.map((it) => {
-          if (it.variantId === variantOrLineId || it.id === variantOrLineId || it.lineId === variantOrLineId) {
-            updatedItem = { ...it, quantity: nextQuantity }
-            targetLineId = it.lineId
-            return updatedItem
-          }
-          return it
-        })
-        persistAllCartData(next, cartId, checkoutUrl)
-        return next
+      const next = itemsRef.current.map((it) => {
+        if (it.variantId === variantOrLineId || it.id === variantOrLineId || it.lineId === variantOrLineId) {
+          updatedItem = { ...it, quantity: nextQuantity }
+          return updatedItem
+        }
+        return it
       })
+      commitItems(next)
 
       if (updatedItem) {
         triggerNotification({
@@ -828,48 +745,36 @@ export const CartProvider: React.FC<CartProviderProps> = ({
         })
       }
 
-      // Background Storefront sync
-      syncQueueRef.current = syncQueueRef.current.then(async () => {
-        if (!cartId) return
-        try {
-          if (targetLineId) {
-            await updateStorefrontCartLines(cartId, [
-              { id: targetLineId, quantity: nextQuantity },
-            ])
-          }
-        } catch (err) {
-          console.warn('[CartContext] Failed to update line quantity on Shopify:', err)
-        }
-      })
+      void enqueueReconcile()
     },
-    [cartId, checkoutUrl, triggerNotification, removeItem]
+    [commitItems, enqueueReconcile, triggerNotification, removeItem]
   )
 
   /**
    * Clears all items from the shopping bag.
    */
   const clearCart = useCallback(async () => {
-    setItems([])
-    setCartId(null)
-    setCheckoutUrl(null)
-    persistAllCartData([], null, null)
+    commitItems([])
+    void enqueueReconcile()
     triggerNotification({
       type: 'clear',
       title: 'Shopping Bag Cleared',
       message: 'All items have been removed from your shopping bag.',
     })
-  }, [triggerNotification])
+  }, [commitItems, enqueueReconcile, triggerNotification])
 
   /**
    * Refreshes the cart from Shopify Storefront API
    */
   const refreshCart = useCallback(async () => {
+    const cartId = cartIdRef.current
     if (!cartId) return
     setIsSyncing(true)
     try {
       const res = await fetchStorefrontCart(cartId)
       if (res.ok && res.data?.cart) {
         const remoteCart = res.data.cart
+        checkoutUrlRef.current = remoteCart.checkoutUrl
         setCheckoutUrl(remoteCart.checkoutUrl)
 
         // Sync lines if remote cart has items
@@ -907,6 +812,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({
               sku: merch.sku || '',
             }
           })
+          itemsRef.current = freshItems
           setItems(freshItems)
         }
       }
@@ -915,7 +821,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({
     } finally {
       setIsSyncing(false)
     }
-  }, [cartId])
+  }, [])
 
   // Drawer / Bag Visibility Toggles
   const openCart = useCallback(() => {
@@ -950,11 +856,24 @@ export const CartProvider: React.FC<CartProviderProps> = ({
     [items]
   )
 
-  const proceedToCheckout = useCallback(() => {
-    if (checkoutUrl && typeof window !== 'undefined') {
-      window.location.href = checkoutUrl
+  /**
+   * Waits for pending syncs, reconciles once more, and redirects to the
+   * checkoutUrl from that latest Shopify response (never a cached URL).
+   */
+  const proceedToCheckout = useCallback(async () => {
+    if (typeof window === 'undefined') return
+    if (itemsRef.current.length === 0) return
+    const url = await enqueueReconcile()
+    if (url) {
+      window.location.href = url
+    } else {
+      triggerNotification({
+        type: 'error',
+        title: 'Checkout unavailable',
+        message: 'We could not prepare checkout. Please try again.',
+      })
     }
-  }, [checkoutUrl])
+  }, [enqueueReconcile, triggerNotification])
 
   // Context value object
   const value = useMemo<CartContextValue>(

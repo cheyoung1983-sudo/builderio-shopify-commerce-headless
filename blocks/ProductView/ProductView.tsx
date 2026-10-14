@@ -4,7 +4,7 @@ import { Grid, Button, Heading } from '@theme-ui/components'
 import OptionPicker from '@components/common/OptionPicker'
 import { NextSeo } from 'next-seo'
 import { useUI } from '@components/common/context'
-import { useAddItemToCart } from '@lib/shopify/storefront-data-hooks'
+import { useCart } from '../../context/CartContext'
 import {
   prepareVariantsWithOptions,
   prepareVariantsImages,
@@ -33,7 +33,7 @@ const ProductBox: React.FC<Props> = ({
 }) => {
   const [loading, setLoading] = useState(false)
   const [addToCartError, setAddToCartError] = useState<string | null>(null)
-  const addItem = useAddItemToCart()
+  const { addItem } = useCart()
   const colors: string[] | undefined = product?.options
     ?.find((option) => option?.name?.toLowerCase() === 'color')
     ?.values?.map((op) => op.value as string)
@@ -77,7 +77,15 @@ const ProductBox: React.FC<Props> = ({
     setLoading(true)
     setAddToCartError(null)
     try {
-      await addItem(variant.id, 1)
+      await addItem({
+        variantId: String(variant.id),
+        quantity: 1,
+        title: product?.title,
+        handle: (product as any)?.handle,
+        variantTitle: (variant as any).title,
+        price: (variant as any).priceV2 || (variant as any).price,
+        image: (variant as any).image?.src || (variant as any).image?.url || null,
+      })
       openSidebar()
     } catch (err) {
       setAddToCartError(

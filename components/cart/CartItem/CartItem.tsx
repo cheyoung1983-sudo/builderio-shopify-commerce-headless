@@ -3,10 +3,6 @@ import React, { ChangeEvent, useState } from 'react'
 import Image from 'next/image'
 import { Plus, Minus } from '@components/icons'
 import { getPrice } from '@lib/shopify/storefront-data-hooks/src/utils/product'
-import {
-  useUpdateItemQuantity,
-  useRemoveItemFromCart,
-} from '@lib/shopify/storefront-data-hooks'
 import { useCart as useModernCart } from '../../../context/CartContext'
 import Link from '@components/common/Link'
 import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '@lib/image'
@@ -17,18 +13,12 @@ const CartItem = ({
   item: /*ShopifyBuy.LineItem todo: check if updated types*/ any
   currencyCode: string
 }) => {
-  const updateItem = useUpdateItemQuantity()
-  const removeItem = useRemoveItemFromCart()
   const modernCart = useModernCart()
   const [quantity, setQuantity] = useState(item.quantity)
   const [removing, setRemoving] = useState(false)
   const updateQuantity = async (quantity: number) => {
-    try {
-      await updateItem(item.variant?.id || item.id, quantity)
-    } catch (e) {
-      // ignore
-    }
-    modernCart.updateQuantity(item.variant?.id || item.id, quantity)
+    // CartContext is the single source of truth; it syncs Shopify itself.
+    await modernCart.updateQuantity(item.variant?.id || item.id, quantity)
   }
   const handleQuantity = (e: ChangeEvent<HTMLInputElement>) => {
     const val = Number(e.target.value)
@@ -55,12 +45,7 @@ const CartItem = ({
   const handleRemove = async () => {
     setRemoving(true)
 
-    try {
-      await removeItem(item.variant?.id || item.id)
-    } catch (error) {
-      console.error(error)
-    }
-    modernCart.removeItem(item.variant?.id || item.id)
+    await modernCart.removeItem(item.variant?.id || item.id)
     setRemoving(false)
   }
 
