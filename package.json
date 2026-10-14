@@ -15,7 +15,10 @@
     "detective-postcss": {
       "postcss": "^8.5.28"
     },
-    "@opentelemetry/core": "^2.8.0"
+    "@opentelemetry/core": "^2.8.0",
+    "sharp": "^0.35.5",
+    "source-map-js": "^1.2.2",
+    "@grpc/grpc-js": "^1.13.6"
   },
   "scripts": {
     "dev": "next dev -p 3000 -H 0.0.0.0",
