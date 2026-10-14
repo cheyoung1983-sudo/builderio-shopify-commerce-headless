@@ -20,6 +20,9 @@ const Sidebar: FC<Props & { children: React.ReactNode }> = ({
       <BaseModal
         isOpen={open}
         onDismiss={onClose}
+        // Sit above the sticky site header (z-40) so the drawer top is not
+        // hidden under it.
+        overlayProps={{ style: { zIndex: 60 } }}
         contentProps={{
           style: {
             width,
@@ -27,6 +30,10 @@ const Sidebar: FC<Props & { children: React.ReactNode }> = ({
             top: 0,
             right: 0,
             height: '100%',
+            maxWidth: '100vw',
+            boxSizing: 'border-box',
+            overflowX: 'hidden',
+            overflowY: 'auto',
           },
         }}
         contentTransition={{
