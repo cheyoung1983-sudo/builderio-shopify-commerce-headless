@@ -1,11 +1,13 @@
 {
-  "title": "Builder.io + Shopify + Next.js",
-  "titleTemplate": "%s - Headless Demo",
-  "description": "A starter kit demo store for using headless shopify with Builder.io ->  https://github.com/BuilderIO/nextjs-shopify",
+  "title": "Display & Cell Pros",
+  "titleTemplate": "%s | Display & Cell Pros",
+  "description": "Phone screen, game console, controller, and computer repair in Spokane, WA. Veteran-owned Display & Cell Pros fixes iPhone, Samsung, PlayStation, Xbox, Nintendo Switch, and PC issues.",
   "openGraph": {
     "type": "website",
-    "locale": "en_IE",
-    "url": "https://github.com/BuilderIO/nextjs-shopify",
-    "site_name": "Builder.io + Shopify + Next.js"
+    "locale": "en_US",
+    "url": "https://displaycellpros.com",
+    "site_name": "Display & Cell Pros",
+    "title": "Display & Cell Pros",
+    "description": "Phone screen, game console, controller, and computer repair in Spokane, WA. Veteran-owned Display & Cell Pros fixes iPhone, Samsung, PlayStation, Xbox, Nintendo Switch, and PC issues."
   }
 }
