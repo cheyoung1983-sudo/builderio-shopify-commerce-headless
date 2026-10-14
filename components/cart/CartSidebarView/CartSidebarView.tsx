@@ -77,13 +77,17 @@ const CartSidebarView: FC = () => {
     <Box
       sx={{
         height: '100%',
-        overflow: 'auto',
+        width: '100%',
+        maxWidth: '100%',
+        boxSizing: 'border-box',
+        overflowY: 'auto',
+        overflowX: 'hidden',
         paddingBottom: 5,
         bg: 'text',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        px: 2,
+        px: [3, 4],
         color: 'background',
         ...(isEmpty && { justifyContent: 'center' }),
       }}
@@ -106,7 +110,14 @@ const CartSidebarView: FC = () => {
               currencyCode={item.variant?.priceV2?.currencyCode || 'USD'}
             />
           ))}
-          <Card sx={{ marginLeft: 'auto', minWidth: '10rem', paddingLeft: 5 }}>
+          <Card
+            sx={{
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+              px: 0,
+            }}
+          >
             <Grid gap={1} columns={2} sx={{ my: 3 }}>
               <Text>Subtotal:</Text>
               <Text sx={{ marginLeft: 'auto' }}>{subTotal}</Text>
@@ -135,7 +146,9 @@ const CartSidebarView: FC = () => {
               variant="nav"
               sx={{
                 width: '100%',
-                m: 2,
+                boxSizing: 'border-box',
+                mx: 0,
+                my: 2,
                 p: 3,
                 textAlign: 'center',
                 bg: '#059669',

@@ -35,7 +35,7 @@ export default function CartDrawer() {
       {isOpen && (
         <div
           id="cart-drawer-overlay"
-          className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 transition-opacity"
+          className="fixed inset-0 bg-black/50 backdrop-blur-xs z-[60] transition-opacity"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -43,7 +43,7 @@ export default function CartDrawer() {
       {/* Drawer */}
       <div
         id="cart-drawer-panel"
-        className={`fixed top-0 right-0 h-full w-full max-w-full sm:w-96 sm:max-w-[100vw] overflow-x-hidden box-border bg-white z-50 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 h-full w-full max-w-[100vw] sm:w-96 overflow-x-hidden box-border bg-white z-[60] shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -116,10 +116,18 @@ export default function CartDrawer() {
                       <span className="text-xs text-neutral-500">
                         Qty: {item.quantity}
                       </span>
-                      <span className="text-sm font-bold text-neutral-900">
+                      <span className="text-sm font-bold text-neutral-900 shrink-0 pl-2">
                         ${parseFloat(item.price?.amount || "0").toFixed(2)}
                       </span>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => cart?.removeItem?.(item.variantId || item.id)}
+                      aria-label={`Remove ${item.title}`}
+                      className="mt-1 text-xs text-neutral-500 underline hover:text-neutral-900"
+                    >
+                      Remove
+                    </button>
                   </div>
                 </div>
               ))}

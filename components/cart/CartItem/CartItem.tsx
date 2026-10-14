@@ -65,7 +65,18 @@ const CartItem = ({
   const productHandle = item.variant?.product?.handle || ''
 
   return (
-    <Grid gap={2} sx={{ width: '100%', m: 12 }} columns={[2]}>
+    <Grid
+      gap={3}
+      sx={{
+        width: '100%',
+        maxWidth: '100%',
+        minWidth: 0,
+        boxSizing: 'border-box',
+        my: 3,
+        mx: 0,
+      }}
+      columns={['96px minmax(0, 1fr)', '130px minmax(0, 1fr)']}
+    >
       <div
         sx={{
           padding: 1,
@@ -73,8 +84,9 @@ const CartItem = ({
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          width: 130,
-          height: 130,
+          width: ['96px', '130px'],
+          height: ['96px', '130px'],
+          boxSizing: 'border-box',
           overflow: 'hidden',
           backgroundColor: '#f8f8f8',
         }}
@@ -94,7 +106,7 @@ const CartItem = ({
           <div sx={{ fontSize: 1, color: 'gray' }}>No image</div>
         )}
       </div>
-      <div>
+      <div sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
         <Link
           href={productHandle ? `/product/${productHandle}/` : '#'}
           sx={{ fontSize: 3, m: 0, fontWeight: 700 }}
@@ -116,7 +128,11 @@ const CartItem = ({
         <ul sx={{ mt: 2, mb: 0, padding: 0, listStyle: 'none' }}>
           <li>
             <div sx={{ display: 'flex', justifyItems: 'center' }}>
-              <IconButton onClick={() => increaseQuantity(-1)}>
+              <IconButton
+                type="button"
+                aria-label={`Decrease quantity of ${item.title}`}
+                onClick={() => increaseQuantity(-1)}
+              >
                 <Minus width={18} height={18} />
               </IconButton>
 
@@ -126,6 +142,7 @@ const CartItem = ({
                     height: '100%',
                     textAlign: 'center',
                   }}
+                  aria-label={`Quantity of ${item.title}`}
                   type="number"
                   max={99}
                   min={0}
@@ -134,12 +151,36 @@ const CartItem = ({
                   onBlur={handleBlur}
                 />
               </label>
-              <IconButton onClick={() => increaseQuantity(1)}>
+              <IconButton
+                type="button"
+                aria-label={`Increase quantity of ${item.title}`}
+                onClick={() => increaseQuantity(1)}
+              >
                 <Plus width={18} height={18} />
               </IconButton>
             </div>
           </li>
-          {item.variant.selectedOptions.map((option: any) => (
+          <li>
+            <button
+              type="button"
+              onClick={handleRemove}
+              disabled={removing}
+              aria-label={`Remove ${item.title}`}
+              sx={{
+                mt: 2,
+                p: 0,
+                bg: 'transparent',
+                border: 'none',
+                color: 'inherit',
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                fontSize: 1,
+              }}
+            >
+              {removing ? 'Removing…' : 'Remove'}
+            </button>
+          </li>
+          {(item.variant?.selectedOptions || []).map((option: any) => (
             <li key={option.value}>
               {option.name}:{option.value}
             </li>
