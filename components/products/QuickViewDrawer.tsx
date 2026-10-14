@@ -544,6 +544,7 @@ const QuickViewContent: React.FC<QuickViewContentProps> = ({
                 type="button"
                 onClick={handleAddToCart}
                 disabled={isAddingToCart || currentVariant?.availableForSale === false}
+                aria-label="Add to shopping bag"
                 className={`w-full py-3.5 px-6 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer ${
                   addSuccess
                     ? 'bg-emerald-600 text-white ring-2 ring-emerald-400/50 scale-[1.01]'

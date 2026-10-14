@@ -110,51 +110,19 @@ export function loadStoredCartItems(): {
     }
   }
 
-  if (items.length === 0) {
-    try {
-      const raw = window.localStorage.getItem(CART_STORAGE_KEYS.LEGACY_CART)
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        const lines = parsed?.lineItems || []
-        if (Array.isArray(lines) && lines.length > 0) {
-          items = lines.map((li: any) => ({
-            id: String(li.id || li.variant?.id || Math.random()),
-            lineId: li.id ? String(li.id) : undefined,
-            variantId: String(li.variant?.id || li.id),
-            productId: li.variant?.product?.id ? String(li.variant.product.id) : undefined,
-            title: li.title || li.variant?.title || 'Product',
-            handle: li.variant?.product?.handle || '',
-            variantTitle: li.variant?.title || 'Default Title',
-            quantity: Number(li.quantity) || 1,
-            price: {
-              amount: String(li.variant?.priceV2?.amount || li.variant?.price || '0.00'),
-              currencyCode: String(li.variant?.priceV2?.currencyCode || 'USD'),
-            },
-            image: li.variant?.image
-              ? {
-                  url: li.variant.image.src || li.variant.image.url || '',
-                  src: li.variant.image.src || li.variant.image.url || '',
-                  altText: li.title,
-                }
-              : null,
-            options: li.variant?.selectedOptions || [],
-          }))
-          if (parsed.id && !cartId) cartId = String(parsed.id)
-          if ((parsed.webUrl || parsed.checkoutUrl) && !checkoutUrl) {
-            checkoutUrl = String(parsed.webUrl || parsed.checkoutUrl)
-          }
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }
+  // The legacy storefront-data-hooks key (shopify_local_store__cart) is no
+  // longer read: the legacy provider rewrites it with its own Shopify cart,
+  // which let a stale cart id (and removed lines) resurface. Drop it.
+  clearLegacyCartStorage()
 
   try {
     const storedCartId = window.localStorage.getItem(CART_STORAGE_KEYS.CART_ID)
-    if (storedCartId) cartId = storedCartId
     const storedCheckout = window.localStorage.getItem(CART_STORAGE_KEYS.CHECKOUT_URL)
-    if (storedCheckout) checkoutUrl = storedCheckout
+    // A cart id with no items is stale and must not be reused.
+    if (items.length > 0) {
+      if (storedCartId) cartId = storedCartId
+      if (storedCheckout) checkoutUrl = storedCheckout
+    }
   } catch {
     // ignore
   }
@@ -195,66 +163,18 @@ export function persistAllCartData(
       window.localStorage.removeItem(CART_STORAGE_KEYS.CHECKOUT_URL)
     }
 
-    if (items.length === 0) {
-      window.localStorage.removeItem(CART_STORAGE_KEYS.LEGACY_CART)
-      return
-    }
-
-    let subtotalNum = 0
-    let currency = 'USD'
-    const lineItems = items.map((it) => {
-      const p = parseFloat(it.price?.amount || '0')
-      if (!isNaN(p)) subtotalNum += p * it.quantity
-      if (it.price?.currencyCode) currency = it.price.currencyCode
-      return {
-        id: it.lineId || it.id,
-        title: it.title,
-        quantity: it.quantity,
-        variant: {
-          id: it.variantId,
-          title: it.variantTitle || 'Default Title',
-          price: it.price?.amount || '0.00',
-          priceV2: {
-            amount: it.price?.amount || '0.00',
-            currencyCode: it.price?.currencyCode || 'USD',
-          },
-          image: it.image
-            ? {
-                id: it.variantId,
-                src: it.image.url || it.image.src || '',
-                altText: it.title,
-              }
-            : null,
-          product: {
-            id: it.productId || '',
-            handle: it.handle || '',
-            title: it.title,
-          },
-          selectedOptions: it.options || [],
-        },
-      }
-    })
-
-    const legacyCart = {
-      id: cartId || 'local-cart',
-      webUrl: checkoutUrl || '',
-      checkoutUrl: checkoutUrl || '',
-      subtotalPrice: subtotalNum.toFixed(2),
-      subtotalPriceV2: {
-        amount: subtotalNum.toFixed(2),
-        currencyCode: currency,
-      },
-      totalPrice: subtotalNum.toFixed(2),
-      totalPriceV2: {
-        amount: subtotalNum.toFixed(2),
-        currencyCode: currency,
-      },
-      lineItems,
-      completedAt: null,
-    }
-
-    window.localStorage.setItem(CART_STORAGE_KEYS.LEGACY_CART, JSON.stringify(legacyCart))
+    clearLegacyCartStorage()
   } catch (e) {
     console.warn('[CartContext] Failed to persist cart data to localStorage:', e)
+  }
+}
+
+/** Removes the legacy storefront-data-hooks cart key so its cart id can't resurface. */
+export function clearLegacyCartStorage(): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.removeItem(CART_STORAGE_KEYS.LEGACY_CART)
+  } catch {
+    // ignore
   }
 }

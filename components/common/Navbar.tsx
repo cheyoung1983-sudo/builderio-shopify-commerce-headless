@@ -1,7 +1,6 @@
 import React, { FC, useState, useEffect } from 'react'
 import { BuilderComponent, builder } from '@builder.io/react'
 import builderConfig from '@config/builder'
-import { useCart } from '@lib/shopify/storefront-data-hooks'
 import { useCart as useModernCart } from '../../context/CartContext'
 import { useThemeUI } from 'theme-ui'
 import { useUI } from '@components/common/context'
@@ -23,22 +22,16 @@ const Navbar: FC = () => {
       : {
           text: 'Display Cell Pros',
         }
-  const cart = useCart()
   const modernCart = useModernCart()
   const isMounted = useIsMounted()
-  const cartCount =
-    modernCart?.totalQuantity > 0
-      ? modernCart.totalQuantity
-      : (cart?.lineItems || []).reduce(
-          (total: number, item: any) => total + (item.quantity || 1),
-          0
-        )
+  // Header count reads CartContext only (same source as drawer and /cart).
+  const cartCount = modernCart?.totalQuantity || 0
   const { totalItems: wishlistCount, isLoaded } = useWishlist()
   const displayCartCount = isMounted ? cartCount : 0
   const displayWishlistCount = isMounted && isLoaded ? wishlistCount : 0
 
-  const itemHandles = (cart?.lineItems || [])
-    .map((item: any) => item?.variant?.product?.handle)
+  const itemHandles = (modernCart?.items || [])
+    .map((item: any) => item?.handle)
     .filter(Boolean)
     .join(',')
 

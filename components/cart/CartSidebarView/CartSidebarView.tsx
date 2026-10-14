@@ -46,7 +46,6 @@ const CartSidebarView: FC = () => {
   const isEmpty = items.length === 0
   const subTotal = modernCart?.subtotalFormatted || '$0.00'
   const total = subTotal
-  const checkoutUrl = modernCart?.checkoutUrl
   const [cartUpsell, setCartUpsell] = useState()
 
   const itemHandles = items
@@ -128,8 +127,11 @@ const CartSidebarView: FC = () => {
           {cartUpsell && builderConfig.cartUpsellModel && (
             <BuilderComponent content={cartUpsell} model={builderConfig.cartUpsellModel} />
           )}
-          {checkoutUrl && (
+          {!isEmpty && (
             <NavLink
+              as="button"
+              type="button"
+              onClick={() => modernCart?.proceedToCheckout?.()}
               variant="nav"
               sx={{
                 width: '100%',
@@ -147,7 +149,6 @@ const CartSidebarView: FC = () => {
                   color: '#ffffff',
                 },
               }}
-              href={checkoutUrl!}
             >
               Proceed to Checkout
             </NavLink>
