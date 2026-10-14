@@ -14,7 +14,7 @@ export default function CartDrawer() {
       setIsOpen(true);
       if (typeof window !== "undefined") {
         const count = cart?.items?.length || 0;
-        const total = cart?.subtotal?.amount ? `$${parseFloat(cart.subtotal.amount).toFixed(2)}` : "$0.00";
+        const total = cart?.subtotalFormatted || "$0.00";
         window.dispatchEvent(
           new CustomEvent("elevenlabs:contextual_update", {
             detail: { text: `User opened cart drawer (${count} item(s), subtotal: ${total})` },
@@ -28,9 +28,7 @@ export default function CartDrawer() {
 
   const items = cart?.items || [];
   const checkoutUrl = cart?.checkoutUrl;
-  const subtotal = cart?.subtotal?.amount
-    ? `$${parseFloat(cart.subtotal.amount).toFixed(2)}`
-    : "$0.00";
+  const subtotal = cart?.subtotalFormatted || "$0.00";
 
   return (
     <>
