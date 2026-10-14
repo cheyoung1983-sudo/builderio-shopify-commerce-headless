@@ -20,6 +20,7 @@ import { useSafeRouter } from '../../lib/hooks/useSafeRouter'
 import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
 import { useIntersectionObserver } from '../../lib/hooks/useIntersectionObserver'
 import { motion } from 'motion/react'
+import { formatMoney } from '@lib/format-money'
 
 export interface ProductCardProps {
   /** The Shopify product data node */
@@ -72,7 +73,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   isCompared = false,
   isAddingToCart = false,
   isAdded = false,
-  formatPrice = (amount, currency = 'USD') => (amount ? `$${amount}` : ''),
+  formatPrice = formatMoney,
   onProductClick,
   onQuickView,
   onToggleCompare,
