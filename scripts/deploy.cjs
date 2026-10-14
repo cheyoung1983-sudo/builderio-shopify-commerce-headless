@@ -10,7 +10,7 @@
  *   node scripts/deploy.js production   - `vercel deploy --prod` (requires --yes)
  *
  * Every path runs the same preflight gate first (Vercel CLI present, project
- * linked, `npm run precheck` — node version consistency, typecheck, lint,
+ * linked, `npm run precheck:build` — node version consistency, typecheck, lint,
  * secret scan) so a bad deploy fails before anything reaches Vercel.
  */
 
@@ -88,7 +88,7 @@ function preflight() {
   }
 
   log('Running precheck (Node version consistency, typecheck, lint, secret scan)...')
-  run('npm', ['run', 'precheck'])
+  run('npm', ['run', 'precheck:build'])
 }
 
 function extractDeploymentUrl(output) {

@@ -42,7 +42,7 @@ if (fs.existsSync(vercelProjectFile)) {
 
 // 3. Execute precheck suite
 console.log('\n--- Running Precheck Verification Suite ---')
-const precheck = spawnSync('npm', ['run', 'precheck'], {
+const precheck = spawnSync('npm', ['run', 'precheck:build'], {
   cwd: repoRoot,
   stdio: 'inherit',
   shell: isWindows,
