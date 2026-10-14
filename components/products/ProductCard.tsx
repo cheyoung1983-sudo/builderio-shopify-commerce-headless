@@ -13,10 +13,8 @@ import {
 } from 'lucide-react'
 import { ShopifyProductNode } from '../../services/shopify'
 import { ProductCardSkeleton } from './ProductCardSkeleton'
-import { useWishlist, useQuickView, useToast } from '../../context'
+import { useWishlist, useQuickView } from '../../context'
 import { CartContext } from '../../context/CartContext'
-import { useUI } from '../common/context'
-import { useSafeRouter } from '../../lib/hooks/useSafeRouter'
 import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
 import { useIntersectionObserver } from '../../lib/hooks/useIntersectionObserver'
 import { motion } from 'motion/react'
@@ -90,10 +88,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [internalAdded, setInternalAdded] = useState(false)
   const { isInWishlist, toggleWishlist } = useWishlist()
   const { openQuickView } = useQuickView()
-  const { showCartToast } = useToast()
-  const { openSidebar } = useUI()
   const cart = React.useContext(CartContext)
-  const router = useSafeRouter()
   const isSaved = product ? isInWishlist(product.id) : false
 
   // Determine if card is initially above the fold (e.g. top 4 products get eager/priority loading)
@@ -192,23 +187,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       })
 
       setInternalAdded(true)
-      const formattedPrice = price ? `$${parseFloat(price).toFixed(2)} ${itemCurrency}` : null
-      showCartToast({
-        title: product.title,
-        image: imageUrl || null,
-        price: formattedPrice,
-        variantTitle: firstVariant?.title && firstVariant.title !== 'Default Title' ? firstVariant.title : null,
-        quantity: 1,
-        duration: 3000,
-        actionLabel: 'View Cart',
-        onViewBag: () => {
-          if (typeof openSidebar === 'function') {
-            openSidebar()
-          } else {
-            router.push('/cart')
-          }
-        },
-      })
+      // CartContext.addItem already shows the 'Added to Shopping Bag' toast;
+      // showing another here produced duplicate toasts per click.
       setTimeout(() => setInternalAdded(false), 1500)
     } catch (err) {
       console.warn('Direct quick add notice:', err)

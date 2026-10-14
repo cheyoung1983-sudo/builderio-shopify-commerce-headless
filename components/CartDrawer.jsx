@@ -26,6 +26,13 @@ export default function CartDrawer() {
     return () => document.removeEventListener("open-cart", handleOpenCart);
   }, [cart]);
 
+  // Let other fixed UI (e.g. the floating voice widget) know when the drawer
+  // is open so it doesn't cover the checkout button on narrow screens.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(new CustomEvent("cart-drawer:state", { detail: { open: isOpen } }));
+  }, [isOpen]);
+
   const items = cart?.items || [];
   const subtotal = cart?.subtotalFormatted || "$0.00";
 
