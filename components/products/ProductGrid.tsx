@@ -37,9 +37,6 @@ import { SearchBar } from './SearchBar'
 import { ProductFilterSidebar, FilterState } from './ProductFilterSidebar'
 import { CartContext } from '../../context/CartContext'
 import { useQuickView } from '../../context/QuickViewContext'
-import { useToast } from '../../context/ToastContext'
-import { useUI } from '../common/context'
-import { useSafeRouter } from '../../lib/hooks/useSafeRouter'
 import { Breadcrumbs, BreadcrumbItem } from '../common/Breadcrumbs'
 
 export interface ProductGridProps {
@@ -215,9 +212,6 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 
   const cart = useContext(CartContext)
   const { openQuickView } = useQuickView()
-  const { showCartToast } = useToast()
-  const { openSidebar } = useUI()
-  const router = useSafeRouter()
 
   const handleQuickAddToCart = async (product: ShopifyProductNode, e: React.MouseEvent) => {
     e.preventDefault()
@@ -246,28 +240,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       })
 
       setAddedItemHandle(product.handle)
-
-      // Trigger confirmation toast notification with 3-second auto-dismiss, product thumbnail, price, title, and View Cart CTA
-      const formattedPrice = price ? `$${parseFloat(price).toFixed(2)} ${currency}` : null
-      showCartToast({
-        title: product.title,
-        image: imageUrl || null,
-        price: formattedPrice,
-        variantTitle:
-          firstVariant?.title && firstVariant.title !== 'Default Title'
-            ? firstVariant.title
-            : null,
-        quantity: 1,
-        duration: 3000,
-        actionLabel: 'View Cart',
-        onViewBag: () => {
-          if (typeof openSidebar === 'function') {
-            openSidebar()
-          } else {
-            router.push('/cart')
-          }
-        },
-      })
+      // CartContext.addItem already shows the 'Added to Shopping Bag' toast;
+      // showing another here produced duplicate toasts per click.
 
       setTimeout(() => {
         setAddedItemHandle(null)
