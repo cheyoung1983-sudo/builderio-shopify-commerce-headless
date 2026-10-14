@@ -2,7 +2,6 @@ import React from 'react'
 import { Box, jsx, Text, Card, Grid, Divider, NavLink } from 'theme-ui'
 import { FC, useEffect, useState } from 'react'
 import { Bag } from '@components/icons'
-import { useCart, useCheckoutUrl } from '@lib/shopify/storefront-data-hooks'
 import { useCart as useModernCart } from '../../../context/CartContext'
 import CartItem from '../CartItem'
 import { BuilderComponent, builder } from '@builder.io/react'
@@ -10,7 +9,6 @@ import builderConfig from '@config/builder'
 import env from '@config/env'
 
 const CartSidebarView: FC = () => {
-  const cart = useCart()
   const modernCart = useModernCart()
 
   const modernLineItems = (modernCart?.items || []).map((it) => ({
@@ -41,45 +39,14 @@ const CartSidebarView: FC = () => {
     },
   }))
 
-  const rawSubTotal =
-    ((cart as any)?.subtotalPrice as any)?.amount || (cart as any)?.subtotalPrice
-  const rawTotal =
-    ((cart as any)?.totalPrice as any)?.amount ||
-    (cart as any)?.totalPrice ||
-    rawSubTotal
-  const currencyCode =
-    (cart?.subtotalPrice as any)?.currencyCode ||
-    (cart?.lineItems?.[0] as any)?.variant?.priceV2?.currencyCode ||
-    modernCart?.currencyCode ||
-    'USD'
-
-  const formatMoney = (val: any) => {
-    if (!val || val === '-') return '-'
-    const num = parseFloat(val)
-    if (isNaN(num)) return val
-    return `$${num.toFixed(2)} ${currencyCode !== 'USD' ? currencyCode : ''}`.trim()
-  }
-
-  const items =
-    cart?.lineItems && cart.lineItems.length > 0
-      ? cart.lineItems
-      : modernLineItems
+  // Read only from CartContext (same source as the header drawer) so the
+  // /cart page and drawer always show identical items and quantities, and an
+  // emptied cart shows as empty immediately.
+  const items = modernLineItems
   const isEmpty = items.length === 0
-
-  const subTotal =
-    cart?.lineItems && cart.lineItems.length > 0
-      ? formatMoney(rawSubTotal)
-      : modernCart?.subtotalFormatted || '$0.00'
-  const total =
-    cart?.lineItems && cart.lineItems.length > 0
-      ? formatMoney(rawTotal)
-      : modernCart?.subtotalFormatted || '$0.00'
-
-  const checkoutUrl =
-    useCheckoutUrl() ||
-    modernCart?.checkoutUrl ||
-    (cart as any)?.webUrl ||
-    (cart as any)?.checkoutUrl
+  const subTotal = modernCart?.subtotalFormatted || '$0.00'
+  const total = subTotal
+  const checkoutUrl = modernCart?.checkoutUrl
   const [cartUpsell, setCartUpsell] = useState()
 
   const itemHandles = items
