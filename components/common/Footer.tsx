@@ -13,6 +13,7 @@ import {
 import { NewsletterSubscription } from './NewsletterSubscription'
 import { LocalBusinessJsonLd } from './LocalBusinessJsonLd'
 import { openCookiePreferences } from '@lib/hooks/useAcceptCookies'
+import { BUSINESS_INFO } from '@lib/business-info'
 
 export interface FooterProps {
   className?: string
@@ -146,6 +147,16 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
               Your trusted source for OEM-grade mobile device displays, lithium replacement cells, and precision technician repair toolkits.
             </p>
             <div className="text-xs text-neutral-600 space-y-1">
+              <p>
+                Phone:{' '}
+                <a
+                  id="footer-phone-link"
+                  href={BUSINESS_INFO.phoneHref}
+                  className="text-neutral-800 font-medium hover:underline"
+                >
+                  {BUSINESS_INFO.phoneDisplay}
+                </a>
+              </p>
               <p>Email: <span className="text-neutral-800 font-medium">support@displaycellpros.com</span></p>
               <p>Hours: Mon – Fri, 8:00 AM – 6:00 PM PT</p>
             </div>

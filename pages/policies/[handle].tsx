@@ -73,7 +73,11 @@ export default function PolicyPage({ handle, title, bodyHtml }: InferGetStaticPr
               <div className="rounded-2xl border border-border-subtle bg-white p-6 text-sm sm:text-base text-neutral-700 space-y-3">
                 <p>Our {title.toLowerCase()} is being updated and will be posted here shortly.</p>
                 <p>
-                  In the meantime, if you have any questions please email us at{' '}
+                  In the meantime, if you have any questions please call us at{' '}
+                  <a className="font-semibold text-neutral-900 underline" href={BUSINESS_INFO.phoneHref}>
+                    {BUSINESS_INFO.phoneDisplay}
+                  </a>{' '}
+                  or email{' '}
                   <a className="font-semibold text-neutral-900 underline" href={`mailto:${BUSINESS_INFO.email}`}>
                     {BUSINESS_INFO.email}
                   </a>

@@ -10,11 +10,11 @@
  * - legalName / city / state: WA business license for "Display & Cell Pros
  *   LLC", Spokane, WA (Spokane Journal of Business license listing, July 2026).
  * - email: the support address already published in the site footer.
+ * - telephone: provided by Ryan (owner) as the public business line, Oct 2026.
  * - Mobile, service-area business with no public storefront, so no street
  *   address is published.
  *
- * Not yet verified, so intentionally omitted: telephone, street address,
- * opening hours.
+ * Not yet verified, so intentionally omitted: street address, opening hours.
  */
 export const BUSINESS_INFO = {
   name: 'Display & Cell Pros',
@@ -22,6 +22,11 @@ export const BUSINESS_INFO = {
   url: 'https://www.displaycellpros.com',
   logo: 'https://www.displaycellpros.com/assets/logo-new.png',
   email: 'support@displaycellpros.com',
+  /** E.164 form, used for schema.org and tel: links. */
+  telephone: '+15092553852',
+  /** Human-readable form shown on the site and spoken by the voice agent. */
+  phoneDisplay: '(509) 255-3852',
+  phoneHref: 'tel:+15092553852',
   addressLocality: 'Spokane',
   addressRegion: 'WA',
   addressCountry: 'US',
@@ -39,6 +44,7 @@ export function buildLocalBusinessJsonLd() {
     logo: BUSINESS_INFO.logo,
     image: BUSINESS_INFO.logo,
     email: BUSINESS_INFO.email,
+    telephone: '+1-509-255-3852',
     address: {
       '@type': 'PostalAddress',
       addressLocality: BUSINESS_INFO.addressLocality,

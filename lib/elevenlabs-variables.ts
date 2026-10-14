@@ -22,8 +22,8 @@ export const DEFAULT_DYNAMIC_VARIABLES: Record<string, string> = {
   location: "Spokane, WA",
   city: "Spokane",
   state: "WA",
-  store_phone: "support@displaycellpros.com",
-  phone: "support@displaycellpros.com",
+  store_phone: "(509) 255-3852",
+  phone: "(509) 255-3852",
   store_hours: "Monday through Friday, 8:00 AM to 6:00 PM Pacific",
   hours: "Mon-Fri 8am - 6pm PT",
   repair_name: "Display & Touchscreen Assembly",
@@ -103,8 +103,11 @@ export function resolveDynamicVariables(
       if (/location|city|address/i.test(key)) {
         return "Spokane, WA";
       }
-      if (/phone|contact/i.test(key)) {
+      if (/email/i.test(key)) {
         return "support@displaycellpros.com";
+      }
+      if (/phone|contact/i.test(key)) {
+        return "(509) 255-3852";
       }
       if (/warranty/i.test(key)) {
         return "1-Year Comprehensive Warranty";

@@ -875,6 +875,12 @@ export const OrderTracking: React.FC<OrderTrackingProps> = ({
                 </a>
               </div>
               <div className="p-3 rounded-lg bg-neutral-50 flex items-center justify-between">
+                <span>Phone:</span>
+                <a href="tel:+15092553852" className="font-semibold text-neutral-900 underline">
+                  (509) 255-3852
+                </a>
+              </div>
+              <div className="p-3 rounded-lg bg-neutral-50 flex items-center justify-between">
                 <span>Support Hours:</span>
                 <span className="font-medium">Mon–Fri 8:00 AM – 6:00 PM PT</span>
               </div>
