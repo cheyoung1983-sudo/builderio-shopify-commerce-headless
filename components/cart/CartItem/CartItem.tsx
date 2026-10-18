@@ -6,11 +6,27 @@ import { getPrice } from '@lib/shopify/storefront-data-hooks/src/utils/product'
 import { useCart as useModernCart } from '../../../context/CartContext'
 import Link from '@components/common/Link'
 import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '@lib/image'
+/** Cart line as passed in by CartSidebarView (mapped from CartContext items). */
+export interface CartLineView {
+  id: string
+  title: string
+  quantity: number
+  variant: {
+    id: string
+    title: string
+    price: string
+    priceV2: { amount: string; currencyCode: string }
+    image: { id: string; src: string; url?: string; altText?: string | null } | null
+    product: { id: string; handle: string; title: string }
+    selectedOptions: Array<{ name: string; value: string }>
+  }
+}
+
 const CartItem = ({
   item,
   currencyCode,
 }: {
-  item: /*ShopifyBuy.LineItem todo: check if updated types*/ any
+  item: CartLineView
   currencyCode: string
 }) => {
   const modernCart = useModernCart()
@@ -180,7 +196,7 @@ const CartItem = ({
               {removing ? 'Removing…' : 'Remove'}
             </button>
           </li>
-          {(item.variant?.selectedOptions || []).map((option: any) => (
+          {(item.variant?.selectedOptions || []).map((option) => (
             <li key={option.value}>
               {option.name}:{option.value}
             </li>

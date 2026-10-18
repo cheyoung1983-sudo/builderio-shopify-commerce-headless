@@ -4,6 +4,7 @@ import { FC, useEffect, useState } from 'react'
 import { Bag } from '@components/icons'
 import { useCart as useModernCart } from '../../../context/CartContext'
 import CartItem from '../CartItem'
+import type { CartLineView } from '../CartItem/CartItem'
 import { BuilderComponent, builder } from '@builder.io/react'
 import builderConfig from '@config/builder'
 import env from '@config/env'
@@ -11,7 +12,7 @@ import env from '@config/env'
 const CartSidebarView: FC = () => {
   const modernCart = useModernCart()
 
-  const modernLineItems = (modernCart?.items || []).map((it) => ({
+  const modernLineItems: CartLineView[] = (modernCart?.items || []).map((it) => ({
     id: it.lineId || it.id,
     title: it.title,
     quantity: it.quantity,
@@ -49,7 +50,7 @@ const CartSidebarView: FC = () => {
   const [cartUpsell, setCartUpsell] = useState()
 
   const itemHandles = items
-    .map((item: any) => item?.variant?.product?.handle)
+    .map((item) => item.variant.product.handle)
     .filter(Boolean)
     .join(',')
 
@@ -106,12 +107,11 @@ const CartSidebarView: FC = () => {
         </>
       ) : (
         <>
-          {items.map((item: any) => (
+          {items.map((item) => (
             <CartItem
               key={item.id}
               item={item}
-              // todo update types
-              currencyCode={item.variant?.priceV2?.currencyCode || 'USD'}
+              currencyCode={item.variant.priceV2.currencyCode}
             />
           ))}
           <Card

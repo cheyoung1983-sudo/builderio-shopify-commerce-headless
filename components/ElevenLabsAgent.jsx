@@ -29,6 +29,7 @@ import shopifyConfig from "../config/shopify";
 import { storefrontFetch } from "../services/shopify";
 import { createActivityKeeper, ELEVENLABS_ACTIVITY_EVENT } from "../lib/elevenlabs-activity";
 import { buildDynamicVariables, resolveDynamicVariables } from "../lib/elevenlabs-variables";
+import { debugLog } from "../lib/debug-log";
 
 const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || "agent_3101m30qaxc1f3981zq05pp86ax1";
 
@@ -82,7 +83,7 @@ export async function fetchVoiceTokenWithBackoff(agentId, options = {}) {
     const isFinalAttempt = attempt === totalAttempts;
 
     try {
-      console.log(
+      debugLog(
         `[ElevenLabsAgent:Token] [Attempt ${attempt}/${totalAttempts}] Requesting conversation token for agent: "${agentId}"...`
       );
 
@@ -172,14 +173,6 @@ export async function fetchVoiceTokenWithBackoff(agentId, options = {}) {
       }
 
       if (responseBody?.token) {
-        console.log(
-          `[ElevenLabsAgent:Token] [Attempt ${attempt} Success] Ephemeral conversation token acquired successfully:`,
-          {
-            agentId,
-            conversationId: responseBody.conversation_id,
-            tokenPrefix: responseBody.token.substring(0, 16) + "...",
-          }
-        );
         return responseBody.token;
       }
 
@@ -214,7 +207,7 @@ export async function fetchVoiceTokenWithBackoff(agentId, options = {}) {
         const jitter = Math.floor(Math.random() * 150);
         const backoffDelay = Math.min(maxDelayMs, Math.round(exponentialDelay + jitter));
 
-        console.log(`[ElevenLabsAgent:Token] Backing off for ${backoffDelay}ms before retry...`);
+        debugLog(`[ElevenLabsAgent:Token] Backing off for ${backoffDelay}ms before retry...`);
         await new Promise((resolve) => setTimeout(resolve, backoffDelay));
       }
     }
@@ -296,7 +289,6 @@ export default function ElevenLabsAgent() {
     try {
       if (typeof conversationRef.current.sendContextualUpdate === "function") {
         conversationRef.current.sendContextualUpdate(text);
-        console.log(`[ElevenLabs:Context] Sent contextual update: "${text}"`);
       }
     } catch (err) {
       console.warn("[ElevenLabs:Context] Error sending contextual update:", err);
@@ -308,7 +300,7 @@ export default function ElevenLabsAgent() {
     try {
       if (typeof conversationRef.current.sendUserActivity === "function") {
         conversationRef.current.sendUserActivity();
-        console.log("[ElevenLabs:Activity] Sent user_activity heartbeat ping");
+        debugLog("[ElevenLabs:Activity] Sent user_activity heartbeat ping");
       }
     } catch (err) {
       console.warn("[ElevenLabs:Activity] Error sending user activity:", err);
@@ -361,7 +353,7 @@ export default function ElevenLabsAgent() {
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = null;
-      console.log(`[ElevenLabs:LIFECYCLE] reconnect cancelled`);
+      debugLog(`[ElevenLabs:LIFECYCLE] reconnect cancelled`);
     }
     generationRef.current++;
     try {
@@ -392,10 +384,10 @@ export default function ElevenLabsAgent() {
   }, []);
 
   const startSession = useCallback(async (options = {}) => {
-    console.log(`[ElevenLabs:LIFECYCLE] start requested (gen: ${generationRef.current + 1})`);
+    debugLog(`[ElevenLabs:LIFECYCLE] start requested (gen: ${generationRef.current + 1})`);
 
     if (connectingRef.current || conversationRef.current) {
-      console.log(`[ElevenLabs:LIFECYCLE] start ignored - already connecting (gen: ${generationRef.current})`);
+      debugLog(`[ElevenLabs:LIFECYCLE] start ignored - already connecting (gen: ${generationRef.current})`);
       return;
     }
 
@@ -407,7 +399,7 @@ export default function ElevenLabsAgent() {
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
-        console.log(`[ElevenLabs:LIFECYCLE] reconnect cancelled`);
+        debugLog(`[ElevenLabs:LIFECYCLE] reconnect cancelled`);
       }
     }
     const transportMode = options.connectionMode || connectionModeRef.current || "websocket";
@@ -431,7 +423,7 @@ export default function ElevenLabsAgent() {
       }
 
       if (!mountedRef.current || currentGen !== generationRef.current) {
-        console.log(`[ElevenLabs:LIFECYCLE] stale session discarded (gen: ${currentGen})`);
+        debugLog(`[ElevenLabs:LIFECYCLE] stale session discarded (gen: ${currentGen})`);
         connectingRef.current = false;
         return;
       }
@@ -941,14 +933,14 @@ export default function ElevenLabsAgent() {
             }),
         onConnect: () => {
           if (!mountedRef.current || currentGen !== generationRef.current) return;
-          console.log(`[ElevenLabs:LIFECYCLE] connected (gen: ${currentGen})`);
+          debugLog(`[ElevenLabs:LIFECYCLE] connected (gen: ${currentGen})`);
           setStatus("connected");
           setShowDiagnostics(false);
           reconnectAttemptRef.current = 0;
         },
         onDisconnect: () => {
           if (!mountedRef.current || currentGen !== generationRef.current) return;
-          console.log(`[ElevenLabs:LIFECYCLE] disconnected (gen: ${currentGen}, attempt: ${reconnectAttemptRef.current})`);
+          debugLog(`[ElevenLabs:LIFECYCLE] disconnected (gen: ${currentGen}, attempt: ${reconnectAttemptRef.current})`);
           setStatus("disconnected");
           setIsSpeaking(false);
           setOutputVolume(0);
@@ -966,7 +958,7 @@ export default function ElevenLabsAgent() {
             const attempt = reconnectAttemptRef.current;
             const delay = Math.min(1000 * Math.pow(2, attempt), 30000);
             reconnectAttemptRef.current++;
-            console.log(`[ElevenLabs:LIFECYCLE] reconnect scheduled in ${delay}ms (attempt ${attempt + 1}, gen: ${currentGen})`);
+            debugLog(`[ElevenLabs:LIFECYCLE] reconnect scheduled in ${delay}ms (attempt ${attempt + 1}, gen: ${currentGen})`);
             reconnectTimerRef.current = setTimeout(() => {
               reconnectTimerRef.current = null;
               if (!mountedRef.current || connectingRef.current || conversationRef.current || currentGen !== generationRef.current) return;
@@ -1099,13 +1091,13 @@ export default function ElevenLabsAgent() {
         onAgentToolResponse: (response) => {
           if (!mountedRef.current || currentGen !== generationRef.current) return;
           if (response?.tool_name) {
-            console.log(`[ElevenLabsAgent] Agent executed tool: ${response.tool_name}`);
+            debugLog(`[ElevenLabsAgent] Agent executed tool: ${response.tool_name}`);
           }
         },
         onAgentToolResponseFullPayload: (response) => {
           if (!mountedRef.current || currentGen !== generationRef.current) return;
           if (response?.tool_name && response?.full_tool_result) {
-            console.log(`[ElevenLabsAgent] Tool ${response.tool_name} returned payload:`, response.full_tool_result);
+            debugLog(`[ElevenLabsAgent] Tool ${response.tool_name} returned a payload`);
           }
         },
         onGuardrailTriggered: () => {
@@ -1124,7 +1116,7 @@ export default function ElevenLabsAgent() {
       });
 
       if (!mountedRef.current || currentGen !== generationRef.current) {
-        console.log(`[ElevenLabs:LIFECYCLE] stale session discarded (gen: ${currentGen})`);
+        debugLog(`[ElevenLabs:LIFECYCLE] stale session discarded (gen: ${currentGen})`);
         conversation.endSession().catch(() => {});
         return;
       }
@@ -1345,7 +1337,7 @@ export default function ElevenLabsAgent() {
     const currentGenerationRef = generationRef;
     currentGenerationRef.current++;
     const gen = currentGenerationRef.current;
-    console.log(`[ElevenLabs:LIFECYCLE] cleanup setup (gen: ${gen})`);
+    debugLog(`[ElevenLabs:LIFECYCLE] cleanup setup (gen: ${gen})`);
 
     return () => {
       mountedRef.current = false;
@@ -1353,7 +1345,7 @@ export default function ElevenLabsAgent() {
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
-        console.log(`[ElevenLabs:LIFECYCLE] reconnect cancelled`);
+        debugLog(`[ElevenLabs:LIFECYCLE] reconnect cancelled`);
       }
       if (volumeAnimFrameRef.current) {
         cancelAnimationFrame(volumeAnimFrameRef.current);
@@ -1365,7 +1357,7 @@ export default function ElevenLabsAgent() {
         conv.endSession().catch(() => {});
       }
       connectingRef.current = false;
-      console.log(`[ElevenLabs:LIFECYCLE] cleanup`);
+      debugLog(`[ElevenLabs:LIFECYCLE] cleanup`);
     };
   }, []);
 
