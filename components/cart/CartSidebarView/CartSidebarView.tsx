@@ -95,9 +95,13 @@ const CartSidebarView: FC = () => {
       {isEmpty ? (
         <>
           <Bag />
-          Your cart is empty
-          <Text>
-            Biscuit oat cake wafer icing ice cream tiramisu pudding cupcake.
+          Your bag is empty
+          <Text sx={{ textAlign: 'center', mt: 2 }}>
+            Browse our repair services and parts, or call us at{' '}
+            <a href="tel:+15092553852" style={{ color: 'inherit' }}>
+              (509) 255-3852
+            </a>{' '}
+            for help.
           </Text>
         </>
       ) : (
