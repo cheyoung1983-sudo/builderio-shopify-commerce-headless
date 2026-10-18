@@ -18,7 +18,11 @@
     "@opentelemetry/core": "^2.8.0",
     "sharp": "^0.35.5",
     "source-map-js": "^1.2.2",
-    "@grpc/grpc-js": "^1.13.6"
+    "@grpc/grpc-js": "^1.13.6",
+    "@builder.io/dev-tools": {
+      "@sentry/node": "$@sentry/node"
+    },
+    "postcss-selector-parser": "^7.1.6"
   },
   "scripts": {
     "dev": "next dev -p 3000 -H 0.0.0.0",
