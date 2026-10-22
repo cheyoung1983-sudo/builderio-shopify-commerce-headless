@@ -45,7 +45,7 @@ Execute the following sequence before deploying to staging or production:
    npm run build
    ```
 3. **Verify API Routes & Proxy Health**:
-   - Ensure `/api/agent/ws-proxy` and voice endpoints return valid JSON responses and proper CORS headers.
+   - Ensure voice endpoints return valid JSON responses and proper CORS headers.
 4. **Deploy & Smoke Test**:
    - Deploy artifact to hosting environment.
    - Verify homepage, product PDPs, collection grids, cart mutations, and ElevenLabs voice widget connectivity.

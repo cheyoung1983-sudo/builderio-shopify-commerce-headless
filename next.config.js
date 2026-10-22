@@ -83,7 +83,6 @@ const nextConfig = {
               //  - GA4 collection endpoints + GTM.
               //  - us-atlas map data for the order-tracking map overlay.
               //  - Vercel Toolbar (previews) and Speed Insights.
-              //  - 'self' also covers same-origin wss:// (/api/agent/ws-proxy).
               [
                 "connect-src 'self'",
                 'https://cdn.builder.io https://builder.io https://*.builder.io',
