@@ -229,7 +229,7 @@ const getVoiceToken = fetchVoiceTokenWithBackoff;
  * @component
  * @returns {JSX.Element} Floating Voice Agent widget and dialogue sheet
  */
-export default function ElevenLabsAgent() {
+export default function ElevenLabsAgent({ initialOpen = false } = {}) {
   const router = useRouter();
   const [status, setStatus] = useState("disconnected"); // 'disconnected' | 'connecting' | 'connected' | 'error'
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -243,7 +243,7 @@ export default function ElevenLabsAgent() {
   const smoothedVolumeRef = useRef(0);
   const smoothedInputVolumeRef = useRef(0);
   const [isInIframe, setIsInIframe] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(Boolean(initialOpen));
   const conversationRef = useRef(null);
   const connectingRef = useRef(false);
   const mountedRef = useRef(true);
