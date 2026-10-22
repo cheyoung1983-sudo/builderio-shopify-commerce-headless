@@ -135,6 +135,12 @@ export default function Path({
           >
             Browse all products
           </Link>
+          <a
+            href="https://triage.displaycellpros.com"
+            className="mt-7 ml-3 inline-flex rounded-md border border-emerald-700 px-5 py-3 font-semibold text-emerald-700 transition hover:bg-emerald-50"
+          >
+            Get a diagnosis
+          </a>
         </section>
         <section className="w-full max-w-7xl mx-auto mt-12 px-4 sm:px-6 lg:px-8">
           <ProductGrid

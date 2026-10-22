@@ -133,6 +133,12 @@ const Navbar: FC = () => {
                   </Link>
                 </>
               )}
+              <a
+                href="https://triage.displaycellpros.com"
+                className="px-2.5 py-1.5 text-sm font-medium text-neutral-700 hover:text-emerald-700 transition-colors rounded-md whitespace-nowrap"
+              >
+                Get a diagnosis
+              </a>
             </nav>
           </div>
 
@@ -247,6 +253,14 @@ const Navbar: FC = () => {
                   </Link>
                 </>
               )}
+              <a
+                id="mobile-drawer-diagnosis-link"
+                href="https://triage.displaycellpros.com"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2.5 px-3 text-base font-semibold text-neutral-900 hover:bg-neutral-50 rounded-lg border-b border-neutral-100 transition-colors"
+              >
+                Get a diagnosis
+              </a>
               <Link
                 href="/trends"
                 onClick={() => setMobileMenuOpen(false)}
