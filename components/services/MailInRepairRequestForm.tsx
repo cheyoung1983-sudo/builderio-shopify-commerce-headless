@@ -128,7 +128,9 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
     }
   }, [user?.email, email])
 
-  // Sync URL query parameters if present (e.g. from RepairRequestBridge / catalog)
+  // Sync URL query parameters if present (e.g. from RepairRequestBridge / catalog).
+  // Read after mount on purpose: the page is statically rendered, so reading
+  // window.location during render would cause a hydration mismatch.
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -139,6 +141,7 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
 
         if (brandParam) {
           const matched = COMMON_BRANDS.find((b) => b.toLowerCase() === brandParam.toLowerCase())
+          // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time URL prefill after hydration
           setDeviceBrand(matched || brandParam)
         }
 
