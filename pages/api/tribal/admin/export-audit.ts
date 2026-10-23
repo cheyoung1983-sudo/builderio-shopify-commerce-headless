@@ -1,29 +1,33 @@
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextApiRequest, NextApiResponse } from 'next'
 import {
   exportAuditLogsToCsv,
   normalizeAuditEntryForExport,
   type TribalAuditExportRecord,
-} from '../../../../../lib/tribal/audit-csv-exporter.ts'
-
-export const dynamic = 'force-dynamic'
+} from '../../../../lib/tribal/audit-csv-exporter.ts'
+import { rejectMethod } from '../../../../lib/api/read-raw-body.ts'
 
 /**
  * Admin API Route: Export Tribal Verification Audit Logs & Exemption Certificates as CSV
- * 
+ * Moved from app/api/tribal/admin/export-audit/route.ts (pure move). Guarded by proxy.ts.
+ *
  * GET /api/tribal/admin/export-audit
  * Query Params:
  *  - customerId (optional)
  *  - status (optional, e.g. VERIFIED)
  *  - format (csv | json, default csv)
  */
-export async function GET(req: NextRequest) {
+export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (rejectMethod(req, res, ['GET', 'HEAD', 'OPTIONS'])) return
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Allow', 'GET, HEAD, OPTIONS')
+    return res.status(204).end()
+  }
   try {
-    const { searchParams } = new URL(req.url)
+    const searchParams = new URL(req.url || '/', 'http://localhost').searchParams
     const customerId = searchParams.get('customerId')
     const filterStatus = searchParams.get('status')
     const format = searchParams.get('format') || 'csv'
 
-    // Sample/simulated verified tribal members and certificates for admin reporting
     const sampleRecords: TribalAuditExportRecord[] = [
       normalizeAuditEntryForExport(
         {
@@ -127,7 +131,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (format === 'json') {
-      return NextResponse.json({
+      return res.status(200).json({
         total: filteredRecords.length,
         exportedAt: new Date().toISOString(),
         records: filteredRecords,
@@ -140,19 +144,14 @@ export async function GET(req: NextRequest) {
     // Prepend UTF-8 BOM for Microsoft Excel compatibility
     const responseBuffer = '\uFEFF' + csvData
 
-    return new NextResponse(responseBuffer, {
-      status: 200,
-      headers: {
-        'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Cache-Control': 'no-store, max-age=0',
-      },
-    })
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+    res.setHeader('Cache-Control', 'no-store, max-age=0')
+    return res.status(200).send(responseBuffer)
   } catch (error: any) {
     console.error('Error generating audit CSV export:', error)
-    return NextResponse.json(
-      { error: 'Failed to generate audit CSV export', details: error?.message },
-      { status: 500 }
-    )
+    return res
+      .status(500)
+      .json({ error: 'Failed to generate audit CSV export', details: error?.message })
   }
 }
