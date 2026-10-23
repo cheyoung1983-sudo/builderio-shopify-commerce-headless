@@ -91,7 +91,7 @@ function flow({
   return JSON.parse(out.trim().split('\n').pop())
 }
 
-const graphqlCalls = (r) => r.calls.filter((c) => c.url.includes('myshopify.com') && c.url.includes('graphql'))
+const graphqlCalls = (r) => r.calls.filter((c) => new URL(c.url).hostname === 'example.myshopify.com' && new URL(c.url).pathname.endsWith('/graphql.json'))
 const slackPost = (r) => r.calls.find((c) => c.url.startsWith('https://hooks.slack.com/services/'))
 
 describe('Tribal verification: Slack manual review', () => {
