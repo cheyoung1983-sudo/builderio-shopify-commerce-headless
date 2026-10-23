@@ -340,6 +340,13 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
               Terms of Service
             </Link>
             <Link
+              id="footer-sms-terms-link"
+              href="/sms-terms"
+              className="hover:text-neutral-800 transition-colors"
+            >
+              SMS Terms
+            </Link>
+            <Link
               id="footer-shipping-policy-link"
               href="/policies/shipping-policy"
               className="hover:text-neutral-800 transition-colors"
