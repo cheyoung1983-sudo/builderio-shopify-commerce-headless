@@ -31,6 +31,7 @@ function flow({ env = {}, action = 'tribal_approve', badSignature = false, custo
       const body = init.body ? String(init.body) : ''
       calls.push({ url: String(url), body })
       if (String(url).includes('oauth/access_token')) return new Response(JSON.stringify({ access_token: 'tok', expires_in: 3600 }), { status: 200 })
+      if (String(url).includes('graphql') && body.includes('tagsAdd(')) return new Response(JSON.stringify({ data: { tagsAdd: { node: { id: 'gid://shopify/Customer/1' }, userErrors: [] } } }), { status: 200 })
       if (String(url).includes('graphql')) return new Response(JSON.stringify({ data: { customerUpdate: { customer: { id: 'gid://shopify/Customer/1', tags: ['tribal-member-verified'], taxExempt: false }, userErrors: [] } } }), { status: 200 })
       return new Response('ok', { status: 200 })
     }
@@ -91,10 +92,14 @@ describe('Tribal verification: Slack manual review', () => {
     const r = flow()
     expect(r.interaction.statusCode).toBe(200)
     const gql = graphqlCalls(r)
-    expect(gql).toHaveLength(1)
+    expect(gql).toHaveLength(2)
     const input = JSON.parse(gql[0].body).variables.input
-    expect(input.tags).toEqual(['tribal-member-verified'])
+    expect(input.tags).toBeUndefined()
     expect(input.taxExempt).toBe(false)
+    const tagsAdd = JSON.parse(gql[1].body)
+    expect(tagsAdd.query).toContain('tagsAdd(')
+    expect(tagsAdd.variables.tags).toEqual(['tribal-member-verified'])
+    expect(r.calls.some((c) => c.body.includes('Shopify customer tagged'))).toBe(true)
     expect(r.calls.some((c) => c.url.startsWith('https://hooks.slack.com/actions/') && c.body.includes('Approved'))).toBe(true)
   })
 
