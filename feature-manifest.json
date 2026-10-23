@@ -11,7 +11,7 @@
       "status": "implemented"
     },
     "cart": {
-      "components": ["/components/CartDrawer.jsx"],
+      "components": ["/components/cart/CartSidebarView/CartSidebarView.tsx", "/components/cart/OpenCartBridge/OpenCartBridge.tsx"],
       "api_routes": [],
       "status": "implemented"
     }
