@@ -22,6 +22,7 @@ query Input {
             excluded: hasAnyTag(tags: ["trip-fee", "battery-addon", "tribal-excluded"])
             isBundle: hasAnyTag(tags: ["bundle"])
             isMailIn: hasAnyTag(tags: ["mail-in"])
+            isBatteryRepair: hasAnyTag(tags: ["battery-repair"])
             bundleEligibleAmount: metafield(namespace: "dcp", key: "tribal_eligible_amount") {
               value
             }

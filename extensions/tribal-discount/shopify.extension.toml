@@ -1,7 +1,7 @@
 # Shopify Discount Function: Native American Tribal Member 20% discount.
 # Deploy with the Shopify CLI from the repo root: `shopify app deploy`.
 # See extensions/tribal-discount/README.md for the eligibility rules and setup.
-api_version = "2025-07"
+api_version = "2026-10"
 
 [[extensions]]
 name = "Tribal Member 20% Discount"

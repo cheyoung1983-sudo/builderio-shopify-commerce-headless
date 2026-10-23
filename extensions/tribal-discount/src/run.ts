@@ -9,9 +9,13 @@
  *    or `tribal-excluded`, even if also tagged `tribal-eligible`.
  *  - Bundles (tag `bundle`): only the non-battery component is discounted. The product
  *    metafield `dcp.tribal_eligible_amount` holds that component's retail price per unit;
- *    the discount is 20% of it, per item. A bundle without the metafield gets no discount.
+ *    the discount is 20% of it, per item. A bundle without the metafield gets NO discount
+ *    ("pending price"): Flow fills the metafield from live Shopify variant prices.
  *  - Mail-in products (tag `mail-in`): when `mailInBundlesOnly` is on, only mail-in
  *    bundles qualify. PENDING RYAN; default follows Finance's recommendation (on).
+ *  - Battery-only repairs (tag `battery-repair`, not a bundle): excluded unless
+ *    `batteryOnlyInShop` is on (PENDING RYAN, default off); then 20% in-shop only.
+ *    Mail-in battery-only is always excluded.
  *  - No stacking: the discount is created with combinesWith all false (see README);
  *    a Function cannot enforce that itself.
  *
@@ -24,11 +28,14 @@ export const TRIBAL_DISCOUNT_MESSAGE = 'Native American Tribal Member Commercial
 export interface FunctionConfiguration {
   /** PENDING RYAN: tribal discount on mail-in repairs only for screen + battery bundles. */
   mailInBundlesOnly?: boolean
+  /** PENDING RYAN: 20% on battery-only repairs (tag `battery-repair`) in-shop. Mail-in never. */
+  batteryOnlyInShop?: boolean
 }
 
 /** Finance recommendation. PENDING RYAN: flip via the discount metafield, no deploy needed. */
 export const DEFAULT_CONFIGURATION: Required<FunctionConfiguration> = {
   mailInBundlesOnly: true,
+  batteryOnlyInShop: false,
 }
 
 export interface RunInput {
@@ -46,6 +53,7 @@ export interface RunInput {
           excluded?: boolean
           isBundle?: boolean
           isMailIn?: boolean
+          isBatteryRepair?: boolean
           bundleEligibleAmount?: { value: string } | null
         }
       }
@@ -80,6 +88,8 @@ export function readConfiguration(input: RunInput): Required<FunctionConfigurati
   return {
     mailInBundlesOnly:
       typeof cfg.mailInBundlesOnly === 'boolean' ? cfg.mailInBundlesOnly : DEFAULT_CONFIGURATION.mailInBundlesOnly,
+    batteryOnlyInShop:
+      typeof cfg.batteryOnlyInShop === 'boolean' ? cfg.batteryOnlyInShop : DEFAULT_CONFIGURATION.batteryOnlyInShop,
   }
 }
 
@@ -93,12 +103,20 @@ export function cartLinesDiscountsGenerateRun(input: RunInput): RunResult {
 
   for (const line of input.cart.lines) {
     const product = line.merchandise.__typename === 'ProductVariant' ? line.merchandise.product : undefined
-    if (!product || !product.tribalEligible || product.excluded) continue
+    if (!product || product.excluded) continue
+    if (product.isBatteryRepair && !product.isBundle) {
+      // Battery-only: mail-in never; in-shop only when batteryOnlyInShop is on (PENDING RYAN).
+      if (product.isMailIn || !config.batteryOnlyInShop) continue
+      percentTargets.push({ cartLine: { id: line.id } })
+      continue
+    }
+    if (!product.tribalEligible) continue
     if (product.isMailIn && config.mailInBundlesOnly && !product.isBundle) continue
 
     if (product.isBundle) {
       const eligible = Number(product.bundleEligibleAmount?.value)
-      if (!Number.isFinite(eligible) || eligible <= 0) continue
+      // No dcp.tribal_eligible_amount yet = "pending price": no discount until Flow sets it.
+      if (!product.bundleEligibleAmount?.value || !Number.isFinite(eligible) || eligible <= 0) continue
       const unitPrice = Number(line.cost.amountPerQuantity.amount)
       const base = Number.isFinite(unitPrice) ? Math.min(eligible, unitPrice) : eligible
       const amount = Math.round(base * TRIBAL_DISCOUNT_PERCENT) / 100

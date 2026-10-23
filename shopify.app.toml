@@ -19,4 +19,4 @@ scopes = "write_discounts,read_customers,write_customers,read_products,read_orde
 redirect_urls = ["https://www.displaycellpros.com/api/auth/callback"]
 
 [webhooks]
-api_version = "2025-07"
+api_version = "2026-10"

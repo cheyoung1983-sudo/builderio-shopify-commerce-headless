@@ -11,7 +11,8 @@ Target `cart.lines.discounts.generate.run`, discount class **PRODUCT**.
 | Customer qualifies | Customer tag `tribal-member-verified` (legacy `Tribal_Verified` also accepted) |
 | Line qualifies | Product tag `tribal-eligible` (screen / repair products: parts + labor) |
 | Never discounted | Product tags `trip-fee` ($25 mobile trip fee), `battery-addon`, `tribal-excluded` (these win over `tribal-eligible`) |
-| Bundles | Product tag `bundle` + metafield `dcp.tribal_eligible_amount` (number, retail $ of the **non-battery** component per unit). Discount = 20% of that amount per item. No metafield = no discount on the bundle. |
+| Bundles | Product tag `bundle` + metafield `dcp.tribal_eligible_amount` (number, retail $ of the **non-battery** component per unit). Discount = 20% of that amount per item. No metafield = no discount on the bundle ("pending price"). **Flow fills `dcp.tribal_eligible_amount` from the live Shopify variant price of the non-battery component** (e.g. iPhone 16 OLED + battery $227 bundle: `147`, 20% = $29.40 off). |
+| Battery-only repairs | Product tag `battery-repair` (not `bundle`). Excluded unless config `batteryOnlyInShop` is `true` (**PENDING RYAN**, default `false`); then 20% in-shop only. Mail-in battery-only (`battery-repair` + `mail-in`) is always excluded. |
 | Mail-in | Product tag `mail-in`. With `mailInBundlesOnly` on, only mail-in products also tagged `bundle` qualify. |
 | No stacking | Create the discount with `combinesWith` all `false` (below). A Function can't enforce this itself. |
 
@@ -21,8 +22,12 @@ Target `cart.lines.discounts.generate.run`, discount class **PRODUCT**.
 Override without a deploy by setting the discount metafield `$app:tribal-discount.function-configuration` (type `json`):
 
 ```json
-{ "mailInBundlesOnly": false }
+{ "mailInBundlesOnly": true, "batteryOnlyInShop": false }
 ```
+
+Mail-in screen-only and battery-only are priced "Quoted at intake" in the storefront estimator (no hardcoded prices).
+
+API version: `2026-10` (latest stable Functions API, verified on shopify.dev 2026-10-23). After bumping, run `npm run typegen` / `shopify app function schema`; target `cart.lines.discounts.generate.run` is unchanged.
 
 ## Go-live (Flow)
 
@@ -39,11 +44,11 @@ mutation {
     discountClasses: [PRODUCT]
     startsAt: "2026-11-01T00:00:00Z"
     combinesWith: { productDiscounts: false, orderDiscounts: false, shippingDiscounts: false }
-    metafields: [{ namespace: "$app:tribal-discount", key: "function-configuration", type: "json", value: "{\"mailInBundlesOnly\":true}" }]
+    metafields: [{ namespace: "$app:tribal-discount", key: "function-configuration", type: "json", value: "{\"mailInBundlesOnly\":true,\"batteryOnlyInShop\":false}" }]
   }) { automaticAppDiscount { discountId } userErrors { field message } }
 }
 ```
 
-5. Tag products: `tribal-eligible` on screen/repair products; `trip-fee` on the trip fee; `battery-addon` on battery add-ons; `bundle` + `dcp.tribal_eligible_amount` on bundles; `mail-in` on mail-in products.
+5. Tag products: `tribal-eligible` on screen/repair products; `trip-fee` on the trip fee; `battery-addon` on battery add-ons; `bundle` + `dcp.tribal_eligible_amount` on bundles; `mail-in` on mail-in products; `battery-repair` on battery-only repair products.
 
 Tests: `tests/tribal-discount-extension.test.js`.

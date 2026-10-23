@@ -44,6 +44,7 @@ describe('Tribal discount Shopify Function extension', () => {
     const toml = fs.readFileSync(path.join(extDir, 'shopify.extension.toml'), 'utf8')
     expect(toml).toContain('type = "function"')
     expect(toml).toContain('cart.lines.discounts.generate.run')
+    expect(toml).toContain('api_version = "2026-10"')
     const gql = fs.readFileSync(path.join(extDir, 'src/run.graphql'), 'utf8')
     expect(gql).toContain('hasAnyTag(tags: ["tribal-member-verified", "Tribal_Verified"])')
     expect(gql).toContain('discountClasses')
@@ -86,5 +87,45 @@ describe('Tribal discount Shopify Function extension', () => {
     expect(def.map((c) => c.targets[0].cartLine.id)).toEqual(['2'])
     const off = candidates(run(input([line('1', mailInScreen), line('2', mailInBundle)], { config: { mailInBundlesOnly: false } })))
     expect(off.map((c) => c.targets[0].cartLine.id).sort()).toEqual(['1', '2'])
+  })
+
+  test('first real bundle: iPhone 16 OLED + battery $227, eligible 147 -> $29.40 off', () => {
+    const bundle = { tribalEligible: true, isBundle: true, bundleEligibleAmount: { value: '147' } }
+    const c = candidates(run(input([line('ip16', bundle, '227.00')])))
+    expect(c).toHaveLength(1)
+    expect(c[0].value).toEqual({ fixedAmount: { amount: '29.40', appliesToEachItem: true } })
+  })
+
+  test('bundle with empty dcp.tribal_eligible_amount ("pending price") gets no discount', () => {
+    for (const value of ['', '0', 'abc']) {
+      const bundle = { tribalEligible: true, isBundle: true, bundleEligibleAmount: { value } }
+      expect(run(input([line('b', bundle, '227.00')]))).toEqual({ operations: [] })
+    }
+  })
+
+  test('battery-only repair: excluded by default (batteryOnlyInShop false, PENDING RYAN)', () => {
+    const battery = { isBatteryRepair: true, tribalEligible: true }
+    expect(run(input([line('bat', battery, '89.00')]))).toEqual({ operations: [] })
+  })
+
+  test('battery-only repair: 20% in-shop when batteryOnlyInShop is true; mail-in battery-only never', () => {
+    const inShop = { isBatteryRepair: true }
+    const mailIn = { isBatteryRepair: true, isMailIn: true, tribalEligible: true }
+    const cfg = { config: { batteryOnlyInShop: true, mailInBundlesOnly: false } }
+    const c = candidates(run(input([line('shop', inShop), line('mail', mailIn)], cfg)))
+    expect(c).toHaveLength(1)
+    expect(c[0].value).toEqual({ percentage: { value: 20 } })
+    expect(c[0].targets).toEqual([{ cartLine: { id: 'shop' } }])
+  })
+
+  test('battery add-on stays excluded even with batteryOnlyInShop', () => {
+    const addon = { isBatteryRepair: true, excluded: true }
+    expect(run(input([line('a', addon)], { config: { batteryOnlyInShop: true } }))).toEqual({ operations: [] })
+  })
+
+  test('mail-in estimator keeps "Quoted at intake" for screen-only / battery-only (no hardcoded prices)', () => {
+    const src = fs.readFileSync(path.join(repoRoot, 'components/services/MailInRepairEstimator.tsx'), 'utf8')
+    expect(src).toContain('Quoted at intake')
+    expect(src).not.toMatch(/49\.99|39\.99/)
   })
 })
