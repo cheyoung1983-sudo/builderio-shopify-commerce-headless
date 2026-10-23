@@ -106,6 +106,7 @@
     ]
   },
   "dependencies": {
+    "@auth0/nextjs-auth0": "^4.33.0",
     "@builder.io/dev-tools": "^1.85.1",
     "@builder.io/react": "^3.1.1",
     "@builder.io/utils": "1.1.10",

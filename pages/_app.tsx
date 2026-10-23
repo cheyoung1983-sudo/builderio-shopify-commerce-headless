@@ -10,6 +10,7 @@ import { useScrollRestoration } from '../lib/scroll-restoration'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Analytics } from '@vercel/analytics/next'
 import { AuthProvider } from '../hooks/useAuth'
+import { Auth0Provider } from '@auth0/nextjs-auth0/client'
 
 if (builderConfig.apiKey) {
   builder.init(builderConfig.apiKey)
@@ -52,19 +53,21 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   }, [])
 
   return (
-    <AuthProvider>
-      <ErrorBoundary boundaryName="app-root-layout">
-        <Layout pageProps={pageProps}>
-          <Component {...pageProps} />
-        </Layout>
-        {process.env.NEXT_PUBLIC_VERCEL_ENV ? (
-          <>
-            <SpeedInsights />
-            <Analytics />
-          </>
-        ) : null}
-      </ErrorBoundary>
-    </AuthProvider>
+    <Auth0Provider>
+      <AuthProvider>
+        <ErrorBoundary boundaryName="app-root-layout">
+          <Layout pageProps={pageProps}>
+            <Component {...pageProps} />
+          </Layout>
+          {process.env.NEXT_PUBLIC_VERCEL_ENV ? (
+            <>
+              <SpeedInsights />
+              <Analytics />
+            </>
+          ) : null}
+        </ErrorBoundary>
+      </AuthProvider>
+    </Auth0Provider>
   )
 }
 

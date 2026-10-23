@@ -1,55 +1,60 @@
-# Implementation Plan: RepairRequestBridge Component & Prepaid Shipping Integration
+# Implementation Plan: Repair Status Tracker & Auth0 Authentication
 
-An architectural blueprint to implement the `RepairRequestBridge` component, linking the catalog's phone model selector to the Mail-In Repair workflow with automated brand, model, and symptom pre-filling, coupled with certified 2.0 lb prepaid postage packaging specifications.
+A unified implementation plan to create a dedicated **Repair Status Tracker** page component with dual-factor lookup (Repair Request ID + Email verification) and integrate **Auth0 authentication** (`@auth0/nextjs-auth0`) with Login, Logout, Profile components, and resilient fallback handling for the Next.js storefront.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The following directions were confirmed during Phase 1 clarification:
-> - **Bridge Presentation**: Prominent, high-converting banner directly beneath the `DeviceCompatibilityChecker` in the `/products` catalog header with 1-click action.
-> - **Pre-Filled Attributes**: Automatically populates device brand, exact hardware model name, and symptom classification derived from the active part category (e.g. Screen & OLED $\to$ `screen_cracked`, Battery $\to$ `battery_degraded`, Charging Port $\to$ `port_audio`).
-> - **Shipping Weight & Postage Specification**:
->   - **Maximum Device Shipping Weight**: Modern flagship smartphones (e.g., iPhone 16 Pro Max at 227g / 8.0 oz; Galaxy Z Fold 5 at 253g / 8.9 oz) packaged with anti-static foam inserts and rigid corrugated box weigh between **12 oz and 24 oz (0.75 lb to 1.5 lbs)**.
->   - **Prepaid Postage Rating**: Standardized at **2.0 lbs (32 oz)** via USPS Ground Advantage / UPS Ground with UN3481 lithium-ion battery compliance marking. Customers receive a **100% prepaid return mailer box with zero postage due**.
+> - **Repair Status Tracker Scope**: Dedicated page at `/track-repair` (and reusable component `components/services/RepairStatusLookup.tsx`) allowing customers to lookup repairs using their **Repair Request ID (RMS#)** and **Email Address**. Verifies email ownership before rendering private diagnostic and shipping data.
+> - **Auth0 Integration Architecture**:
+>   - Implements `@auth0/nextjs-auth0` for user authentication.
+>   - Provides `LoginButton.tsx`, `LogoutButton.tsx`, and `Profile.tsx` styled to match the storefront's design language.
+>   - Mounts the Next.js Auth0 dynamic route handler (`pages/api/auth/[...auth0].ts`).
+>   - Built with resilient runtime guards: If live Auth0 tenant environment variables (`AUTH0_SECRET`, `AUTH0_BASE_URL`, `AUTH0_ISSUER_BASE_URL`, `AUTH0_CLIENT_ID`) are not yet populated in production, graceful fallback and demo mode prevent build and dev server crashes while displaying clear setup instructions.
+>   - Authenticated users automatically have their email pre-filled into the Repair Status Tracker and can view their linked repair history.
 
 ---
 
 ### 1. Overview & Core Concept
 
-- **The Problem**: Customers browsing replacement screens and parts often realize DIY repair requires specialized tools, heating mats, or technical confidence they may not possess. Without an immediate, zero-friction path to professional mail-in service, they abandon the session.
-- **The Solution**: The `RepairRequestBridge` detects the user's active device selection (`selectedBrand`, `selectedModel`, `selectedCategory`) and surfaces an intelligent callout:
-  - *"Prefer our certified Spokane technicians to install this for your [Device]? We'll send an Electrostatic Mailer with Prepaid Postage (rated up to 2 lbs). Typical turnaround: 24–48 hours."*
-- **1-Click Conversion**: Clicking "Book Mail-In Repair" navigates directly to `/services` (or opens the repair intake modal) with pre-populated fields:
-  - Brand: `Samsung` / `Apple` / `Google`
-  - Model: `Galaxy S23 Ultra` / `iPhone 15 Pro`
-  - Problem / Symptom: Automatically mapped from the active part category (e.g. Screen replacement $\to$ *Cracked Glass / Broken OLED / Touch Dead*).
-  - Shipping Method: Pre-selected to *Prepaid Electrostatic Foam Mailer Box (0–2 lbs)*.
+1. **Repair Status Tracker (`/track-repair`)**:
+   - Customers enter their **Repair Request ID** (e.g., `DCP-RMS-100001`) and the **Email Address** used during intake.
+   - The system queries Firestore (`repair_requests` collection) or the secure API route (`/api/repair-requests/lookup`), verifying that the normalized email matches the record's contact email.
+   - Renders interactive timeline stages (*Kit Dispatched $\to$ Inbound Transit $\to$ Bench Diagnostic $\to$ Microsoldering/Repair $\to$ Outbound Priority Delivery*), real-time courier tracking numbers, diagnostic technician notes, and a printable PDF/packing slip viewer.
+2. **Auth0 Authentication Setup**:
+   - Configures the Auth0 client in `lib/auth0.ts`.
+   - Adds the Auth0 handler at `pages/api/auth/[...auth0].ts`.
+   - Creates reusable client components: `LoginButton`, `LogoutButton`, and `Profile`.
+   - Provides account overview on the repair tracking page, allowing authenticated customers to view their open repairs with zero typing.
 
 ---
 
 ### 2. User Experience & Visual Design
 
-- **Visual Appearance**:
-  - Located directly beneath `DeviceCompatibilityChecker` and `ActiveDeviceBanner`.
-  - Styled with refined emerald accents (`border-emerald-200/80`, `bg-emerald-50/60`, `text-emerald-900`) and subtle micro-shadows adhering to zero-pill discipline.
-  - Displays hardware badge: `[Prepaid Mailer Included: Rated up to 2.0 lbs]` with carrier safety indicators (`UN3481 Ground Transport Certified`).
-- **Interactive State Behaviors**:
-  - **No Device Selected**: Renders a compact prompt: *"Looking for professional repair? Select your phone model above to generate a customized mail-in repair quote."*
-  - **Device Selected**: Dynamically expands to highlight the exact phone model, estimated labor turnaround (24–48h), free return shipping, and the primary CTA: `Book Mail-In Repair for [Model] →`.
-  - **Customizable Intake**: Includes an option to toggle between full-page navigation (`/services?brand=...&model=...&symptom=...`) and instant drawer modal launch.
+- **Page Layout (`/track-repair`)**:
+  - **Header & Hero**: Clean, branded title with trust badges (`256-Bit SSL Encrypted Verification`, `Real-Time Lab Telemetry`).
+  - **Lookup Form**: Dual input fields:
+    - `Repair Request ID` (e.g. `DCP-RMS-100001` with format helper)
+    - `Customer Email Address` (validates against the record for privacy protection)
+  - **Auth0 Account Panel**: If signed in via Auth0, displays the customer profile card with 1-click "View My Active Repairs".
+  - **Status Progress View**:
+    - Interactive 5-stage progress ribbon with animated emerald pulses.
+    - Courier tracking links (USPS, FedEx, UPS) with live estimated delivery.
+    - Technician bench diagnosis report & device photos.
+    - Printable packing slip and customer service hotline (`(509) 255-3852`).
 
 ---
 
-### 3. Key Product Decisions & Trade-Offs
+### 3. Key Technical Decisions & Fallback Strategy
 
-- **Decision 1: Cell Phone Shipping Weight & Carrier Compliance**
-  - *Research Analysis*: Consumer smartphones range from 140g (iPhone SE) to 253g (Galaxy Z Fold 5). Adding a high-density electrostatic foam cavity (4 oz) and a 200 lb test corrugated box (6 oz) results in a maximum package weight under 19 oz (~1.2 lbs).
-  - *Implementation Choice*: Standardize shipping label and box specs to **2.0 lbs (32 oz)**. This covers every smartphone on the market with a 33% safety headroom while keeping carrier prepaid tier pricing predictable.
-  - *Battery Regulation*: Automatically tags the shipment with UN3481 lithium-ion battery road-transport labels per DOT 49 CFR § 173.185 regulations.
+- **Decision 1: Email Ownership Verification Gate**
+  - *Context*: Exposing repair records by RMS ID alone creates an enumeration/privacy risk where unauthorized parties could view names, addresses, or phone serial numbers.
+  - *Chosen Approach*: The lookup API and client hook require matching the record's email. If the RMS ID exists but the email does not match, return a generic "No matching repair record found for this ID and email combination" to avoid user enumeration.
 
-- **Decision 2: Seamless Form Synchronization via URL Parameters & State**
-  - *Chosen Approach*: Pass query parameters (`brand`, `model`, `symptom`, `category`) to `/services`, while also updating `MailInRepairRequestForm` to accept `initialDeviceBrand`, `initialDeviceModel`, and `initialSymptoms` props.
-  - *Why*: Ensures the pre-fill works reliably regardless of whether the customer clicks a direct link, refreshes the page, or shares the URL.
+- **Decision 2: Next.js Pages Router Auth0 Integration & Resilience**
+  - *Context*: This repository uses the Next.js Pages Router with custom proxy security rules.
+  - *Chosen Approach*: Implement standard Pages Router Auth0 handling at `pages/api/auth/[...auth0].ts` and `lib/auth0.ts`. Wrap Auth0 initialization with an environment check so development and CI builds succeed without requiring immediate cloud tenant provisioning.
+  - *Environment Variables*: Declare `AUTH0_SECRET`, `AUTH0_BASE_URL`, `AUTH0_ISSUER_BASE_URL`, and `AUTH0_CLIENT_ID` in `.env.example`.
 
 ---
 
@@ -59,51 +64,50 @@ An architectural blueprint to implement the `RepairRequestBridge` component, lin
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│              DeviceCompatibilityProvider               │
-│  (Holds: selectedBrand, selectedModel, selectedCategory)│
-└───────────────────────────┬────────────────────────────┘
-                            │
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│                   ProductGrid.tsx                      │
+│                   /track-repair Page                   │
 │                                                        │
+│  ┌────────────────────────┐  ┌──────────────────────┐  │
+│  │   Auth0 Profile Bar    │  │  Repair Lookup Card  │  │
+│  │  [User Avatar & Email] │  │  [RMS ID] + [Email]  │  │
+│  │  [Sign In / Sign Out]  │  │  [Track Progress →]  │  │
+│  └───────────┬────────────┘  └──────────┬───────────┘  │
+│              │                          │              │
+│              ▼                          ▼              │
 │  ┌──────────────────────────────────────────────────┐  │
-│  │       DeviceCompatibilityChecker.tsx             │  │
-│  │  [Brand: Apple] → [Model: iPhone 15 Pro]         │  │
-│  └────────────────────────┬─────────────────────────┘  │
-│                           │                            │
-│                           ▼                            │
+│  │         /api/repair-requests/lookup API          │  │
+│  │   - Validates RMS ID exists                      │  │
+│  │   - Verifies customer email matches record       │  │
+│  │   - Sanitizes and returns status milestones      │  │
+│  └──────────────────────────┬───────────────────────┘  │
+│                             │                          │
+│                             ▼                          │
 │  ┌──────────────────────────────────────────────────┐  │
-│  │            RepairRequestBridge.tsx               │  │
-│  │  "Need us to install it for your iPhone 15 Pro?" │  │
-│  │  ✓ Prepaid Return Mailer (rated up to 2.0 lbs)   │  │
-│  │  [Book 1-Click Mail-In Repair] →                 │  │
-│  └────────────────────────┬─────────────────────────┘  │
-│                           │                            │
-└───────────────────────────┼────────────────────────────┘
-                            │ (Pre-filled Navigation)
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│        pages/services.tsx & MailInRepairRequestForm    │
-│  - Step 1 Device Brand: "Apple"                        │
-│  - Step 1 Device Model: "iPhone 15 Pro"                │
-│  - Step 1 Symptom: "Cracked Glass / Broken OLED"       │
-│  - Step 2 Shipping: "Electrostatic Mailer (Prepaid)"   │
-│  - Max Package Weight: "2.0 lbs / 32 oz"               │
+│  │           RepairStatusDisplay Component          │  │
+│  │  - 5-Stage Live Timeline (Kit -> Bench -> Return)│  │
+│  │  - Courier Tracking & Inbound/Outbound Status    │  │
+│  │  - Diagnostic Photos & Packing Slip Modal        │  │
+│  └──────────────────────────────────────────────────┘  │
 └────────────────────────────────────────────────────────┘
 ```
 
 #### Step-by-Step Implementation Sequence
 
-1. **Category-to-Symptom Mapping Utility (`lib/repair-bridge.ts`)**:
-   - Translate active part category IDs (`screen`, `battery`, `port`, `camera`, `backglass`, `all`) into corresponding repair symptom codes (`screen_cracked`, `battery_degraded`, `port_audio`, `camera_sensors`, etc.).
-   - Define the certified 2.0 lb prepaid mailer box metadata and carrier specifications.
-2. **Build `RepairRequestBridge.tsx` Component**:
-   - Create `components/services/RepairRequestBridge.tsx` with responsive layout, device model badges, prepaid shipping trust pills, and 1-click CTA button.
-3. **Enhance `MailInRepairRequestForm.tsx` Intake**:
-   - Update `MailInRepairRequestFormProps` to accept `initialDeviceBrand`, `initialDeviceModel`, and `initialSymptoms`.
-   - Add `useEffect` to parse incoming URL search parameters (`?brand=...&model=...&symptom=...`) so direct links immediately pre-fill step 1.
-4. **Integrate Bridge into `ProductGrid.tsx`**:
-   - Mount `RepairRequestBridge` directly below `ActiveDeviceBanner` and above the catalog filters.
-5. **Verification**:
-   - Verify TypeScript compilation (`npm run typecheck`), ESLint compliance (`npm run lint`), and dev server responsiveness on port 3000.
+1. **Package Installation**:
+   - Install `@auth0/nextjs-auth0` dependency via `install_applet_package`.
+2. **Auth0 Client & Environment Setup**:
+   - Create `lib/auth0.ts` with safe initialization and client helpers.
+   - Update `.env.example` with standard Auth0 configuration variables.
+   - Create `pages/api/auth/[...auth0].ts` handler.
+3. **Auth UI Components**:
+   - Create `components/auth/LoginButton.tsx`.
+   - Create `components/auth/LogoutButton.tsx`.
+   - Create `components/auth/Profile.tsx`.
+4. **Secure Lookup API Route**:
+   - Create `pages/api/repair-requests/lookup.ts` taking `rms` and `email`, verifying ownership against Firestore `repair_requests` (or seeded demo records).
+5. **Repair Status Tracker Component & Page**:
+   - Create `components/services/RepairStatusLookup.tsx` with dual-field verification.
+   - Create `pages/track-repair.tsx` assembling the lookup, Auth0 user session, status display, and breadcrumbs.
+6. **Navigation & Navbar Integration**:
+   - Add "Track Repair" link in the site header/footer for immediate customer discovery.
+7. **Verification**:
+   - Verify TypeScript compilation (`npm run typecheck`), ESLint (`npm run lint`), and test endpoint responses.

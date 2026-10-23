@@ -159,6 +159,16 @@ const Navbar: FC = () => {
             {/* Search Trigger Button */}
             <Searchbar id="navbar-search-toggle-btn" />
 
+            {/* Track Repair Link */}
+            <Link
+              id="navbar-track-repair-link"
+              href="/track-repair"
+              aria-label="Track Repair Status"
+              className="hidden md:inline-flex items-center px-2.5 py-1.5 text-sm font-medium text-neutral-700 hover:text-emerald-700 transition-colors rounded-md whitespace-nowrap"
+            >
+              Track Repair
+            </Link>
+
             {/* Account Link - hidden on narrow screens to prevent crowding, fully available in mobile drawer */}
             <Link
               href="/account"
@@ -260,6 +270,14 @@ const Navbar: FC = () => {
                 className="py-2.5 px-3 text-base font-semibold text-neutral-900 hover:bg-neutral-50 rounded-lg border-b border-neutral-100 transition-colors"
               >
                 Get a diagnosis
+              </Link>
+              <Link
+                id="mobile-drawer-track-repair-link"
+                href="/track-repair"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2.5 px-3 text-base font-semibold text-neutral-900 hover:bg-neutral-50 rounded-lg border-b border-neutral-100 transition-colors"
+              >
+                Track Repair Status
               </Link>
               <Link
                 href="/trends"

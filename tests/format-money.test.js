@@ -25,9 +25,9 @@ describe('formatMoney', () => {
   })
 })
 
-describe('Cart sidebar subtotal', () => {
+describe('CartDrawer subtotal', () => {
   test('reads the formatted subtotal from CartContext, not subtotal.amount', () => {
-    const src = fs.readFileSync(path.join(__dirname, '../components/cart/CartSidebarView/CartSidebarView.tsx'), 'utf8')
+    const src = fs.readFileSync(path.join(__dirname, '../components/CartDrawer.jsx'), 'utf8')
     expect(src).not.toMatch(/subtotal\?\.amount/)
     expect(src).toMatch(/subtotalFormatted/)
   })

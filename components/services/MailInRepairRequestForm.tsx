@@ -128,36 +128,36 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
     }
   }, [user?.email, email])
 
-  // Sync URL query parameters if present (e.g. from RepairRequestBridge / catalog).
-  // Read after mount on purpose: the page is statically rendered, so reading
-  // window.location during render would cause a hydration mismatch.
+  // Sync URL query parameters if present (e.g. from RepairRequestBridge / catalog)
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      try {
-        const params = new URLSearchParams(window.location.search)
-        const brandParam = params.get('brand')
-        const modelParam = params.get('model') || params.get('device')
-        const symptomParam = params.get('symptom')
+      const timer = setTimeout(() => {
+        try {
+          const params = new URLSearchParams(window.location.search)
+          const brandParam = params.get('brand')
+          const modelParam = params.get('model') || params.get('device')
+          const symptomParam = params.get('symptom')
 
-        if (brandParam) {
-          const matched = COMMON_BRANDS.find((b) => b.toLowerCase() === brandParam.toLowerCase())
-          // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time URL prefill after hydration
-          setDeviceBrand(matched || brandParam)
-        }
-
-        if (modelParam) {
-          setDeviceModel(modelParam)
-        }
-
-        if (symptomParam) {
-          const validSymptom = SYMPTOM_OPTIONS.find((s) => s.id === symptomParam)
-          if (validSymptom) {
-            setSelectedSymptoms([validSymptom.id])
+          if (brandParam) {
+            const matched = COMMON_BRANDS.find((b) => b.toLowerCase() === brandParam.toLowerCase())
+            setDeviceBrand(matched || brandParam)
           }
+
+          if (modelParam) {
+            setDeviceModel(modelParam)
+          }
+
+          if (symptomParam) {
+            const validSymptom = SYMPTOM_OPTIONS.find((s) => s.id === symptomParam)
+            if (validSymptom) {
+              setSelectedSymptoms([validSymptom.id])
+            }
+          }
+        } catch (err) {
+          console.warn('Could not read query params for repair form:', err)
         }
-      } catch (err) {
-        console.warn('Could not read query params for repair form:', err)
-      }
+      }, 0)
+      return () => clearTimeout(timer)
     }
   }, [])
 
