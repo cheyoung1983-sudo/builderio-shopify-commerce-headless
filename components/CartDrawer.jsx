@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "../context/CartContext";
+import FreeShippingProgressBar from "./cart/FreeShippingProgressBar";
 
 export default function CartDrawer() {
   const [isOpen, setIsOpen] = useState(false);
@@ -73,6 +74,13 @@ export default function CartDrawer() {
             ✕
           </button>
         </div>
+
+        {/* Free Shipping Progress Indicator */}
+        {items.length > 0 && (
+          <div className="px-6 py-2.5 bg-neutral-50/60 border-b border-neutral-100">
+            <FreeShippingProgressBar threshold={75} />
+          </div>
+        )}
 
         {/* Scrollable Items Container */}
         <div className="flex-1 overflow-y-auto px-6 py-4">

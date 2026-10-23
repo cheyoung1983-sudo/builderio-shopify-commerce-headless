@@ -19,7 +19,7 @@ import { ScrollProgressBar } from './ScrollProgressBar'
 import { ScrollToTop } from './ScrollToTop'
 import Footer from './Footer'
 import AnnouncerProvider from './Announcer'
-import { WishlistProvider, ToastProvider, QuickViewProvider } from '../../context'
+import { WishlistProvider, ToastProvider, QuickViewProvider, DeviceCompatibilityProvider } from '../../context'
 import { QuickViewDrawer } from '../products/QuickViewDrawer'
 import { ToastContainer } from './Toast'
 import ErrorBoundary from '@components/ErrorBoundary'
@@ -131,50 +131,52 @@ const InnerLayout: React.FC<{
           <WishlistProvider>
             <CartProvider onOpen={openSidebar} onClose={closeSidebar}>
               <QuickViewProvider>
-                <NoSSR>
-                  <ScrollProgressBar />
-                  <ScrollToTop />
-                </NoSSR>
-                <Navbar />
-                <Box
-                  sx={{
-                    margin: `0 auto`,
-                    width: '100%',
-                    maxWidth: '100%',
-                    px: { xs: 4, sm: 6, lg: 8 },
-                    minHeight: 800,
-                  }}
-                >
-                  <ErrorBoundary name="MainContent">
-                    <main>{children}</main>
-                  </ErrorBoundary>
-                </Box>
-                <Footer />
+                <DeviceCompatibilityProvider>
+                  <NoSSR>
+                    <ScrollProgressBar />
+                    <ScrollToTop />
+                  </NoSSR>
+                  <Navbar />
+                  <Box
+                    sx={{
+                      margin: `0 auto`,
+                      width: '100%',
+                      maxWidth: '100%',
+                      px: { xs: 4, sm: 6, lg: 8 },
+                      minHeight: 800,
+                    }}
+                  >
+                    <ErrorBoundary name="MainContent">
+                      <main>{children}</main>
+                    </ErrorBoundary>
+                  </Box>
+                  <Footer />
 
-                <Sidebar
-                  open={
-                    displaySidebar ||
-                    (builder.editingModel || Builder.previewingModel) ===
-                      'cart-upsell-sidebar'
-                  }
-                  onClose={closeSidebar}
-                >
-                  <CartSidebarView />
-                </Sidebar>
-                <QuickViewDrawer />
-                <ToastContainer />
-                <NoSSR>
-                  <CartDrawer />
-                  <FloatingVoiceAgentWrapper />
-                  <AudioPermissionDiagnostics />
-                  <FeatureBar
-                    title="This site uses cookies to improve your experience. By clicking, you agree to our Privacy Policy."
-                    hide={Builder.isEditing ? true : acceptedCookies}
-                    action={
-                      <Button onClick={() => onAcceptCookies()}>Accept cookies</Button>
+                  <Sidebar
+                    open={
+                      displaySidebar ||
+                      (builder.editingModel || Builder.previewingModel) ===
+                        'cart-upsell-sidebar'
                     }
-                  />
-                </NoSSR>
+                    onClose={closeSidebar}
+                  >
+                    <CartSidebarView />
+                  </Sidebar>
+                  <QuickViewDrawer />
+                  <ToastContainer />
+                  <NoSSR>
+                    <CartDrawer />
+                    <FloatingVoiceAgentWrapper />
+                    <AudioPermissionDiagnostics />
+                    <FeatureBar
+                      title="This site uses cookies to improve your experience. By clicking, you agree to our Privacy Policy."
+                      hide={Builder.isEditing ? true : acceptedCookies}
+                      action={
+                        <Button onClick={() => onAcceptCookies()}>Accept cookies</Button>
+                      }
+                    />
+                  </NoSSR>
+                </DeviceCompatibilityProvider>
               </QuickViewProvider>
             </CartProvider>
           </WishlistProvider>

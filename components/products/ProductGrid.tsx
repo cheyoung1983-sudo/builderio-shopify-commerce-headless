@@ -21,6 +21,7 @@ import {
   Eye,
   X,
   Keyboard,
+  Wrench,
 } from 'lucide-react'
 import {
   fetchAllAvailableProducts,
@@ -35,8 +36,11 @@ import { ProductCard } from './ProductCard'
 import { ProductCardSkeleton } from './ProductCardSkeleton'
 import { SearchBar } from './SearchBar'
 import { ProductFilterSidebar, FilterState } from './ProductFilterSidebar'
+import { DeviceCompatibilityChecker } from './DeviceCompatibilityChecker'
+import { ActiveDeviceBanner } from './ActiveDeviceBanner'
 import { CartContext } from '../../context/CartContext'
 import { useQuickView } from '../../context/QuickViewContext'
+import { useDeviceCompatibility } from '../../context/DeviceCompatibilityContext'
 import { Breadcrumbs, BreadcrumbItem } from '../common/Breadcrumbs'
 
 export interface ProductGridProps {
@@ -212,6 +216,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 
   const cart = useContext(CartContext)
   const { openQuickView } = useQuickView()
+  const { hasActiveFilter, isCompatible, selectedModel, clearCompatibilityFilter } = useDeviceCompatibility()
 
   const handleQuickAddToCart = async (product: ShopifyProductNode, e: React.MouseEvent) => {
     e.preventDefault()
@@ -477,6 +482,11 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       result = result.filter((p) => p.vendor && filters.selectedBrands.includes(p.vendor.trim()))
     }
 
+    // Phone Model Compatibility Filter
+    if (hasActiveFilter && selectedModel) {
+      result = result.filter((p) => isCompatible(p))
+    }
+
     // Sorting
     switch (sortBy) {
       case 'price-asc':
@@ -507,7 +517,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     }
 
     return result
-  }, [products, selectedTag, sortBy, filters])
+  }, [products, selectedTag, sortBy, filters, hasActiveFilter, selectedModel, isCompatible])
 
   // Format currency
   const formatPrice = useCallback((amount?: string, currencyCode: string = 'USD') => {
@@ -706,6 +716,14 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
         )}
       </div>
 
+      {/* Interactive Phone Model Compatibility Checker Widget */}
+      <div className="mt-6">
+        <DeviceCompatibilityChecker />
+      </div>
+
+      {/* Active Device Filter Banner (shown when a phone model is active) */}
+      <ActiveDeviceBanner productCount={filteredProducts.length} className="mt-4" />
+
       {/* Interactive Controls & Filters */}
       {showControls && (
         <div className="mt-6 space-y-4">
@@ -898,18 +916,31 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                   ? `No products matched your selected filters in the live Shopify Storefront catalog. Try broadening your price range, clearing brand filters, or resetting search.`
                   : 'There are currently no available products published on the Storefront.'}
               </p>
-              {(searchQuery || selectedTag !== 'ALL' || filters.minPrice || filters.maxPrice || filters.selectedBrands.length > 0 || filters.inStockOnly) && (
-                <button
-                  id="storefront-reset-filters-btn"
-                  onClick={() => {
-                    handleResetSearch()
-                    setFilters({ minPrice: '', maxPrice: '', selectedBrands: [], inStockOnly: false })
-                  }}
-                  className="mt-5 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg transition-colors"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Reset All Filters & Search
-                </button>
+              {(searchQuery || selectedTag !== 'ALL' || filters.minPrice || filters.maxPrice || filters.selectedBrands.length > 0 || filters.inStockOnly || hasActiveFilter) && (
+                <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
+                  <button
+                    id="storefront-reset-filters-btn"
+                    onClick={() => {
+                      handleResetSearch()
+                      setFilters({ minPrice: '', maxPrice: '', selectedBrands: [], inStockOnly: false })
+                      clearCompatibilityFilter()
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg transition-colors cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Reset All Filters
+                  </button>
+
+                  {hasActiveFilter && selectedModel && (
+                    <Link
+                      href={`/services?device=${encodeURIComponent(selectedModel.name)}`}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Wrench className="w-3.5 h-3.5" />
+                      <span>Request Part via Mail-In Repair</span>
+                    </Link>
+                  )}
+                </div>
               )}
             </div>
           )}

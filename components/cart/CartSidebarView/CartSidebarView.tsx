@@ -8,6 +8,7 @@ import type { CartLineView } from '../CartItem/CartItem'
 import { BuilderComponent, builder } from '@builder.io/react'
 import builderConfig from '@config/builder'
 import env from '@config/env'
+import FreeShippingProgressBar from '../FreeShippingProgressBar'
 
 const CartSidebarView: FC = () => {
   const modernCart = useModernCart()
@@ -107,6 +108,9 @@ const CartSidebarView: FC = () => {
         </>
       ) : (
         <>
+          <div className="w-full my-3">
+            <FreeShippingProgressBar threshold={75} />
+          </div>
           {items.map((item) => (
             <CartItem
               key={item.id}

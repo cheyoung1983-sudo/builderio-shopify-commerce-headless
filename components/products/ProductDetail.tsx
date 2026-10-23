@@ -4,6 +4,7 @@ import Link from 'next/link'
 import {
   X,
   Check,
+  CheckCircle2,
   ShoppingCart,
   ShieldCheck,
   Truck,
@@ -31,7 +32,7 @@ import {
 import { useUI } from '../common/context'
 import { useAnnouncer } from '../common/Announcer'
 import { CartContext } from '../../context/CartContext'
-import { useWishlist } from '../../context'
+import { useWishlist, useDeviceCompatibility } from '../../context'
 import { ProductDetailSkeleton } from './ProductDetailSkeleton'
 import { SocialShareButtons } from './SocialShareButtons'
 import { ProductImageZoom } from './ProductImageZoom'
@@ -110,6 +111,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const { announce } = useAnnouncer()
   const cart = useContext(CartContext)
   const { isInWishlist, toggleWishlist } = useWishlist()
+  const { hasActiveFilter, selectedModel, isCompatible } = useDeviceCompatibility()
   const isSaved = product ? isInWishlist(product.id) : false
 
   // Fetch product data whenever handle changes
@@ -642,6 +644,38 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 </span>
               )}
             </div>
+
+            {/* Phone Model Compatibility Verification Banner */}
+            {hasActiveFilter && selectedModel && (
+              <div
+                className={`flex items-center justify-between gap-2 p-3 rounded-xl border text-xs my-2.5 ${
+                  isCompatible(product)
+                    ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900'
+                    : 'bg-neutral-50 border-neutral-200 text-neutral-700'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <CheckCircle2
+                    className={`w-4 h-4 shrink-0 ${
+                      isCompatible(product) ? 'text-emerald-600' : 'text-neutral-400'
+                    }`}
+                  />
+                  <span>
+                    {isCompatible(product) ? (
+                      <span>
+                        <strong className="text-emerald-800 font-bold">Guaranteed Fit:</strong> Verified
+                        compatible with your <strong>{selectedModel.name}</strong>.
+                      </span>
+                    ) : (
+                      <span>
+                        Note: This part is for a different device model than your selected{' '}
+                        <strong>{selectedModel.name}</strong>.
+                      </span>
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* Repair / Service Notice */}
             <div className="flex items-center gap-2 text-xs text-neutral-600 bg-amber-50/70 border border-amber-200/60 p-2.5 rounded-lg mb-5">

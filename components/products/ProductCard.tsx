@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { ShopifyProductNode } from '../../services/shopify'
 import { ProductCardSkeleton } from './ProductCardSkeleton'
-import { useWishlist, useQuickView } from '../../context'
+import { useWishlist, useQuickView, useDeviceCompatibility } from '../../context'
 import { CartContext } from '../../context/CartContext'
 import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
 import { useIntersectionObserver } from '../../lib/hooks/useIntersectionObserver'
@@ -88,8 +88,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [internalAdded, setInternalAdded] = useState(false)
   const { isInWishlist, toggleWishlist } = useWishlist()
   const { openQuickView } = useQuickView()
+  const { hasActiveFilter, isCompatible, selectedModel } = useDeviceCompatibility()
   const cart = React.useContext(CartContext)
   const isSaved = product ? isInWishlist(product.id) : false
+  const isDeviceCompatible = product ? isCompatible(product) : false
 
   // Determine if card is initially above the fold (e.g. top 4 products get eager/priority loading)
   const isAboveTheFold = index < 4
@@ -353,6 +355,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Badges Overlay (Top Left) */}
         <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10 pointer-events-none">
+          {hasActiveFilter && isDeviceCompatible && selectedModel && (
+            <span className="bg-emerald-600 text-white text-[10px] font-bold tracking-wider px-2 py-0.5 rounded shadow-sm inline-flex items-center gap-1">
+              <Check className="w-3 h-3 text-emerald-200" />
+              Guaranteed Fit
+            </span>
+          )}
           {isOnSale && (
             <span className="bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded shadow-sm">
               Sale

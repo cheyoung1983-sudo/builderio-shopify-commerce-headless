@@ -41,3 +41,10 @@ export type {
   ShowCartToastParams,
   ShowWishlistToastParams,
 } from './ToastContext'
+export {
+  DeviceCompatibilityProvider,
+  useDeviceCompatibility,
+} from './DeviceCompatibilityContext'
+export type {
+  DeviceCompatibilityContextValue,
+} from './DeviceCompatibilityContext'
