@@ -49,6 +49,8 @@ export const DeviceCompatibilityProvider: React.FC<{ children: React.ReactNode }
         if (parsed.brandId && parsed.modelId) {
           const brand = SUPPORTED_BRANDS.find((b) => b.id === parsed.brandId)
           if (brand) {
+            // One-time hydration from localStorage after mount (client-only state).
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSelectedBrand(brand)
             const model = brand.models.find((m) => m.id === parsed.modelId)
             if (model) {
