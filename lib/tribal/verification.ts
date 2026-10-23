@@ -6,6 +6,7 @@ import type {
 } from './types.ts'
 import { evaluateAddressGeofence } from './geofencing.ts'
 import { generateSignedCertificate, getRequiredCertificateType } from './certificates.ts'
+import { isTribalTaxExemptEnabled } from './tax-flags.ts'
 
 const SECRET_SALT = process.env.TRIBAL_AUDIT_SALT || 'dcp_tribal_audit_salt_2026'
 
@@ -118,18 +119,22 @@ export async function verifyTribalEnrollment(
     certificateCompleted = true
   }
 
+  // Automatic exemption is behind TRIBAL_TAX_EXEMPT_ENABLED (default off).
+  const exemptionApplied = onReservation && isTribalTaxExemptEnabled()
   const taxExemptTrack = {
     eligible: onReservation,
-    taxExempt: onReservation,
-    taxExemptionCode: onReservation ? ('EXEMPT_INDIAN_IN_CANADA_OR_USA' as const) : null,
+    taxExempt: exemptionApplied,
+    taxExemptionCode: exemptionApplied ? ('EXEMPT_INDIAN_IN_CANADA_OR_USA' as const) : null,
     onReservation,
     reservationName: geofenceResult.reservationName,
-    entityUseCode: onReservation ? ('C' as const) : undefined,
+    entityUseCode: exemptionApplied ? ('C' as const) : undefined,
     requiresCertificate: onReservation,
     certificateCompleted,
     isSelfAdministered: geofenceResult.isSelfAdministered || false,
     tribalTaxRate: geofenceResult.tribalTaxRate,
-    message: onReservation
+    message: onReservation && !exemptionApplied
+      ? 'On-reservation delivery detected. Automatic tax exemption is not enabled yet; standard sales tax applies pending manual review.'
+      : onReservation
       ? (geofenceResult.isSelfAdministered
           ? `On-reservation delivery to ${geofenceResult.reservationName}. Exempt from state/county sales tax. Self-administered tribal sales tax rate: ${((geofenceResult.tribalTaxRate || 0) * 100).toFixed(1)}%.`
           : `On-reservation delivery verified for ${geofenceResult.reservationName}. State sales tax exempt with Entity Use Code C.`)

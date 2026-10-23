@@ -1,5 +1,6 @@
 import type { AvaTaxTribalRequest, AvaTaxTribalResponse } from './types.ts'
 import { evaluateAddressGeofence } from './geofencing.ts'
+import { isTribalTaxExemptEnabled } from './tax-flags.ts'
 
 export interface AvaTaxConfig {
   accountId?: string
@@ -42,7 +43,9 @@ export async function calculateAvaTaxTribalQuote(
   const discountAmount = isTribalMember ? Number((subtotal * 0.2).toFixed(2)) : 0
   const taxableBase = Math.max(0, subtotal - discountAmount)
 
-  const isTaxExempt = isTribalMember && effectiveOnReservation
+  // Tax is always computed on the post-discount base. The exemption itself is
+  // behind TRIBAL_TAX_EXEMPT_ENABLED (default off).
+  const isTaxExempt = isTribalTaxExemptEnabled() && isTribalMember && effectiveOnReservation
   const entityUseCode = isTaxExempt ? AVATAX_ENTITY_USE_CODES.TRIBAL_MEMBER_ON_RESERVATION : undefined
 
   const standardStateRate = 0.06

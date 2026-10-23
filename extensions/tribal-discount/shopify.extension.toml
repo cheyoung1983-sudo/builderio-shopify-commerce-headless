@@ -1,0 +1,19 @@
+# Shopify Discount Function: Native American Tribal Member 20% discount.
+# Deploy with the Shopify CLI from the repo root: `shopify app deploy`.
+# See extensions/tribal-discount/README.md for the eligibility rules and setup.
+api_version = "2026-10"
+
+[[extensions]]
+name = "Tribal Member 20% Discount"
+handle = "tribal-discount"
+type = "function"
+description = "20% off tribal-eligible repair lines (parts + labor) for customers tagged tribal-member-verified."
+
+  [[extensions.targeting]]
+  target = "cart.lines.discounts.generate.run"
+  input_query = "src/run.graphql"
+  export = "cart-lines-discounts-generate-run"
+
+  [extensions.build]
+  command = ""
+  path = "dist/function.wasm"

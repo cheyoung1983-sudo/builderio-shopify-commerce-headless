@@ -8,10 +8,10 @@
  */
 
 import { isShopifyAdminConfigured, shopifyAdminFetch } from '../../services/shopify-admin.ts'
+import { isTribalTaxExemptEnabled } from './tax-flags.ts'
 
 export interface ShopifyCustomerUpdateInput {
   id: string
-  tags?: string[]
   taxExempt?: boolean
   taxExemptions?: string[]
   metafields?: Array<{
@@ -22,6 +22,16 @@ export interface ShopifyCustomerUpdateInput {
   }>
 }
 
+/** Adds tags without replacing existing ones (customerUpdate `tags` would overwrite). */
+export const CUSTOMER_TAGS_ADD_MUTATION = `
+mutation tagsAdd($id: ID!, $tags: [String!]!) {
+  tagsAdd(id: $id, tags: $tags) {
+    node { id }
+    userErrors { field message }
+  }
+}
+`
+
 export const CUSTOMER_UPDATE_MUTATION = `
 mutation customerUpdate($input: CustomerInput!) {
   customerUpdate(input: $input) {
@@ -29,7 +39,6 @@ mutation customerUpdate($input: CustomerInput!) {
       id
       taxExempt
       taxExemptions
-      tags
       metafields(first: 10) {
         edges {
           node {
@@ -65,7 +74,9 @@ export async function updateShopifyCustomerTribalStatus(params: {
     certificateRef?: string
   }
 }) {
-  const { customerId, tagsToAdd = ['tribal-member-verified'], taxExempt = false, taxExemptions = [], audit } = params
+  const { customerId, tagsToAdd = ['tribal-member-verified'], taxExempt: requestedTaxExempt = false, taxExemptions = [], audit } = params
+  // Never set the Shopify taxExempt flag unless TRIBAL_TAX_EXEMPT_ENABLED is on.
+  const taxExempt = requestedTaxExempt && isTribalTaxExemptEnabled()
 
   const formattedId = customerId.startsWith('gid://shopify/Customer/')
     ? customerId
@@ -109,7 +120,6 @@ export async function updateShopifyCustomerTribalStatus(params: {
 
   const input: ShopifyCustomerUpdateInput = {
     id: formattedId,
-    tags: tagsToAdd,
     taxExempt,
     taxExemptions: taxExempt ? (taxExemptions.length > 0 ? taxExemptions : ['EXEMPT_INDIAN_IN_CANADA_OR_USA']) : [],
     metafields,
@@ -135,18 +145,38 @@ export async function updateShopifyCustomerTribalStatus(params: {
   const userErrors = result.data?.customerUpdate?.userErrors || []
   const customer = result.data?.customerUpdate?.customer
 
-  if (customer && userErrors.length === 0 && !result.errors?.length) {
-    return { success: true, data: customer, userErrors: [] }
+  if (!customer || userErrors.length > 0 || result.errors?.length) {
+    return {
+      success: false,
+      data: customer || null,
+      userErrors: userErrors.length
+        ? userErrors
+        : (result.errors || [{ message: 'Shopify customerUpdate failed.' }]).map((e) => ({
+            field: null,
+            message: e.message,
+          })),
+    }
   }
 
-  return {
-    success: false,
-    data: customer || null,
-    userErrors: userErrors.length
-      ? userErrors
-      : (result.errors || [{ message: 'Shopify customerUpdate failed.' }]).map((e) => ({
-          field: null,
-          message: e.message,
-        })),
+  // Tags via tagsAdd so existing customer tags are never replaced.
+  if (tagsToAdd.length > 0) {
+    const tagResult = await shopifyAdminFetch<{
+      tagsAdd?: { node?: { id: string } | null; userErrors?: Array<{ field: string[] | null; message: string }> }
+    }>({
+      query: CUSTOMER_TAGS_ADD_MUTATION,
+      variables: { id: formattedId, tags: tagsToAdd },
+    })
+    const tagErrors = tagResult.data?.tagsAdd?.userErrors || []
+    if (!tagResult.data?.tagsAdd?.node || tagErrors.length > 0 || tagResult.errors?.length) {
+      return {
+        success: false,
+        data: customer,
+        userErrors: tagErrors.length
+          ? tagErrors
+          : (tagResult.errors || [{ message: 'Shopify tagsAdd failed.' }]).map((e) => ({ field: null, message: e.message })),
+      }
+    }
   }
+
+  return { success: true, data: { ...customer, tagsAdded: tagsToAdd }, userErrors: [] }
 }
