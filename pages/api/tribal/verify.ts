@@ -1,6 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { checkRateLimit } from '../../../lib/tribal/ratelimit.ts'
 import type { TribalVerificationRequest } from '../../../lib/tribal/types.ts'
+import {
+  isSlackConfigured,
+  isTribalVerifyEnabled,
+  newReviewRecord,
+  postReviewToSlack,
+  saveReview,
+} from '../../../lib/tribal/manual-review.ts'
 
 /**
  * Next.js API Route: /api/tribal/verify
@@ -8,7 +15,10 @@ import type { TribalVerificationRequest } from '../../../lib/tribal/types.ts'
  * There is no real tribal-enrollment verification backend connected (the
  * previous implementation accepted almost any ID and simulated success). Until
  * one exists, this route validates the request and then answers
- * 501 "manual verification required". It never sets verification cookies,
+ * 501 "manual verification required". When TRIBAL_VERIFY_ENABLED=true (default
+ * off), the request is stored (Upstash) and posted to Slack for a human to
+ * Approve/Deny (see /api/slack/tribal-interaction); the response is 202 pending.
+ * This route itself never sets verification cookies,
  * never tags or tax-exempts a Shopify customer, and never grants a discount.
  */
 const MANUAL_VERIFICATION_MESSAGE =
@@ -53,6 +63,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         error: 'Too Many Requests. Rate limit exceeded for verification attempts. Please try again later.',
         reset: rateLimit.reset,
       })
+    }
+
+    if (isTribalVerifyEnabled() && isSlackConfigured()) {
+      const record = newReviewRecord({
+        customerId: body.customerId,
+        email: body.email,
+        firstName: body.firstName,
+        lastName: body.lastName,
+        tribalNation: body.tribalNation,
+        tribalEnrollmentId: body.tribalEnrollmentId,
+      })
+      await saveReview(record)
+      const posted = await postReviewToSlack(record)
+      if (posted) {
+        return res.status(202).json({
+          success: true,
+          verified: false,
+          pendingReview: true,
+          reviewId: record.id,
+          discountApplied: false,
+          taxExemptionApplied: false,
+          message: 'Thanks! Your tribal verification request was received and is pending manual review. No discount has been applied yet.',
+        })
+      }
+      console.error('Tribal verify: failed to post review request to Slack')
     }
 
     return res.status(501).json({
