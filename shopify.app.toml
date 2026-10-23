@@ -1,0 +1,22 @@
+# Shopify app config for the store's Functions (extensions/*). Stub: Flow fills in
+# client_id from the Partner Dashboard / `shopify app config link`. No secrets here.
+client_id = "REPLACE_WITH_SHOPIFY_APP_CLIENT_ID"
+name = "DCP Store Functions"
+application_url = "https://www.displaycellpros.com"
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = false
+include_config_on_deploy = true
+
+[access_scopes]
+# write_discounts: create/manage the automatic discount that runs the Function.
+# read_customers/write_customers: tag verified tribal customers (lib/tribal/shopify-admin.ts).
+# read_products: product tags/metafields read in the Function input.
+scopes = "write_discounts,read_customers,write_customers,read_products,read_orders"
+
+[auth]
+redirect_urls = ["https://www.displaycellpros.com/api/auth/callback"]
+
+[webhooks]
+api_version = "2025-07"

@@ -1,0 +1,15 @@
+{
+  "name": "tribal-discount",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/function.js",
+  "scripts": {
+    "shopify": "shopify",
+    "typegen": "shopify app function typegen",
+    "build": "shopify app function build"
+  },
+  "dependencies": {
+    "@shopify/shopify_function": "^2.0.0"
+  }
+}

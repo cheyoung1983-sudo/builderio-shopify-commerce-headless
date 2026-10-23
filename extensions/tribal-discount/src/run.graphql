@@ -1,0 +1,39 @@
+query Input {
+  cart {
+    buyerIdentity {
+      customer {
+        isTribalMember: hasAnyTag(tags: ["tribal-member-verified", "Tribal_Verified"])
+      }
+    }
+    lines {
+      id
+      quantity
+      cost {
+        amountPerQuantity {
+          amount
+        }
+      }
+      merchandise {
+        __typename
+        ... on ProductVariant {
+          id
+          product {
+            tribalEligible: hasAnyTag(tags: ["tribal-eligible"])
+            excluded: hasAnyTag(tags: ["trip-fee", "battery-addon", "tribal-excluded"])
+            isBundle: hasAnyTag(tags: ["bundle"])
+            isMailIn: hasAnyTag(tags: ["mail-in"])
+            bundleEligibleAmount: metafield(namespace: "dcp", key: "tribal_eligible_amount") {
+              value
+            }
+          }
+        }
+      }
+    }
+  }
+  discount {
+    discountClasses
+    metafield(namespace: "$app:tribal-discount", key: "function-configuration") {
+      jsonValue
+    }
+  }
+}

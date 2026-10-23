@@ -15,28 +15,18 @@ import {
   Info,
   Check,
 } from 'lucide-react'
+import { MAIL_IN_V4_BUNDLES } from '../../lib/pricing/mail-in-v4'
 
-export interface RepairDeviceOption {
-  id: string
-  name: string
-  category: 'phone' | 'tablet' | 'laptop'
-  partCost: number
-  laborCost: number
-  estimatedTatHours: string
-}
-
-const DEVICE_OPTIONS: RepairDeviceOption[] = [
-  { id: 'iphone-15-pro', name: 'iPhone 15 Pro / 15 Pro Max', category: 'phone', partCost: 189.99, laborCost: 35.0, estimatedTatHours: '24-48 hrs' },
-  { id: 'iphone-14-13', name: 'iPhone 14 / 13 OLED Display', category: 'phone', partCost: 129.99, laborCost: 35.0, estimatedTatHours: '24-48 hrs' },
-  { id: 'samsung-s24-ultra', name: 'Samsung Galaxy S24 Ultra', category: 'phone', partCost: 219.99, laborCost: 35.0, estimatedTatHours: '24-48 hrs' },
-  { id: 'pixel-8-pro', name: 'Google Pixel 8 Pro OLED', category: 'phone', partCost: 149.99, laborCost: 35.0, estimatedTatHours: '24-48 hrs' },
-  { id: 'ipad-pro-11', name: 'iPad Pro 11" LCD & Digitizer', category: 'tablet', partCost: 169.99, laborCost: 45.0, estimatedTatHours: '48 hrs' },
-  { id: 'macbook-air-m2', name: 'MacBook Air M2 Retina Panel', category: 'laptop', partCost: 289.99, laborCost: 55.0, estimatedTatHours: '48-72 hrs' },
-]
+// Pricing: Finance Pricing Sheet V4 -> retail = ceil(part x 1.8 + 75); battery add-on =
+// V4 battery retail - 25. Only RETAIL constants ship to the browser; wholesale part
+// cost stays server-side (see lib/pricing/mail-in-v4.ts).
+// Screen-only / battery-only retail per model is not on the sheet yet (PENDING FINANCE),
+// so those are quoted at intake rather than guessed here.
+const DEVICE_OPTIONS = MAIL_IN_V4_BUNDLES
 
 export const MailInRepairEstimator: React.FC = () => {
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('iphone-15-pro')
-  const [issueType, setIssueType] = useState<'screen' | 'battery' | 'both'>('screen')
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('iphone-13')
+  const [issueType, setIssueType] = useState<'screen' | 'battery' | 'both'>('both')
   const [backedUp, setBackedUp] = useState<boolean>(true)
   const [locksDisabled, setLocksDisabled] = useState<boolean>(true)
   const [batteryUnder30, setBatteryUnder30] = useState<boolean>(true)
@@ -46,14 +36,13 @@ export const MailInRepairEstimator: React.FC = () => {
 
   const selectedDevice = DEVICE_OPTIONS.find((d) => d.id === selectedDeviceId) || DEVICE_OPTIONS[0]
 
-  // Calculate pricing
-  const basePart = issueType === 'battery' ? 49.99 : selectedDevice.partCost
-  const batteryAddon = issueType === 'both' ? 39.99 : 0
-  const totalPart = basePart + batteryAddon
-  const labor = selectedDevice.laborCost
+  // Calculate pricing (retail only, V4)
+  const bundlePrice = issueType === 'both' ? selectedDevice.bundleRetail : null
   const outboundOvernightFreight = 0.0 // Complimentary
   const returnGroundFreight = 0.0 // Complimentary
-  const totalRepairPrice = totalPart + labor
+  const totalRepairPrice = bundlePrice
+  void outboundOvernightFreight
+  void returnGroundFreight
 
   const isSopReady = backedUp && locksDisabled && batteryUnder30 && accessoriesRemoved
 
@@ -235,12 +224,8 @@ export const MailInRepairEstimator: React.FC = () => {
               {/* Line items */}
               <div className="space-y-2.5 text-xs">
                 <div className="flex justify-between text-neutral-300">
-                  <span>OEM-Grade Replacement Component</span>
-                  <span className="font-mono">${totalPart.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-neutral-300">
-                  <span>Certified Bench Labor &amp; QA Testing</span>
-                  <span className="font-mono">${labor.toFixed(2)}</span>
+                  <span>{issueType === 'both' ? 'Screen + Battery Bundle (parts, bench labor & QA)' : 'Replacement part, bench labor & QA'}</span>
+                  <span className="font-mono">{bundlePrice !== null ? `$${bundlePrice.toFixed(2)}` : 'Quoted at intake'}</span>
                 </div>
                 <div className="flex justify-between text-neutral-400">
                   <span>Outbound Express Shipping Kit (Overnight)</span>
@@ -258,7 +243,7 @@ export const MailInRepairEstimator: React.FC = () => {
                 <div className="border-t border-neutral-800 pt-3 mt-3 flex justify-between items-baseline">
                   <span className="text-sm font-bold text-white">Estimated Total</span>
                   <span className="text-xl font-extrabold text-emerald-400 font-mono">
-                    ${totalRepairPrice.toFixed(2)}
+                    {totalRepairPrice !== null ? `$${totalRepairPrice.toFixed(2)}` : 'Quoted at intake'}
                   </span>
                 </div>
               </div>

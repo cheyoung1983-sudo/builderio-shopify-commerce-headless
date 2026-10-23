@@ -605,7 +605,7 @@ git commit -m "feat(tribal): integrate Avalara AvaTax Entity Use Code C tax calc
 
 **Interfaces:**
 - Consumes: Cart buyer identity (`customer.hasAnyTag(["tribal-member-verified"])`).
-- Produces: Server-side discount result applying 10% promotional price reduction.
+- Produces: Server-side discount result applying 20% promotional price reduction.
 
 - [ ] **Step 1: Write failing test for discount rule evaluation**
 
@@ -618,7 +618,7 @@ test('evaluates commercial discount rule for tribal-member-verified tagged custo
   }
   const result = runTribalDiscountFunction(cartInput)
   expect(result.discounts.length).toBe(1)
-  expect(result.discounts[0].value.percentage.value).toBe('10.0')
+  expect(result.discounts[0].value.percentage.value).toBe('20.0')
 })
 ```
 
@@ -683,7 +683,7 @@ Expected: PASS.
 
 ```bash
 git add blocks/tribal-discount-function.ts tests/tribal-dual-track.test.js
-git commit -m "feat(tribal): implement Shopify Functions WebAssembly discount logic for 10% identity discount"
+git commit -m "feat(tribal): implement Shopify Functions WebAssembly discount logic for 20% identity discount"
 ```
 
 ---
@@ -907,8 +907,8 @@ git commit -m "feat(tribal): implement compliance audit dashboard and CSV export
 **Interfaces:**
 - Consumes: `evaluateQAScenario()`.
 - Validates:
-  1. Enrolled Member + On-Reservation -> Statutory Tax Exemption (Entity Use Code C) + 10% Commercial Discount.
-  2. Enrolled Member + Off-Reservation -> Standard State Tax + 10% Commercial Discount.
+  1. Enrolled Member + On-Reservation -> Statutory Tax Exemption (Entity Use Code C) + 20% Commercial Discount.
+  2. Enrolled Member + Off-Reservation -> Standard State Tax + 20% Commercial Discount.
   3. Non-Enrolled Customer + On-Reservation -> Standard State Tax + No Commercial Discount.
   4. Non-Enrolled Customer + Off-Reservation -> Standard State Tax + No Commercial Discount.
 

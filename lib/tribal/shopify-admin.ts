@@ -8,6 +8,7 @@
  */
 
 import { isShopifyAdminConfigured, shopifyAdminFetch } from '../../services/shopify-admin.ts'
+import { isTribalTaxExemptEnabled } from './tax-flags.ts'
 
 export interface ShopifyCustomerUpdateInput {
   id: string
@@ -65,7 +66,9 @@ export async function updateShopifyCustomerTribalStatus(params: {
     certificateRef?: string
   }
 }) {
-  const { customerId, tagsToAdd = ['tribal-member-verified'], taxExempt = false, taxExemptions = [], audit } = params
+  const { customerId, tagsToAdd = ['tribal-member-verified'], taxExempt: requestedTaxExempt = false, taxExemptions = [], audit } = params
+  // Never set the Shopify taxExempt flag unless TRIBAL_TAX_EXEMPT_ENABLED is on.
+  const taxExempt = requestedTaxExempt && isTribalTaxExemptEnabled()
 
   const formattedId = customerId.startsWith('gid://shopify/Customer/')
     ? customerId
