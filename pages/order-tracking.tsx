@@ -97,7 +97,7 @@ export default function OrderTrackingPage() {
           {activeTab === 'repairs' && (
             <div>
               <RepairStatusTracker
-                initialRms={rmsQuery || 'DCP-RMS-100001'}
+                initialRms={rmsQuery || ''}
               />
             </div>
           )}

@@ -3,6 +3,16 @@
 import { useState, useEffect, useRef, useCallback, createContext, useContext, startTransition } from 'react';
 import type { User as FirebaseUser } from 'firebase/auth';
 
+// SHA-256 of the bootstrap owner email, so the address itself is not shipped in client JS.
+const OWNER_EMAIL_SHA256 = '91ef4fe7f9915011a9da6a85eaa36ecab08acd349363d0f6c5198b855a5c6586';
+
+async function isBootstrapOwnerEmail(email: string | null): Promise<boolean> {
+  if (!email || typeof crypto === 'undefined' || !crypto.subtle) return false;
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email));
+  const hex = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+  return hex === OWNER_EMAIL_SHA256;
+}
+
 export type UserRole = 'owner' | 'admin' | 'technician' | null;
 
 interface AuthContextType {
@@ -92,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } else {
               // First time registration logic
               // Check if this is the bootstrapped owner email
-              const isOwnerEmail = currentUser.email === 'cheyoung1983@gmail.com';
+              const isOwnerEmail = await isBootstrapOwnerEmail(currentUser.email);
               const initialRole: UserRole = isOwnerEmail ? 'owner' : 'technician';
 
               try {
