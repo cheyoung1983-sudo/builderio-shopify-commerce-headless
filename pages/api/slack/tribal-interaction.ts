@@ -2,7 +2,12 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { updateShopifyCustomerTribalStatus } from '../../../lib/tribal/shopify-admin.ts'
 import { isTribalTaxExemptEnabled } from '../../../lib/tribal/tax-flags.ts'
 import {
+  acquireDecisionLock,
+  authorizeSlackAction,
   getReview,
+  isReviewStoreAvailable,
+  isValidReviewId,
+  reviewSummaryText,
   isTribalVerifyEnabled,
   maskEnrollmentId,
   saveReview,
@@ -12,7 +17,9 @@ import {
 /**
  * Slack interactivity endpoint for tribal manual review (Approve / Deny).
  * Request URL in the Slack app: https://<domain>/api/slack/tribal-interaction
- * Gated by TRIBAL_VERIFY_ENABLED; authenticated with SLACK_SIGNING_SECRET.
+ * Gated by TRIBAL_VERIFY_ENABLED; authenticated with SLACK_SIGNING_SECRET and
+ * authorized via SLACK_TRIBAL_APPROVER_IDS (+ SLACK_TEAM_ID, SLACK_TRIBAL_CHANNEL_ID,
+ * SLACK_APP_ID when set). Decisions are made once, via an atomic SET NX lock.
  */
 export const config = { api: { bodyParser: false } }
 
@@ -22,12 +29,12 @@ async function readRawBody(req: NextApiRequest): Promise<string> {
   return raw
 }
 
-async function replyToSlack(responseUrl: string | undefined, text: string) {
+async function replyToSlack(responseUrl: string | undefined, text: string, ephemeral = false) {
   if (!responseUrl || !responseUrl.startsWith('https://hooks.slack.com/')) return
   await fetch(responseUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ replace_original: true, text }),
+    body: JSON.stringify(ephemeral ? { response_type: 'ephemeral', replace_original: false, text } : { replace_original: true, text }),
   }).catch(() => undefined)
 }
 
@@ -58,19 +65,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const actionId = action?.action_id
   if (actionId !== 'tribal_approve' && actionId !== 'tribal_deny') return res.status(200).end()
 
-  const record = await getReview(String(action.value || ''))
-  const who = payload?.user?.username || payload?.user?.name || payload?.user?.id || 'unknown'
+  const authz = authorizeSlackAction(payload)
+  if (!authz.ok) {
+    console.warn(`Tribal review: rejected Slack action (${authz.reason}) from ${String(payload?.user?.id || 'unknown')}`)
+    await replyToSlack(payload?.response_url, 'You are not authorized to approve or deny tribal verification requests.', true)
+    return res.status(403).json({ error: 'Forbidden' })
+  }
+
+  if (!isReviewStoreAvailable()) {
+    console.error('Tribal review: Redis not configured in production; refusing to process decision')
+    return res.status(503).json({ error: 'Review store unavailable' })
+  }
+
+  const reviewId = String(action.value || '')
+  if (!isValidReviewId(reviewId)) return res.status(400).json({ error: 'Bad review id' })
+
+  const record = await getReview(reviewId)
+  const who = String(payload?.user?.username || payload?.user?.name || payload?.user?.id || 'unknown').slice(0, 80).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   if (!record) {
     await replyToSlack(payload.response_url, 'Review request not found or expired.')
     return res.status(200).end()
   }
-  if (record.status !== 'pending') {
-    await replyToSlack(payload.response_url, `Already ${record.status} by ${record.decidedBy || 'someone'}.`)
+  if (record.status !== 'pending' || !(await acquireDecisionLock(record.id))) {
+    const latest = (await getReview(record.id)) || record
+    const state = latest.status === 'pending' ? 'being decided' : latest.status
+    await replyToSlack(payload.response_url, `Already ${state}${latest.decidedBy ? ` by ${latest.decidedBy}` : ''}.`)
     return res.status(200).end()
   }
 
   const decidedAt = new Date().toISOString()
-  const name = `${record.firstName} ${record.lastName} (${record.tribalNation})`
+  const name = reviewSummaryText(record)
 
   if (actionId === 'tribal_deny') {
     await saveReview({ ...record, status: 'denied', decidedBy: who, decidedAt })
