@@ -939,7 +939,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 
                   {hasActiveFilter && selectedModel && (
                     <Link
-                      href="/diagnosis"
+                      href={`/services?device=${encodeURIComponent(selectedModel.name)}`}
                       className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors cursor-pointer"
                     >
                       <Wrench className="w-3.5 h-3.5" />
