@@ -39,6 +39,9 @@ import { compressImageFile } from '../../lib/utils/image-compression'
 
 export interface MailInRepairRequestFormProps {
   initialEmail?: string
+  initialDeviceBrand?: string
+  initialDeviceModel?: string
+  initialSymptoms?: string[]
   className?: string
   onSubmitted?: (rmsNumber: string) => void
 }
@@ -56,6 +59,9 @@ const SYMPTOM_OPTIONS = [
 
 export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = ({
   initialEmail = '',
+  initialDeviceBrand = '',
+  initialDeviceModel = '',
+  initialSymptoms,
   className = '',
   onSubmitted,
 }) => {
@@ -65,10 +71,12 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1)
 
   // Step 1: Item Details
-  const [deviceBrand, setDeviceBrand] = useState<string>('Apple')
-  const [deviceModel, setDeviceModel] = useState<string>('iPhone 15 Pro')
+  const [deviceBrand, setDeviceBrand] = useState<string>(initialDeviceBrand || 'Apple')
+  const [deviceModel, setDeviceModel] = useState<string>(initialDeviceModel || 'iPhone 15 Pro')
   const [serialOrImei, setSerialOrImei] = useState<string>('')
-  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>(['screen_cracked'])
+  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>(
+    initialSymptoms && initialSymptoms.length > 0 ? initialSymptoms : ['screen_cracked']
+  )
   const [imageUrls, setImageUrls] = useState<string[]>([])
   const [isCompressing, setIsCompressing] = useState<boolean>(false)
   const [isDraggingOver, setIsDraggingOver] = useState<boolean>(false)
@@ -119,6 +127,39 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
       return () => clearTimeout(timer)
     }
   }, [user?.email, email])
+
+  // Sync URL query parameters if present (e.g. from RepairRequestBridge / catalog).
+  // Read after mount on purpose: the page is statically rendered, so reading
+  // window.location during render would cause a hydration mismatch.
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const params = new URLSearchParams(window.location.search)
+        const brandParam = params.get('brand')
+        const modelParam = params.get('model') || params.get('device')
+        const symptomParam = params.get('symptom')
+
+        if (brandParam) {
+          const matched = COMMON_BRANDS.find((b) => b.toLowerCase() === brandParam.toLowerCase())
+          // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time URL prefill after hydration
+          setDeviceBrand(matched || brandParam)
+        }
+
+        if (modelParam) {
+          setDeviceModel(modelParam)
+        }
+
+        if (symptomParam) {
+          const validSymptom = SYMPTOM_OPTIONS.find((s) => s.id === symptomParam)
+          if (validSymptom) {
+            setSelectedSymptoms([validSymptom.id])
+          }
+        }
+      } catch (err) {
+        console.warn('Could not read query params for repair form:', err)
+      }
+    }
+  }, [])
 
   const handleProcessFiles = async (files: FileList | File[]) => {
     const fileArray = Array.from(files).filter((f) => f.type.startsWith('image/'))
@@ -855,10 +896,29 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
                 onChange={(e: any) => setKitType(e.target.value)}
                 className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-xs text-neutral-900 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
               >
-                <option value="electrostatic_foam_mailer">Physical Box Kit (ESD Foam Mailer Shipped to Me)</option>
-                <option value="prepaid_label_only">Instant Label Only (I will use my own secure box)</option>
+                <option value="electrostatic_foam_mailer">Physical Box Kit (Prepaid Postage Included • Rated up to 2.0 lbs / 32 oz)</option>
+                <option value="prepaid_label_only">Instant Prepaid Label (Rated up to 2.0 lbs / 32 oz • Use Own Box)</option>
               </select>
             </div>
+          </div>
+
+          {/* Certified 2.0 lb Prepaid Shipping Box Specifications */}
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs text-emerald-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-2.5">
+              <Package className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold block text-neutral-900">
+                  Prepaid Shipping Box Included ($0.00 Postage Due)
+                </span>
+                <p className="text-[11px] text-neutral-600 mt-0.5">
+                  Certified for cell phone hardware up to <strong className="text-neutral-900">2.0 lbs (32 oz)</strong>. Heavy-duty corrugated exterior with high-density anti-static conductive foam and UN3481 Lithium-Ion Battery Ground Transport compliance.
+                </p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-emerald-600 text-white px-2.5 py-1 rounded-lg shrink-0 shadow-2xs">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Prepaid 2.0 lbs
+            </span>
           </div>
 
           <div className="flex items-center justify-between pt-2">

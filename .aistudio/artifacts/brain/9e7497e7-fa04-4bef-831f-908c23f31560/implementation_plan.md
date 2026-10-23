@@ -1,116 +1,109 @@
-# Storefront Recommendations: Parts Compatibility Checker & Unified Repair Hub
+# Implementation Plan: RepairRequestBridge Component & Prepaid Shipping Integration
 
-An architectural recommendation and implementation blueprint introducing an Interactive Device Compatibility Checker in the catalog header, paired with high-converting Repair Toolkit Bundles, a Free Shipping Progress Bar, and a seamless 1-click bridge to the Mail-In Repair workflow.
+An architectural blueprint to implement the `RepairRequestBridge` component, linking the catalog's phone model selector to the Mail-In Repair workflow with automated brand, model, and symptom pre-filling, coupled with certified 2.0 lb prepaid postage packaging specifications.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The following directions were selected during Phase 1 clarification:
-> - **Primary Feature**: Interactive Parts Compatibility Checker with dynamic Brand $\to$ Model $\to$ Part Category selection.
-> - **Visual & UX Placement**: Pinned prominently in the Catalog Header above the product grid with an active device filter badge and quick-clear capability.
-> - **Holistic Scope**: Delivers both e-commerce conversion boosters (Repair Toolkit Bundling, Free Shipping Progress Bar) and direct integration with the store's Mail-In Repair booking workflow.
+> The following directions were confirmed during Phase 1 clarification:
+> - **Bridge Presentation**: Prominent, high-converting banner directly beneath the `DeviceCompatibilityChecker` in the `/products` catalog header with 1-click action.
+> - **Pre-Filled Attributes**: Automatically populates device brand, exact hardware model name, and symptom classification derived from the active part category (e.g. Screen & OLED $\to$ `screen_cracked`, Battery $\to$ `battery_degraded`, Charging Port $\to$ `port_audio`).
+> - **Shipping Weight & Postage Specification**:
+>   - **Maximum Device Shipping Weight**: Modern flagship smartphones (e.g., iPhone 16 Pro Max at 227g / 8.0 oz; Galaxy Z Fold 5 at 253g / 8.9 oz) packaged with anti-static foam inserts and rigid corrugated box weigh between **12 oz and 24 oz (0.75 lb to 1.5 lbs)**.
+>   - **Prepaid Postage Rating**: Standardized at **2.0 lbs (32 oz)** via USPS Ground Advantage / UPS Ground with UN3481 lithium-ion battery compliance marking. Customers receive a **100% prepaid return mailer box with zero postage due**.
 
 ---
 
 ### 1. Overview & Core Concept
 
-- **What It Does**:
-  1. **Dynamic Compatibility Checker**: Shoppers select their device make (Apple, Samsung, Google) and model (e.g. *Galaxy S23 Ultra*, *iPhone 14 Pro*) to instantly filter catalog parts with guaranteed compatibility badges, eliminating fitment anxiety.
-  2. **Active Device Context**: Pinned header ribbon displays the current device context across catalog browsing, maintaining active filters even through search and sorting.
-  3. **Bundle & Save Toolkits**: Suggests matching repair essentials (precision prying tools, waterproof frame adhesive, magnetic screw mats) alongside replacement screens.
-  4. **Mail-In Repair Bridge**: If a customer prefers not to DIY, a "Need us to install it?" card pre-fills their selected device into the Mail-in Repair booking form with 1 click.
-- **Target Audience**: DIY repair technicians, phone owners with cracked screens, and mail-in repair clients seeking verified replacement parts without guesswork.
-- **Key Value**: Lowers return rates caused by ordering incorrect model variants, boosts conversion confidence, and expands Average Order Value (AOV).
+- **The Problem**: Customers browsing replacement screens and parts often realize DIY repair requires specialized tools, heating mats, or technical confidence they may not possess. Without an immediate, zero-friction path to professional mail-in service, they abandon the session.
+- **The Solution**: The `RepairRequestBridge` detects the user's active device selection (`selectedBrand`, `selectedModel`, `selectedCategory`) and surfaces an intelligent callout:
+  - *"Prefer our certified Spokane technicians to install this for your [Device]? We'll send an Electrostatic Mailer with Prepaid Postage (rated up to 2 lbs). Typical turnaround: 24–48 hours."*
+- **1-Click Conversion**: Clicking "Book Mail-In Repair" navigates directly to `/services` (or opens the repair intake modal) with pre-populated fields:
+  - Brand: `Samsung` / `Apple` / `Google`
+  - Model: `Galaxy S23 Ultra` / `iPhone 15 Pro`
+  - Problem / Symptom: Automatically mapped from the active part category (e.g. Screen replacement $\to$ *Cracked Glass / Broken OLED / Touch Dead*).
+  - Shipping Method: Pre-selected to *Prepaid Electrostatic Foam Mailer Box (0–2 lbs)*.
 
 ---
 
 ### 2. User Experience & Visual Design
 
-- **Key User Flows**:
-  1. **Device Selection**:
-     - User lands on `/products` or clicks "Select Your Phone" in the navbar.
-     - A sleek 3-step selector appears in the catalog hero/header:
-       `[1. Select Brand] → [2. Select Model] → [3. Select Part Type]`
-     - Upon selection, the catalog immediately updates with verified compatible items, decorated with a green `"Guaranteed Fit"` badge.
-  2. **Active Filter Ribbon**:
-     - A sticky pill/banner appears: *"Showing compatible parts for: Samsung Galaxy S23 Ultra"*, with a *"Change Device"* button and *"Clear"* button.
-  3. **Product Detail & Tool Bundling**:
-     - Compatible replacement screens show a *"Frequently Paired Repair Kit"* checkbox module (+Waterproof Frame Sealant & +8-piece Magnetic Driver Kit).
-  4. **Service Escort (Mail-In Repair)**:
-     - A discreet banner below the compatibility results offers: *"Not comfortable repairing this yourself? We can do it for $49 labor with 24h turnaround"*, with a pre-filled link to `/services`.
-
-- **Visual Identity & Styling** *(E-Commerce & Retail)*:
-  - Adheres to the storefront's refined theme: clean borders (`border-neutral-200/80`), emerald trust accents (`#059669`), and zero-pill clutter.
-  - Device cards feature subtle hover lifts and clean hardware typography (`font-mono` model codes like *SM-S918U* / *A2650*).
-  - High-visibility status indicators for genuine OEM vs. premium aftermarket display tiers.
+- **Visual Appearance**:
+  - Located directly beneath `DeviceCompatibilityChecker` and `ActiveDeviceBanner`.
+  - Styled with refined emerald accents (`border-emerald-200/80`, `bg-emerald-50/60`, `text-emerald-900`) and subtle micro-shadows adhering to zero-pill discipline.
+  - Displays hardware badge: `[Prepaid Mailer Included: Rated up to 2.0 lbs]` with carrier safety indicators (`UN3481 Ground Transport Certified`).
+- **Interactive State Behaviors**:
+  - **No Device Selected**: Renders a compact prompt: *"Looking for professional repair? Select your phone model above to generate a customized mail-in repair quote."*
+  - **Device Selected**: Dynamically expands to highlight the exact phone model, estimated labor turnaround (24–48h), free return shipping, and the primary CTA: `Book Mail-In Repair for [Model] →`.
+  - **Customizable Intake**: Includes an option to toggle between full-page navigation (`/services?brand=...&model=...&symptom=...`) and instant drawer modal launch.
 
 ---
 
 ### 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Client-Side Catalog Indexing vs. Dedicated Backend Engine**
-  - *Chosen Approach*: Leverage existing Shopify Storefront product tags (`brand:samsung`, `model:galaxy-s23`, `part:screen`) combined with an optimized local device taxonomy map (`lib/device-taxonomy.ts`).
-  - *Why*: Delivers sub-millisecond instant filtering with zero API latency and zero additional database roundtrips.
-  - *Alternatives Considered*: Storing compatibility matrices in external SQL tables (overkill for static catalog models, adds latency).
+- **Decision 1: Cell Phone Shipping Weight & Carrier Compliance**
+  - *Research Analysis*: Consumer smartphones range from 140g (iPhone SE) to 253g (Galaxy Z Fold 5). Adding a high-density electrostatic foam cavity (4 oz) and a 200 lb test corrugated box (6 oz) results in a maximum package weight under 19 oz (~1.2 lbs).
+  - *Implementation Choice*: Standardize shipping label and box specs to **2.0 lbs (32 oz)**. This covers every smartphone on the market with a 33% safety headroom while keeping carrier prepaid tier pricing predictable.
+  - *Battery Regulation*: Automatically tags the shipment with UN3481 lithium-ion battery road-transport labels per DOT 49 CFR § 173.185 regulations.
 
-- **Decision 2: Persistent Device Context in Session / Local Storage**
-  - *Chosen Approach*: Store the selected device in `localStorage` via a lightweight `DeviceCompatibilityContext`.
-  - *Why*: Allows shoppers to navigate between PDPs, catalog pages, and repair booking without losing their device selection.
-
-- **Decision 3: Dual Conversion Strategy (DIY Parts + Pro Service)**
-  - *Chosen Approach*: Offer both "Add to Bag" for self-repair and "Book Repair for this Device" in the same view.
-  - *Why*: Captures both customer personas without forcing them into separate website silos.
+- **Decision 2: Seamless Form Synchronization via URL Parameters & State**
+  - *Chosen Approach*: Pass query parameters (`brand`, `model`, `symptom`, `category`) to `/services`, while also updating `MailInRepairRequestForm` to accept `initialDeviceBrand`, `initialDeviceModel`, and `initialSymptoms` props.
+  - *Why*: Ensures the pre-fill works reliably regardless of whether the customer clicks a direct link, refreshes the page, or shares the URL.
 
 ---
 
-### 4. Technical Architecture & Data Strategy
+### 4. Technical Architecture & Component Tree
 
-#### Component Architecture Diagram
+#### Architecture Diagram
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│               DeviceCompatibilityProvider              │
-│  (State: activeBrand, activeModel, activeCategory)     │
-└──────────────────────────┬─────────────────────────────┘
-                           │
-         ┌─────────────────┴─────────────────┐
-         ▼                                   ▼
-┌──────────────────────────────┐   ┌──────────────────────────────┐
-│  DeviceCompatibilityChecker  │   │       ActiveDeviceBar        │
-│  [Apple | Samsung | Google]  │   │  "Samsung Galaxy S23 Ultra"  │
-│  [Select Model Dropdown    ] │   │  [Change] [Reset Filter]     │
-│  [Part: Screen, Battery... ] │   └──────────────┬───────────────┘
-└──────────────┬───────────────┘                  │
-               │                                  │
-               ▼                                  ▼
+│              DeviceCompatibilityProvider               │
+│  (Holds: selectedBrand, selectedModel, selectedCategory)│
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
 ┌────────────────────────────────────────────────────────┐
-│                      ProductGrid                       │
-│  Filters products matching device tags/keywords        │
+│                   ProductGrid.tsx                      │
+│                                                        │
 │  ┌──────────────────────────────────────────────────┐  │
-│  │                   ProductCard                    │  │
-│  │  [✓ Guaranteed Fit for S23 Ultra]                │  │
-│  │  [Quick Add]  [Quick View]                       │  │
-│  └──────────────────────────────────────────────────┘  │
+│  │       DeviceCompatibilityChecker.tsx             │  │
+│  │  [Brand: Apple] → [Model: iPhone 15 Pro]         │  │
+│  └────────────────────────┬─────────────────────────┘  │
+│                           │                            │
+│                           ▼                            │
 │  ┌──────────────────────────────────────────────────┐  │
-│  │               MailInRepairPromoCard              │  │
-│  │  "Want us to fix your S23 Ultra? Book Repair"    │  │
-│  └──────────────────────────────────────────────────┘  │
+│  │            RepairRequestBridge.tsx               │  │
+│  │  "Need us to install it for your iPhone 15 Pro?" │  │
+│  │  ✓ Prepaid Return Mailer (rated up to 2.0 lbs)   │  │
+│  │  [Book 1-Click Mail-In Repair] →                 │  │
+│  └────────────────────────┬─────────────────────────┘  │
+│                           │                            │
+└───────────────────────────┼────────────────────────────┘
+                            │ (Pre-filled Navigation)
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│        pages/services.tsx & MailInRepairRequestForm    │
+│  - Step 1 Device Brand: "Apple"                        │
+│  - Step 1 Device Model: "iPhone 15 Pro"                │
+│  - Step 1 Symptom: "Cracked Glass / Broken OLED"       │
+│  - Step 2 Shipping: "Electrostatic Mailer (Prepaid)"   │
+│  - Max Package Weight: "2.0 lbs / 32 oz"               │
 └────────────────────────────────────────────────────────┘
 ```
 
 #### Step-by-Step Implementation Sequence
 
-1. **Device Taxonomy & Data Structure (`lib/device-taxonomy.ts`)**:
-   - Define structured lists of supported brands, popular phone series (iPhone 11–16, Galaxy S20–S24, Pixel 6–9), model numbers, and matching catalog search queries/tags.
-2. **Context & State Management (`context/DeviceCompatibilityContext.tsx`)**:
-   - Provide `useDeviceCompatibility()` hook storing `selectedDevice`, `setDevice()`, `clearDevice()`, and helper `isProductCompatible(product)`.
-3. **Compatibility Header Component (`components/products/DeviceCompatibilityChecker.tsx`)**:
-   - Visual device selector widget mounted above the catalog grid with search autocomplete and quick brand badges.
-4. **Active Device Status Ribbon (`components/products/ActiveDeviceBanner.tsx`)**:
-   - Responsive notification bar showing the active vehicle/device filter with 1-click removal.
-5. **ProductCard Compatibility Badge**:
-   - Shows "Guaranteed Fit" tag when active device matches product tags or title.
-6. **Cart Drawer Free Shipping Bar (`components/cart/FreeShippingProgressBar.tsx`)**:
-   - Dynamic progress tracker toward free shipping threshold ($75.00).
-7. **Verification**:
-   - Verify TypeScript compilation, ESLint compliance, and interactive end-to-end filtering across all catalog devices.
+1. **Category-to-Symptom Mapping Utility (`lib/repair-bridge.ts`)**:
+   - Translate active part category IDs (`screen`, `battery`, `port`, `camera`, `backglass`, `all`) into corresponding repair symptom codes (`screen_cracked`, `battery_degraded`, `port_audio`, `camera_sensors`, etc.).
+   - Define the certified 2.0 lb prepaid mailer box metadata and carrier specifications.
+2. **Build `RepairRequestBridge.tsx` Component**:
+   - Create `components/services/RepairRequestBridge.tsx` with responsive layout, device model badges, prepaid shipping trust pills, and 1-click CTA button.
+3. **Enhance `MailInRepairRequestForm.tsx` Intake**:
+   - Update `MailInRepairRequestFormProps` to accept `initialDeviceBrand`, `initialDeviceModel`, and `initialSymptoms`.
+   - Add `useEffect` to parse incoming URL search parameters (`?brand=...&model=...&symptom=...`) so direct links immediately pre-fill step 1.
+4. **Integrate Bridge into `ProductGrid.tsx`**:
+   - Mount `RepairRequestBridge` directly below `ActiveDeviceBanner` and above the catalog filters.
+5. **Verification**:
+   - Verify TypeScript compilation (`npm run typecheck`), ESLint compliance (`npm run lint`), and dev server responsiveness on port 3000.

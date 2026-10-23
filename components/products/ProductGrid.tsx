@@ -38,6 +38,7 @@ import { SearchBar } from './SearchBar'
 import { ProductFilterSidebar, FilterState } from './ProductFilterSidebar'
 import { DeviceCompatibilityChecker } from './DeviceCompatibilityChecker'
 import { ActiveDeviceBanner } from './ActiveDeviceBanner'
+import { RepairRequestBridge } from '../services/RepairRequestBridge'
 import { CartContext } from '../../context/CartContext'
 import { useQuickView } from '../../context/QuickViewContext'
 import { useDeviceCompatibility } from '../../context/DeviceCompatibilityContext'
@@ -724,6 +725,11 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       {/* Active Device Filter Banner (shown when a phone model is active) */}
       <ActiveDeviceBanner productCount={filteredProducts.length} className="mt-4" />
 
+      {/* Repair Request Bridge (Direct conversion from device selector to mail-in repair) */}
+      <div className="mt-4">
+        <RepairRequestBridge />
+      </div>
+
       {/* Interactive Controls & Filters */}
       {showControls && (
         <div className="mt-6 space-y-4">
@@ -933,7 +939,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 
                   {hasActiveFilter && selectedModel && (
                     <Link
-                      href="/diagnosis"
+                      href={`/services?device=${encodeURIComponent(selectedModel.name)}`}
                       className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors cursor-pointer"
                     >
                       <Wrench className="w-3.5 h-3.5" />
