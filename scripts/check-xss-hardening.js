@@ -112,7 +112,7 @@ function checkAndFixCsp() {
   for (const { name, literal } of CSP_DIRECTIVES_WITH_SAFE_DEFAULT) {
     if (!new RegExp(`['"\`]${name}\\b`).test(content)) {
       if (FIX) {
-        const anchor = "'frame-ancestors *',"
+        const anchor = `"frame-ancestors 'self' https://builder.io https://*.builder.io",`
         if (content.includes(anchor)) {
           content = content.replace(anchor, `${anchor}\n              "${literal}",`)
           fixed = true

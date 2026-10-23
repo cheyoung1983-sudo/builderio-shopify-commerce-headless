@@ -13,8 +13,8 @@
  *      key fallbacks removed from services/shopify.ts and next.config.js).
  *
  * Usage:
- *   node scripts/check-hardcoded-secrets.js            scan all git-tracked files
- *   node scripts/check-hardcoded-secrets.js --staged   scan only staged changes (pre-commit)
+ *   node scripts/check-hardcoded-secrets.cjs           scan all git-tracked files
+ *   node scripts/check-hardcoded-secrets.cjs--staged   scan only staged changes (pre-commit)
  *
  * A line that is a verified false positive can be excluded with a trailing
  * comment on the same line: // secret-scan-ignore
