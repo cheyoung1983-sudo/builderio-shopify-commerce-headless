@@ -28,7 +28,7 @@ const FeatureBar = dynamic(() => import('@components/common/FeatureBar'), {
   ssr: false,
 })
 
-const CartDrawer = dynamic(() => import('@components/CartDrawer'), {
+const OpenCartBridge = dynamic(() => import('@components/cart/OpenCartBridge'), {
   ssr: false,
 })
 
@@ -165,7 +165,7 @@ const InnerLayout: React.FC<{
                   <QuickViewDrawer />
                   <ToastContainer />
                   <NoSSR>
-                    <CartDrawer />
+                    <OpenCartBridge />
                     <FloatingVoiceAgentWrapper />
                     <AudioPermissionDiagnostics />
                     <FeatureBar
