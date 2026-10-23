@@ -159,6 +159,13 @@ const nextConfig = {
     // a non-locale prefixed path e.g. `/hello`
     defaultLocale: 'en-US',
   },
+  async redirects() {
+    return [
+      // Short URL for the privacy policy (used in SMS / A2P 10DLC registration).
+      { source: '/privacy-policy', destination: '/policies/privacy-policy', permanent: true },
+      { source: '/privacy', destination: '/policies/privacy-policy', permanent: true },
+    ]
+  },
   async rewrites() {
     return [
       {

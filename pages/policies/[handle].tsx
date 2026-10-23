@@ -7,6 +7,7 @@ import { getLayoutProps } from '@lib/get-layout-props'
 import { getBaseUrl } from '@lib/seo'
 import { sanitizeRichText } from '@lib/sanitize-html'
 import { BUSINESS_INFO } from '@lib/business-info'
+import { SmsPrivacySection, FallbackPrivacyPolicy } from '@components/legal/SmsPrivacySection'
 import { POLICY_ROUTES, fetchShopPolicy, isPolicyHandle, type PolicyHandle } from '@lib/shopify-policies'
 
 interface PolicyPageProps {
@@ -44,6 +45,7 @@ export default function PolicyPage({ handle, title, bodyHtml }: InferGetStaticPr
     { label: 'Home', href: '/' },
     { label: title, isCurrent: true },
   ]
+  const isPrivacy = handle === 'privacy-policy'
   const description = `${title} for ${BUSINESS_INFO.name} (DisplayCellPros), Spokane, WA.`
 
   return (
@@ -54,7 +56,7 @@ export default function PolicyPage({ handle, title, bodyHtml }: InferGetStaticPr
         canonical={`${getBaseUrl()}/policies/${handle}`}
         breadcrumbs={breadcrumbItems}
         // Don't index the placeholder page shown while a policy is still empty in Shopify.
-        noindex={!bodyHtml}
+        noindex={!bodyHtml && !isPrivacy}
       />
 
       <div className="min-h-screen bg-canvas py-4 sm:py-6">
@@ -69,6 +71,8 @@ export default function PolicyPage({ handle, title, bodyHtml }: InferGetStaticPr
                 className="policy-body text-sm sm:text-base leading-relaxed text-neutral-700 space-y-4 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-neutral-900 [&_h2]:mt-8 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:text-neutral-900 [&_h3]:mt-6 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mt-1 [&_a]:underline [&_a]:text-neutral-900 [&_table]:w-full [&_td]:border [&_td]:p-2 [&_th]:border [&_th]:p-2"
                 dangerouslySetInnerHTML={{ __html: sanitizeRichText(bodyHtml) }}
               />
+            ) : isPrivacy ? (
+              <FallbackPrivacyPolicy />
             ) : (
               <div className="rounded-2xl border border-border-subtle bg-white p-6 text-sm sm:text-base text-neutral-700 space-y-3">
                 <p>Our {title.toLowerCase()} is being updated and will be posted here shortly.</p>
@@ -90,6 +94,8 @@ export default function PolicyPage({ handle, title, bodyHtml }: InferGetStaticPr
                 </p>
               </div>
             )}
+
+            {isPrivacy && <SmsPrivacySection />}
           </article>
         </div>
       </div>
