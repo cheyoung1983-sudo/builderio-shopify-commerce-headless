@@ -258,7 +258,7 @@ export const RepairStatusTracker: React.FC<RepairStatusTrackerProps> = ({
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="e.g. DCP-RMS-100001 or 100001"
+              placeholder="e.g. DCP-RMS-000000"
               className="w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 font-mono placeholder-neutral-400 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
             />
             <Search className="w-5 h-5 text-neutral-400 absolute right-3.5 top-3.5 pointer-events-none" />
@@ -283,30 +283,6 @@ export const RepairStatusTracker: React.FC<RepairStatusTrackerProps> = ({
           </button>
         </div>
 
-        {/* Demo Quick Select Chips */}
-        <div className="flex flex-wrap items-center gap-2 mt-3 text-xs text-neutral-500">
-          <span className="font-semibold text-neutral-600">Try Sample Orders:</span>
-          <button
-            type="button"
-            onClick={() => {
-              setSearchInput('DCP-RMS-100001')
-              setActiveRms('DCP-RMS-100001')
-            }}
-            className="px-2.5 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-mono text-[11px] transition-colors"
-          >
-            DCP-RMS-100001 (Bench Repair)
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSearchInput('DCP-RMS-100002')
-              setActiveRms('DCP-RMS-100002')
-            }}
-            className="px-2.5 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-mono text-[11px] transition-colors"
-          >
-            DCP-RMS-100002 (Inbound Transit)
-          </button>
-        </div>
       </form>
 
       {/* Error State */}

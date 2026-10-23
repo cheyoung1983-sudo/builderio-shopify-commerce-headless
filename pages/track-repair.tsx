@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import type { GetStaticProps } from 'next'
 import Head from 'next/head'
 import Link from 'next/link'
 import {
@@ -19,8 +20,17 @@ import { RepairStatusLookup } from '../components/services/RepairStatusLookup'
 import LoginButton from '../components/auth/LoginButton'
 import LogoutButton from '../components/auth/LogoutButton'
 import Profile from '../components/auth/Profile'
+import { isAuth0Enabled } from '../lib/auth0'
 
-export default function TrackRepairPage() {
+interface TrackRepairPageProps {
+  authEnabled: boolean
+}
+
+export const getStaticProps: GetStaticProps<TrackRepairPageProps> = async () => ({
+  props: { authEnabled: isAuth0Enabled },
+})
+
+export default function TrackRepairPage({ authEnabled }: TrackRepairPageProps) {
   const [detectedEmail, setDetectedEmail] = useState<string>('')
 
   return (
@@ -64,7 +74,7 @@ export default function TrackRepairPage() {
               <p className="text-sm sm:text-base text-neutral-600 leading-relaxed">
                 Check real-time updates for your device in our Spokane cleanroom repair lab. Verify with your{' '}
                 <strong className="text-neutral-900">Repair Request ID (RMS#)</strong> and{' '}
-                <strong className="text-neutral-900">Contact Email</strong> to view technician diagnostic logs, courier tracking, and return delivery milestones.
+                <strong className="text-neutral-900">Contact Email</strong> to see your repair&apos;s current stage and latest update.
               </p>
 
               <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-neutral-600">
@@ -79,7 +89,8 @@ export default function TrackRepairPage() {
               </div>
             </div>
 
-            {/* Auth0 Customer Account Card */}
+            {/* Customer sign-in card: shown only once Auth0 is configured and implemented */}
+            {authEnabled && (
             <div className="bg-neutral-50/90 border border-neutral-200/90 rounded-2xl p-5 lg:max-w-md w-full space-y-4">
               <div className="flex items-center justify-between border-b border-neutral-200/60 pb-3">
                 <div className="flex items-center gap-2 text-xs font-bold text-neutral-900 uppercase tracking-wider">
@@ -113,6 +124,7 @@ export default function TrackRepairPage() {
                 Signing in with Auth0 automatically syncs your email address to the repair verification form.
               </p>
             </div>
+            )}
           </div>
         </header>
 

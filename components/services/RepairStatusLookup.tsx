@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
+import type { RepairStatusSummary } from '../../lib/repair-lookup'
 import {
   Search,
-  Wrench,
   Package,
   Truck,
   CheckCircle2,
@@ -11,17 +11,8 @@ import {
   AlertCircle,
   ShieldCheck,
   Cpu,
-  Sparkles,
-  Printer,
-  Copy,
-  Check,
-  ExternalLink,
-  ZoomIn,
-  X,
   RefreshCw,
   Mail,
-  Smartphone,
-  MapPin,
   Lock,
 } from 'lucide-react'
 
@@ -29,7 +20,7 @@ export interface RepairStatusLookupProps {
   initialRms?: string
   initialEmail?: string
   className?: string
-  onTracked?: (record: any) => void
+  onTracked?: (record: RepairStatusSummary) => void
 }
 
 export interface RepairStageInfo {
@@ -78,6 +69,16 @@ export const REPAIR_STAGES: RepairStageInfo[] = [
   },
 ]
 
+
+const NOT_FOUND_MESSAGE =
+  'We could not find a repair matching that Repair Request ID and email. Please double-check both and try again.'
+
+function formatUpdated(iso?: string): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleString()
+}
+
 export const RepairStatusLookup: React.FC<RepairStatusLookupProps> = ({
   initialRms = '',
   initialEmail = '',
@@ -86,19 +87,14 @@ export const RepairStatusLookup: React.FC<RepairStatusLookupProps> = ({
 }) => {
   const [rmsInput, setRmsInput] = useState<string>(initialRms)
   const [emailInput, setEmailInput] = useState<string>(initialEmail)
-  const [record, setRecord] = useState<any | null>(null)
+  const [record, setRecord] = useState<RepairStatusSummary | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
   const [errorMessage, setErrorMessage] = useState<string>('')
-  const [copiedRms, setCopiedRms] = useState<boolean>(false)
-  const [previewImg, setPreviewImg] = useState<string | null>(null)
-  const [showSlipModal, setShowSlipModal] = useState<boolean>(false)
 
-  // Update email if passed from Auth0 Profile or query param
+  // Update email if one is passed in after mount
   useEffect(() => {
     if (initialEmail && !emailInput) {
-      const timer = setTimeout(() => {
-        setEmailInput(initialEmail)
-      }, 0)
+      const timer = setTimeout(() => setEmailInput(initialEmail), 0)
       return () => clearTimeout(timer)
     }
   }, [initialEmail, emailInput])
@@ -107,36 +103,31 @@ export const RepairStatusLookup: React.FC<RepairStatusLookupProps> = ({
     async (rmsToSearch: string, emailToSearch: string) => {
       const cleanRms = rmsToSearch.trim().toUpperCase()
       const cleanEmail = emailToSearch.trim().toLowerCase()
-
       if (!cleanRms || !cleanEmail) {
         setErrorMessage('Please enter both your Repair Request ID and your email address.')
         return
       }
-
       setLoading(true)
       setErrorMessage('')
-
       try {
         const response = await fetch('/api/repair-requests/lookup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ rms: cleanRms, email: cleanEmail }),
         })
-
-        const data = await response.json()
-
+        const data = await response.json().catch(() => ({}))
         if (response.ok && data.success && data.record) {
           setRecord(data.record)
-          setErrorMessage('')
           onTracked?.(data.record)
         } else {
           setRecord(null)
           setErrorMessage(
-            data.error ||
-              'No matching repair record found for this Repair Request ID and Email combination. Please verify both details.'
+            response.status === 429
+              ? 'Too many lookups. Please wait a minute and try again.'
+              : NOT_FOUND_MESSAGE
           )
         }
-      } catch (err: any) {
+      } catch {
         setRecord(null)
         setErrorMessage('Could not connect to repair tracking server. Please check your network connection.')
       } finally {
@@ -151,41 +142,8 @@ export const RepairStatusLookup: React.FC<RepairStatusLookupProps> = ({
     executeLookup(rmsInput, emailInput)
   }
 
-  const handleCopyRms = (rms: string) => {
-    if (typeof navigator !== 'undefined') {
-      navigator.clipboard.writeText(rms)
-      setCopiedRms(true)
-      setTimeout(() => setCopiedRms(false), 2000)
-    }
-  }
-
-  const handleDemoFill = (demoRms: string, demoEmail: string) => {
-    setRmsInput(demoRms)
-    setEmailInput(demoEmail)
-    executeLookup(demoRms, demoEmail)
-  }
-
-  const getStageNumber = (statusKey: string, numericStage?: number): number => {
-    if (typeof numericStage === 'number') return numericStage
-    switch (statusKey) {
-      case 'kit_dispatched':
-        return 1
-      case 'inbound_transit':
-        return 2
-      case 'bench_diagnostic':
-      case 'repair_in_progress':
-        return 3
-      case 'quality_testing':
-        return 4
-      case 'outbound_delivery':
-      case 'completed':
-        return 5
-      default:
-        return 1
-    }
-  }
-
-  const currentStage = record ? getStageNumber(record.status, record.currentStage) : 1
+  const stageIndex = record ? Math.max(1, REPAIR_STAGES.findIndex((st) => st.key === record.status) + 1) : 1
+  const updated = formatUpdated(record?.updatedAt)
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -227,7 +185,7 @@ export const RepairStatusLookup: React.FC<RepairStatusLookupProps> = ({
                   id="lookup-rms-input"
                   type="text"
                   required
-                  placeholder="e.g. DCP-RMS-100001"
+                  placeholder="e.g. DCP-RMS-000000"
                   value={rmsInput}
                   onChange={(e) => setRmsInput(e.target.value.toUpperCase())}
                   className="w-full pl-3.5 pr-10 py-2.5 text-xs sm:text-sm font-mono bg-neutral-50/80 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition-colors uppercase"
@@ -283,23 +241,7 @@ export const RepairStatusLookup: React.FC<RepairStatusLookupProps> = ({
 
           {/* Submit Button & Demo Helper */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] font-medium text-neutral-500">Test Demo Records:</span>
-              <button
-                type="button"
-                onClick={() => handleDemoFill('DCP-RMS-100001', 'cheyoung1983@gmail.com')}
-                className="text-[11px] font-mono px-2 py-0.5 bg-neutral-100 hover:bg-emerald-50 hover:text-emerald-800 text-neutral-700 rounded-lg border border-neutral-200 transition-colors cursor-pointer"
-              >
-                RMS-100001 (iPhone 15 Pro Max)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDemoFill('DCP-RMS-100002', 'customer@example.com')}
-                className="text-[11px] font-mono px-2 py-0.5 bg-neutral-100 hover:bg-emerald-50 hover:text-emerald-800 text-neutral-700 rounded-lg border border-neutral-200 transition-colors cursor-pointer"
-              >
-                RMS-100002 (S24 Ultra)
-              </button>
-            </div>
+            <span />
 
             <button
               id="lookup-submit-btn"
@@ -323,293 +265,47 @@ export const RepairStatusLookup: React.FC<RepairStatusLookupProps> = ({
         </form>
       </div>
 
-      {/* Verified Status Display */}
       {record && (
-        <div id="verified-repair-details" className="bg-white rounded-2xl border border-neutral-200/90 shadow-sm overflow-hidden space-y-6">
-          {/* Header Banner */}
-          <div className="bg-gradient-to-r from-neutral-900 via-neutral-800 to-emerald-950 text-white p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-mono text-xs font-bold bg-white/10 px-2.5 py-1 rounded-lg border border-white/10 tracking-wider">
-                  {record.rmsNumber}
-                </span>
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2.5 py-0.5 rounded-full">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  Verified Customer Ownership
-                </span>
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-white pt-1">
-                {record.itemDetails?.deviceBrand} {record.itemDetails?.deviceModel}
-              </h3>
-              <p className="text-xs text-neutral-300">
-                Contact: <strong className="text-white">{record.shippingKit?.recipientName}</strong> &bull; {record.shippingKit?.email}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2.5 self-start md:self-auto shrink-0">
-              <button
-                type="button"
-                onClick={() => handleCopyRms(record.rmsNumber)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors cursor-pointer"
-              >
-                {copiedRms ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedRms ? 'Copied' : 'Copy RMS#'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowSlipModal(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                <span>Packing Slip</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="p-5 sm:p-7 space-y-7">
-            {/* 5-Stage Interactive Progress Track */}
+        <div id="verified-repair-details" className="bg-white rounded-2xl border border-neutral-200/90 shadow-sm p-5 sm:p-7 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-xs font-bold text-neutral-800 uppercase tracking-wider">
-                  Repair Progress Timeline
-                </h4>
-                {record.estimatedCompletion && (
-                  <span className="text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg font-semibold inline-flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Est. Delivery: {record.estimatedCompletion}</span>
-                  </span>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                {REPAIR_STAGES.map((st) => {
-                  const Icon = st.icon
-                  const isDone = st.stage < currentStage
-                  const isCurrent = st.stage === currentStage
-                  const isPending = st.stage > currentStage
-
-                  return (
-                    <div
-                      key={st.key}
-                      className={`relative p-3.5 rounded-xl border transition-all ${
-                        isCurrent
-                          ? 'border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-600/20 shadow-xs'
-                          : isDone
-                          ? 'border-neutral-200 bg-neutral-50/90 text-neutral-700'
-                          : 'border-neutral-200/60 bg-white text-neutral-400 opacity-60'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <div
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                            isCurrent
-                              ? 'bg-emerald-600 text-white shadow-xs'
-                              : isDone
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-neutral-100 text-neutral-400'
-                          }`}
-                        >
-                          <Icon className="w-3.5 h-3.5" />
-                        </div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider">
-                          Stage {st.stage}
-                        </span>
-                      </div>
-                      <p className={`text-xs font-bold leading-snug ${isCurrent ? 'text-emerald-950' : 'text-neutral-900'}`}>
-                        {st.label}
-                      </p>
-                      <p className="text-[11px] text-neutral-500 mt-1 leading-relaxed">
-                        {st.description}
-                      </p>
-                    </div>
-                  )
-                })}
-              </div>
+              <span className="font-mono text-xs font-bold text-neutral-700">{record.rmsNumber}</span>
+              <h3 className="text-lg font-bold text-neutral-900">{record.deviceModel}</h3>
             </div>
-
-            {/* Telemetry Grid (Hardware Specs & Courier Logistics) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4 border-t border-neutral-100">
-              {/* Hardware Diagnostics */}
-              <div className="bg-neutral-50/70 rounded-xl p-4 border border-neutral-200/80 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-neutral-900 uppercase tracking-wider">
-                  <Smartphone className="w-4 h-4 text-emerald-600" />
-                  <span>Device Hardware Specs</span>
-                </div>
-                <div className="text-xs space-y-1.5 text-neutral-700">
-                  <div className="flex justify-between py-1 border-b border-neutral-200/60">
-                    <span className="text-neutral-500">Device Model:</span>
-                    <strong className="text-neutral-900">{record.itemDetails?.deviceBrand} {record.itemDetails?.deviceModel}</strong>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-neutral-200/60 font-mono">
-                    <span className="text-neutral-500">Serial / IMEI:</span>
-                    <span className="text-neutral-900">{record.itemDetails?.serialOrImei || 'Verified on bench'}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-neutral-200/60">
-                    <span className="text-neutral-500">Reported Issue:</span>
-                    <span className="text-neutral-900 font-medium">
-                      {(record.itemDetails?.symptoms || []).join(', ') || 'Diagnostic inspection'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <span className="text-neutral-500">Cosmetic Condition:</span>
-                    <span className="text-neutral-900">{record.itemDetails?.cosmeticCondition || 'Normal wear'}</span>
-                  </div>
-                </div>
-
-                {record.itemDetails?.notes && (
-                  <div className="mt-2 p-2.5 bg-white rounded-lg border border-neutral-200 text-xs text-neutral-600">
-                    <strong className="text-neutral-800 block text-[11px] mb-0.5">Technician Intake Note:</strong>
-                    {record.itemDetails.notes}
-                  </div>
-                )}
-              </div>
-
-              {/* Courier Logistics */}
-              <div className="bg-neutral-50/70 rounded-xl p-4 border border-neutral-200/80 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-neutral-900 uppercase tracking-wider">
-                  <Truck className="w-4 h-4 text-emerald-600" />
-                  <span>Reverse Logistics &amp; Shipping Kit</span>
-                </div>
-                <div className="text-xs space-y-1.5 text-neutral-700">
-                  <div className="flex justify-between py-1 border-b border-neutral-200/60">
-                    <span className="text-neutral-500">Courier Service:</span>
-                    <strong className="text-neutral-900">{record.shippingKit?.courierPreference || 'UPS Overnight Prepaid'}</strong>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-neutral-200/60">
-                    <span className="text-neutral-500">Shipping Kit Format:</span>
-                    <span className="text-neutral-900 font-medium">ESD Foam Mailer (Prepaid up to 2.0 lbs)</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-neutral-200/60 font-mono">
-                    <span className="text-neutral-500">Inbound Tracking:</span>
-                    <span className="text-emerald-700 font-bold">{record.shippingKit?.inboundTracking || 'Pending Dispatch'}</span>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <span className="text-neutral-500">Destination:</span>
-                    <span className="text-neutral-900">Spokane Advanced Cleanroom Hub</span>
-                  </div>
-                </div>
-
-                <div className="mt-2 p-2.5 bg-emerald-50 rounded-lg border border-emerald-200 text-[11px] text-emerald-900 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Zero upfront shipping fees. Hand package directly to your local courier station.</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Diagnostic Photos */}
-            {record.itemDetails?.imageUrls && record.itemDetails.imageUrls.length > 0 && (
-              <div className="pt-4 border-t border-neutral-100">
-                <h4 className="text-xs font-bold text-neutral-800 uppercase tracking-wider mb-2.5">
-                  Intake Diagnostic Photos ({record.itemDetails.imageUrls.length})
-                </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {record.itemDetails.imageUrls.map((url: string, idx: number) => (
-                    <div
-                      key={idx}
-                      onClick={() => setPreviewImg(url)}
-                      className="group relative aspect-square rounded-xl bg-neutral-100 border border-neutral-200 overflow-hidden cursor-pointer"
-                    >
-                      <img src={url} alt={`Diagnostic photo ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs gap-1">
-                        <ZoomIn className="w-4 h-4" />
-                        <span>Enlarge</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Live Technician Event Log */}
-            {record.technicianLog && record.technicianLog.length > 0 && (
-              <div className="pt-4 border-t border-neutral-100">
-                <h4 className="text-xs font-bold text-neutral-800 uppercase tracking-wider mb-3">
-                  Technician Bench Log History
-                </h4>
-                <div className="space-y-2">
-                  {record.technicianLog.map((log: any, idx: number) => (
-                    <div key={idx} className="flex items-start gap-2.5 text-xs text-neutral-700 bg-neutral-50 p-2.5 rounded-lg border border-neutral-100">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                      <div className="flex-1">
-                        <span className="font-semibold text-neutral-900">{log.event}</span>
-                        {log.timestamp && (
-                          <span className="text-[10px] text-neutral-400 block mt-0.5">
-                            {new Date(log.timestamp).toLocaleString()}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Image Preview Modal */}
-      {previewImg && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4"
-          onClick={() => setPreviewImg(null)}
-        >
-          <div className="relative max-w-3xl w-full bg-neutral-900 rounded-2xl overflow-hidden p-2">
-            <button
-              onClick={() => setPreviewImg(null)}
-              className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-            <img src={previewImg} alt="Diagnostic enlarged preview" className="w-full max-h-[80vh] object-contain rounded-xl" />
-          </div>
-        </div>
-      )}
-
-      {/* Printable Packing Slip Modal */}
-      {showSlipModal && record && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div>
-                <h3 className="text-base font-bold text-neutral-900">Official Mail-In Packing Slip</h3>
-                <p className="text-xs text-neutral-500 font-mono">RMS #{record.rmsNumber}</p>
-              </div>
-              <button
-                onClick={() => setShowSlipModal(false)}
-                className="w-7 h-7 rounded-lg text-neutral-400 hover:text-neutral-800 hover:bg-neutral-100 flex items-center justify-center"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="text-xs space-y-2 text-neutral-700 bg-neutral-50 p-4 rounded-xl border border-neutral-200">
-              <p><strong>Device:</strong> {record.itemDetails?.deviceBrand} {record.itemDetails?.deviceModel}</p>
-              <p><strong>Serial / IMEI:</strong> {record.itemDetails?.serialOrImei || 'N/A'}</p>
-              <p><strong>Customer Name:</strong> {record.shippingKit?.recipientName}</p>
-              <p><strong>Customer Email:</strong> {record.shippingKit?.email}</p>
-              <p><strong>Courier:</strong> {record.shippingKit?.courierPreference}</p>
-              <p><strong>Facility Destination:</strong> DisplayCellPros Spokane Cleanroom Facility</p>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="px-4 py-2 bg-neutral-900 hover:bg-black text-white text-xs font-semibold rounded-xl flex items-center gap-1.5"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                <span>Print Slip</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowSlipModal(false)}
-                className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-semibold rounded-xl"
-              >
-                Close
-              </button>
+            <div className="text-xs text-neutral-600 space-y-1 sm:text-right">
+              {updated && <p>Last update: {updated}</p>}
+              {record.estimatedCompletion && (
+                <p className="inline-flex items-center gap-1.5 text-emerald-800">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Estimated completion: {record.estimatedCompletion}</span>
+                </p>
+              )}
             </div>
           </div>
+          <ol className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            {REPAIR_STAGES.map((st) => {
+              const Icon = st.icon
+              const isCurrent = st.stage === stageIndex
+              const isDone = st.stage < stageIndex
+              return (
+                <li
+                  key={st.key}
+                  aria-current={isCurrent ? 'step' : undefined}
+                  className={`p-3.5 rounded-xl border ${
+                    isCurrent
+                      ? 'border-emerald-600 bg-emerald-50/70'
+                      : isDone
+                      ? 'border-neutral-200 bg-neutral-50'
+                      : 'border-neutral-200/60 bg-white text-neutral-500'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 mb-1.5 text-emerald-700" />
+                  <p className="text-xs font-bold text-neutral-900">{st.label}</p>
+                  <p className="text-[11px] text-neutral-600 mt-0.5">{st.description}</p>
+                </li>
+              )
+            })}
+          </ol>
         </div>
       )}
     </div>

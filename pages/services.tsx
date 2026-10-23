@@ -124,7 +124,7 @@ export default function ServicesPage() {
                 Already sent in your device? Enter your Repair Management System (RMS) number to view live bench status.
               </p>
             </div>
-            <RepairStatusTracker initialRms="DCP-RMS-100001" />
+            <RepairStatusTracker />
           </section>
 
           {/* Repair Cost & Turnaround Estimator */}

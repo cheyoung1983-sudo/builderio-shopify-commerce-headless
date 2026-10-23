@@ -387,7 +387,7 @@ export default function ServicesFaqPage() {
             <MailInRepairRequestForm />
 
             {/* Real-Time Live Repair Status Tracker */}
-            <RepairStatusTracker initialRms="DCP-RMS-100001" />
+            <RepairStatusTracker />
 
             {/* Mail-In Repair Estimator Quick Guide */}
             <MailInRepairEstimator />

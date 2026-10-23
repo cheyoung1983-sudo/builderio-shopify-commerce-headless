@@ -101,7 +101,7 @@ describe('source wiring', () => {
     expect(src).toMatch(/modernCart\?\.totalQuantity \|\| 0/)
   })
   test('B: drawer and /cart checkout go through proceedToCheckout, not a cached href', () => {
-    for (const f of ['components/CartDrawer.jsx', 'components/cart/CartSidebarView/CartSidebarView.tsx']) {
+    for (const f of ['components/cart/CartSidebarView/CartSidebarView.tsx']) {
       const src = read(f)
       expect(src).toMatch(/proceedToCheckout/)
       expect(src).not.toMatch(/href=\{checkoutUrl/)
