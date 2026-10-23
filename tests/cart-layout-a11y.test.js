@@ -8,7 +8,6 @@ const read = (p) => fs.readFileSync(path.join(__dirname, '..', p), 'utf8')
 describe('cart layout and accessibility', () => {
   test('cart drawers stack above the sticky header (z-40)', () => {
     expect(read('components/common/Sidebar.tsx')).toMatch(/zIndex:\s*60/)
-    expect(read('components/CartDrawer.jsx')).toMatch(/z-\[60\]/)
   })
 
   test('cart views do not overflow horizontally', () => {
@@ -27,7 +26,18 @@ describe('cart layout and accessibility', () => {
     expect(item).toMatch(/onClick=\{handleRemove\}/)
     expect(item).toMatch(/Decrease quantity of/)
     expect(item).toMatch(/Increase quantity of/)
-    expect(read('components/CartDrawer.jsx')).toMatch(/aria-label=\{`Remove \$\{item\.title\}`\}/)
+  })
+
+  test('only one cart panel is mounted (CartSidebarView in Sidebar)', () => {
+    const layout = read('components/common/Layout.tsx')
+    expect(fs.existsSync(path.join(__dirname, '..', 'components/CartDrawer.jsx'))).toBe(false)
+    expect(layout).not.toMatch(/CartDrawer/)
+    expect(layout.match(/<CartSidebarView\b/g)).toHaveLength(1)
+    // voice agent's "open-cart" event opens that same sidebar
+    expect(layout).toMatch(/<OpenCartBridge \/>/)
+    const bridge = read('components/cart/OpenCartBridge/OpenCartBridge.tsx')
+    expect(bridge).toMatch(/addEventListener\('open-cart'/)
+    expect(bridge).toMatch(/openSidebar/)
   })
 
   test('cookie notice is a non-blocking bar below the drawers', () => {

@@ -72,19 +72,12 @@ export const FloatingVoiceAgentWrapper: React.FC<FloatingVoiceAgentWrapperProps>
   className = '',
 }) => {
   const isMounted = useIsMounted()
-  // Hide the widget while either cart drawer is open so it can't cover
+  // Hide the widget while the cart sidebar is open so it can't cover
   // "Proceed to Checkout" on narrow screens. Read contexts directly (not the
   // throwing hooks) so the widget still renders outside the providers.
   const ui = useContext(UIContext) as { displaySidebar?: boolean } | undefined
   const cart = useContext(CartContext)
-  const [drawerEventOpen, setDrawerEventOpen] = useState(false)
-  useEffect(() => {
-    const onState = (e: Event) =>
-      setDrawerEventOpen(Boolean((e as CustomEvent<{ open?: boolean }>).detail?.open))
-    window.addEventListener('cart-drawer:state', onState)
-    return () => window.removeEventListener('cart-drawer:state', onState)
-  }, [])
-  const cartDrawerOpen = Boolean(ui?.displaySidebar || cart?.isOpen || drawerEventOpen)
+  const cartDrawerOpen = Boolean(ui?.displaySidebar || cart?.isOpen)
   // null = not loaded yet; false = loaded closed; true = loaded and opened by a tap
   const [activated, setActivated] = useState<null | boolean>(null)
 
