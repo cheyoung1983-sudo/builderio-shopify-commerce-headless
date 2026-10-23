@@ -139,7 +139,17 @@ describe('Shopify Order Webhooks & Real-Time Tax/Discount Reconciler', () => {
 
       const reconciliation = await reconcileOrderTaxAndDiscounts(${JSON.stringify(orderPayload)}, 'orders/updated')
       console.log(JSON.stringify(reconciliation))
-    `)
+    `, { TRIBAL_TAX_EXEMPT_ENABLED: 'true' })
+
+    const flagOff = runWebhookScript(`
+      const { reconcileOrderTaxAndDiscounts } = reconcilerModule
+      console.log(JSON.stringify(await reconcileOrderTaxAndDiscounts(${JSON.stringify(orderPayload)}, 'orders/updated')))
+    `, { TRIBAL_TAX_EXEMPT_ENABLED: '' })
+    // TRIBAL_TAX_EXEMPT_ENABLED off (default): same order is never treated as exempt.
+    expect(flagOff.taxExemptionEligible).toBe(false)
+    expect(flagOff.taxAction).toBe('STANDARD_TAX')
+    expect(flagOff.entityUseCode).toBeUndefined()
+    expect(flagOff.tagsToAdd).not.toContain('tribal-tax-exempt')
 
     expect(result.isReservationAddress).toBe(true)
     expect(result.taxExemptionEligible).toBe(true)

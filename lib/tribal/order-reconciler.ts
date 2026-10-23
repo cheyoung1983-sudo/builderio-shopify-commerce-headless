@@ -11,6 +11,7 @@
 
 import { evaluateAddressGeofence } from './geofencing.ts'
 import { getRequiredCertificateType } from './certificates.ts'
+import { isTribalTaxExemptEnabled } from './tax-flags.ts'
 import { logVerificationEvent } from '../audit.ts'
 import { shopifyAdminFetch } from '../../services/shopify-admin.ts'
 import { getShopifyWebhookSecret, verifyShopifyHmac } from '../shopify/webhook-hmac.ts'
@@ -220,7 +221,9 @@ export async function reconcileOrderTaxAndDiscounts(
   }
 
   // 4. Tax Exemption Eligibility (Dual-Track: Must be verified AND delivered onto reservation)
-  const taxExemptionEligible = isVerifiedTribalMember && isReservationAddress
+  // Gated by TRIBAL_TAX_EXEMPT_ENABLED (default off): when off, no order is treated as
+  // tax exempt (no APPLY_EXEMPTION, no entity use code, audit taxExempt false).
+  const taxExemptionEligible = isTribalTaxExemptEnabled() && isVerifiedTribalMember && isReservationAddress
   const currentTotalTax = parseFloat(String(order.total_tax || '0')) || 0
   const orderHasTaxExemptTag = orderTags.includes('tribal-tax-exempt')
 
