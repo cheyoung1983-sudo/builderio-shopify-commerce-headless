@@ -174,7 +174,12 @@ const nextConfig = {
 }
 
 module.exports = () => {
-  const withBuilderDevTools = require('@builder.io/dev-tools/next')()
+  // @builder.io/dev-tools is optional (local visual-editing helper only). It was
+  // removed from dependencies because it pulled in a vulnerable `braces`.
+  let withBuilderDevTools = (c) => c
+  try {
+    withBuilderDevTools = require('@builder.io/dev-tools/next')()
+  } catch {}
   const config = process.env.BUNDLE_ANALYZE
     ? require('@next/bundle-analyzer')({ enabled: true })(nextConfig)
     : nextConfig

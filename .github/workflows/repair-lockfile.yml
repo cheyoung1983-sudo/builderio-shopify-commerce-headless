@@ -1,0 +1,32 @@
+name: Repair lockfile
+
+# Run by hand (Actions -> Repair lockfile -> Run workflow) when CI says the
+# lockfile drifted. Re-syncs package-lock.json, removes stray bun/yarn/pnpm
+# lockfiles and superpowers/, restores exec bits, and opens a PR.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Repair
+        run: node scripts/check-repo-hygiene.cjs --fix
+      - name: Open PR if anything changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git add -A
+          if git diff --cached --quiet; then echo "Nothing to repair."; exit 0; fi
+          branch="chore/repair-lockfile-${{ github.run_id }}"
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "chore: repair lockfile and repo hygiene"
+          git push origin "HEAD:$branch"
+          gh pr create --head "$branch" --base "${{ github.ref_name }}" --title "chore: repair lockfile and repo hygiene" --body "Automated by the Repair lockfile workflow (scripts/check-repo-hygiene.cjs --fix)."
