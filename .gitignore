@@ -59,3 +59,10 @@ turborepo/
 .env*
 /chrome-devtools-mcp
 !.env.example
+
+# npm is the only package manager; AI Studio / builder exports add these
+bun.lock
+bun.lockb
+yarn.lock
+pnpm-lock.yaml
+/superpowers/

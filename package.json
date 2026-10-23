@@ -2,15 +2,15 @@
   "name": "nextjs-shopify",
   "version": "1.0.0",
   "engines": {
-    "node": "24.x"
+    "node": "24.x",
+    "npm": ">=11"
   },
   "resolutions": {
-    "isolated-vm": "6.2.0",
     "minimatch": "9.0.9",
-    "@opentelemetry/core": "^2.8.0"
+    "@opentelemetry/core": "^2.8.0",
+    "isolated-vm": "6.2.0"
   },
   "overrides": {
-    "isolated-vm": "6.2.0",
     "minimatch": "9.0.9",
     "detective-postcss": {
       "postcss": "^8.5.28"
@@ -19,10 +19,10 @@
     "sharp": "^0.35.5",
     "source-map-js": "^1.2.2",
     "@grpc/grpc-js": "^1.13.6",
-    "@builder.io/dev-tools": {
-      "@sentry/node": "$@sentry/node"
-    },
-    "postcss-selector-parser": "^7.1.6"
+    "postcss-selector-parser": "^7.1.6",
+    "isolated-vm": "6.2.0",
+    "brace-expansion": "2.1.7",
+    "fast-uri": "3.1.8"
   },
   "scripts": {
     "dev": "next dev -p 3000 -H 0.0.0.0",
@@ -65,127 +65,88 @@
     "precheck:build": "npm run check:node-version && npm run check:ci-integrity && npm run check:dependency-health && npm run check:security-cors && npm run audit:csp && npm run typecheck && npm run lint && npm run check:secrets && npm run check:customer-account-auth-health && npm run check:xss-hardening",
     "prepare": "node scripts/setup-git-hooks.cjs && node scripts/patch-csp-eval.cjs",
     "analyze": "BUNDLE_ANALYZE=both npm run build",
-    "find:unused": "next-unused",
     "prettier": "prettier",
     "lint:a11y": "stylelint \"**/*.css\"",
     "test": "jest tests/",
-    "test:a11y": "jest"
+    "test:a11y": "jest",
+    "check:repo": "node scripts/check-repo-hygiene.cjs",
+    "fix:repo": "node scripts/check-repo-hygiene.cjs --fix"
   },
   "prettier": {
     "semi": false,
     "singleQuote": true
   },
-  "next-unused": {
-    "alias": {
-      "@lib/*": [
-        "lib/*"
-      ],
-      "@assets/*": [
-        "assets/*"
-      ],
-      "@config/*": [
-        "config/*"
-      ],
-      "@components/*": [
-        "components/*"
-      ],
-      "@utils/*": [
-        "utils/*"
-      ]
-    },
-    "debug": true,
-    "include": [
-      "components",
-      "lib",
-      "pages",
-      "sections"
-    ],
-    "exclude": [],
-    "entrypoints": [
-      "pages"
-    ]
-  },
   "dependencies": {
-    "@auth0/nextjs-auth0": "^4.33.0",
-    "@builder.io/dev-tools": "^1.85.1",
-    "@builder.io/react": "^3.1.1",
+    "@auth0/nextjs-auth0": "4.33.0",
+    "@builder.io/react": "3.2.12",
     "@builder.io/utils": "1.1.10",
     "@builder.io/widgets": "1.2.24",
-    "@elevenlabs/client": "^1.25.0",
-    "@emotion/react": "^11.10.6",
-    "@firebase/eslint-plugin-security-rules": "^0.0.2",
-    "@google/genai": "^2.23.0",
-    "@radix-ui/react-dialog": "^1.0.2",
-    "@reach/dialog": "^0.18.0",
-    "@reach/portal": "0.14.0",
-    "@sentry/node": "^11.0.0",
-    "@shopify/storefront-api-client": "^2.0.0",
-    "@tailwindcss/postcss": "^4.3.3",
+    "@elevenlabs/client": "1.30.0",
+    "@emotion/react": "11.14.0",
+    "@firebase/eslint-plugin-security-rules": "0.0.2",
+    "@google/genai": "2.31.0",
+    "@reach/dialog": "0.18.0",
+    "@sentry/node": "11.8.0",
+    "@shopify/storefront-api-client": "2.0.0",
+    "@tailwindcss/postcss": "4.3.3",
     "@theme-ui/components": "0.15.5",
     "@theme-ui/match-media": "0.15.5",
-    "@theme-ui/preset-base": "0.15.5",
     "@theme-ui/presets": "0.15.5",
     "@types/shopify-buy": "2.10.3",
-    "@types/traverse": "0.6.32",
-    "@upstash/redis": "^1.39.0",
-    "@vercel/analytics": "^2.0.1",
-    "@vercel/speed-insights": "^2.0.0",
-    "@vercel/toolbar": "^0.2.7",
-    "autoprefixer": "^10.5.5",
-    "cheerio": "1.0.0-rc.12",
-    "d3-geo": "^3.1.1",
-    "elevenlabs": "^1.59.0",
-    "firebase": "^12.19.0",
-    "framer-motion": "^13.4.0",
+    "@upstash/redis": "1.39.0",
+    "@vercel/analytics": "2.0.1",
+    "@vercel/speed-insights": "2.0.0",
+    "autoprefixer": "10.6.0",
+    "firebase": "12.19.0",
+    "form-data": "4.0.6",
     "js-cookie": "3.0.7",
-    "lucide-react": "^1.43.0",
-    "motion": "^13.4.0",
+    "lucide-react": "1.45.0",
+    "motion": "13.5.1",
     "next": "16.4.2",
     "next-seo": "5.15.0",
-    "nprogress": "^0.2.0",
-    "postcss": "^8.5.28",
-    "pure-react-carousel": "^1.30.1",
-    "qrcode.react": "^4.2.0",
+    "nprogress": "0.2.0",
+    "postcss": "8.5.28",
+    "pure-react-carousel": "1.35.0",
+    "qrcode.react": "4.2.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-simple-maps": "^5.0.5",
-    "react-spring": "^9.6.1",
-    "recharts": "^3.10.1",
-    "sanitize-html": "^2.18.1",
-    "shopify-buy": "^2.16.1",
-    "tailwindcss": "^4.3.3",
+    "react-simple-maps": "5.0.5",
+    "react-spring": "9.7.5",
+    "recharts": "3.10.1",
+    "sanitize-html": "2.18.1",
+    "shopify-buy": "2.22.0",
+    "tailwindcss": "4.3.3",
     "theme-ui": "0.15.5",
-    "traverse": "0.6.7",
-    "zod": "^4.6.5"
+    "zod": "4.6.5"
   },
   "devDependencies": {
-    "@next/bundle-analyzer": "^16.3.4",
-    "@shopify/ai-toolkit": "^1.8.0",
-    "@types/formidable": "^3.5.1",
+    "@next/bundle-analyzer": "16.3.5",
+    "@shopify/ai-toolkit": "1.8.2",
+    "@types/formidable": "3.5.1",
     "@types/js-cookie": "3.0.3",
     "@types/node": "18.14.0",
-    "@types/nprogress": "^0.2.3",
+    "@types/nprogress": "0.2.3",
     "@types/react": "18.0.28",
-    "@types/sanitize-html": "^2.16.1",
-    "eslint": "^9.39.5",
-    "eslint-config-next": "^16.3.4",
-    "eslint-plugin-jsx-a11y": "^6.10.2",
-    "formidable": "^3.5.4",
+    "@types/sanitize-html": "2.16.2",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.5",
+    "eslint-plugin-jsx-a11y": "6.10.2",
+    "formidable": "3.5.4",
     "jest": "29.4.3",
-    "jest-axe": "^7.0.1",
-    "jest-environment-jsdom": "^30.5.1",
-    "next-unused": "0.0.6",
+    "jest-axe": "7.0.1",
+    "jest-environment-jsdom": "30.5.1",
     "postcss-flexbugs-fixes": "5.0.2",
     "prettier": "2.8.4",
-    "stylelint": "^15.11.0",
-    "stylelint-a11y": "^1.2.3",
-    "stylelint-config-standard": "^30.0.1",
-    "typescript": "^5.9.3"
+    "stylelint": "15.11.0",
+    "stylelint-a11y": "1.2.3",
+    "stylelint-config-standard": "30.0.1",
+    "typescript": "5.9.3"
   },
   "license": "MIT",
   "allowScripts": {
     "preact": true,
-    "isolated-vm": true,
-    "unrs-resolver": true
-  }
+    "unrs-resolver": true,
+    "isolated-vm": true
+  },
+  "packageManager": "npm@11.19.1"
 }

@@ -16,6 +16,10 @@ try {
       stdio: ['ignore', 'ignore', 'ignore'],
     })
   }
+  // Restore exec bits that some exports drop.
+  for (const f of ['scripts/precheck.mjs', ...fs.readdirSync(path.resolve(__dirname, '..', '.githooks')).map((h) => '.githooks/' + h)]) {
+    try { fs.chmodSync(path.resolve(__dirname, '..', f), 0o755) } catch {}
+  }
 } catch {
   // Not a git repository (or git unavailable) — nothing to configure.
 }
