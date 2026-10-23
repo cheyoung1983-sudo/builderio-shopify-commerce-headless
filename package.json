@@ -117,7 +117,7 @@
     "shopify-buy": "2.22.0",
     "tailwindcss": "4.3.3",
     "theme-ui": "0.15.5",
-    "zod": "4.6.5"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@next/bundle-analyzer": "16.3.5",
