@@ -51,9 +51,9 @@ const nextConfig = {
               // silently overrode this one in production (it blocked the
               // ElevenLabs voice agent's websocket). Keep it here.
               //
-              // frame-ancestors * lets the Builder.io visual editor iframe the
-              // site (X-Frame-Options can't express an origin allowlist).
-              'frame-ancestors *',
+              // frame-ancestors: only this site and the Builder.io visual editor
+              // may iframe the site (X-Frame-Options can't express an origin allowlist).
+              "frame-ancestors 'self' https://builder.io https://*.builder.io",
               // Fallback for anything without its own directive below.
               "default-src 'self'",
               // script-src: no 'unsafe-inline' (the app ships no inline
