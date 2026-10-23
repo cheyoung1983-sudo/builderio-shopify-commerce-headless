@@ -5,6 +5,16 @@ const nextConfig = {
   // inference doesn't get confused by an unrelated lockfile in a parent
   // directory (e.g. a stray package-lock.json in the user's home dir).
   turbopack: { root: __dirname },
+  experimental: {
+    // Turbopack's "shared runtime" (on by default in Next 16.4) inlines a
+    // per-page chunk-bootstrap <script> into every pages-router HTML
+    // response. Our CSP has no 'unsafe-inline' for scripts and most pages are
+    // statically generated/ISR (so a per-request nonce can't be used), which
+    // made browsers block that script and log a CSP error on every page.
+    // Turning the shared runtime off makes Turbopack load those chunks with
+    // ordinary <script src> tags again, so the CSP stays strict.
+    turbopackSharedRuntime: false,
+  },
   // Bundle sanitize-html (and its ESM-only htmlparser2@12 dependency) into
   // the server chunks instead of loading them with a runtime require().
   // Left external, the Vercel serverless runtime throws ERR_REQUIRE_ESM when
