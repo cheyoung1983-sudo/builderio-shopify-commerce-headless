@@ -17,6 +17,7 @@ import {
   Info,
   HelpCircle,
 } from 'lucide-react'
+import { TRIBAL_ELIGIBILITY_LINE } from '../lib/tribal/verification-copy'
 import { Breadcrumbs } from '../components/common/Breadcrumbs'
 import { TribalEligibilityChecker } from '../components/tribal/TribalEligibilityChecker'
 import { TribalEligibilityCalculator } from '../components/services/TribalEligibilityCalculator'
@@ -148,11 +149,11 @@ export default function ServicesFaqPage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                      <span><strong>Zero-Party Verification:</strong> Instant 60-second verification via SheerID / ID.me or manual Tribal ID / CDIB review.</span>
+                      <span><strong>Reviewed by our team:</strong> {TRIBAL_ELIGIBILITY_LINE} You submit your details and a person makes the final call. <Link href="/tribal-discount#how-it-works" className="font-semibold text-amber-900 underline hover:text-amber-950">See how verification works</Link>.</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                      <span><strong>Automatic Checkout Application:</strong> Once verified, your account automatically receives 20% off with zero expired promo codes.</span>
+                      <span><strong>Automatic Checkout Application:</strong> Once approved, your account automatically receives a fixed 20% off. There is no code to enter.</span>
                     </li>
                   </ul>
                 </div>
