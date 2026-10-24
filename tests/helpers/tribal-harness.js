@@ -25,6 +25,9 @@ const SLACK_WEBHOOK = 'https://hooks.slack.com/services/T000/B000/XXXX'
 const SHOP = 'example.myshopify.com'
 const REDIS_URL = 'https://redis.test.invalid'
 const RAW_ID = 'NAV-98442-SECRET'
+const STRIPE_KEY = 'rk_test_FAKEFAKEFAKEFAKE0001'
+const STRIPE_WEBHOOK_SECRET = 'whsec_FAKEFAKEFAKEFAKE_for_tests_only'
+const DUP_SECRET = 'test-duplicate-hmac-secret-0123456789'
 
 const BASE_ENV = {
   NODE_ENV: 'test',
@@ -44,6 +47,13 @@ const BASE_ENV = {
   UPSTASH_REDIS_REST_TOKEN: '',
   KV_REST_API_URL: '',
   KV_REST_API_TOKEN: '',
+  STRIPE_IDENTITY_ENABLED: '',
+  STRIPE_IDENTITY_RESTRICTED_KEY: '',
+  STRIPE_IDENTITY_WEBHOOK_SECRET: '',
+  TRIBAL_STRIPE_TEST_MODE_ONLY: '',
+  TRIBAL_STRIPE_RETURN_BASE_URL: '',
+  NEXT_PUBLIC_SITE_URL: '',
+  TRIBAL_DUPLICATE_HMAC_SECRET: 'test-duplicate-hmac-secret-0123456789',
 }
 
 const PREAMBLE = `
@@ -69,6 +79,8 @@ globalThis.advanceTime = (ms) => { clockOffset += ms }
 globalThis.shopify = { tagFails: false, customerToken: 'good-token', customerId: 'gid://shopify/Customer/1' }
 globalThis.slackWebhookOk = true
 globalThis.slackWebhookThrows = false
+// Stripe API mock (api.stripe.com). Nothing here ever reaches the real network.
+globalThis.stripeMock = { createFails: false, redactFailsTimes: 0, redactAlways: false, redactErrorMessage: null, sessionCounter: 0 }
 
 const b64 = (s) => Buffer.from(String(s), 'utf8').toString('base64')
 function redisExec(cmd, encode) {
@@ -89,6 +101,7 @@ function redisExec(cmd, encode) {
     return 'OK'
   }
   if (op === 'GET') return redisData.has(String(args[0])) ? out(redisData.get(String(args[0]))) : null
+  if (op === 'DEL') { let n = 0; for (const k of args.map(String)) { if (redisData.delete(k)) n++; redisTtl.delete(k) } return n }
   if (op === 'INCR') { const k = String(args[0]); const n = Number(redisData.get(k) || 0) + 1; redisData.set(k, String(n)); return n }
   if (op === 'PTTL') return redisTtl.has(String(args[0])) ? Math.max(0, redisTtl.get(String(args[0])) - Date.now()) : -1
   if (op === 'PEXPIRE') { redisTtl.set(String(args[0]), Date.now() + Number(args[1])); return 1 }
@@ -120,6 +133,23 @@ globalThis.fetch = async (url, init = {}) => {
     }
     return new Response(JSON.stringify({ data: { customerUpdate: { customer: { id: 'gid://shopify/Customer/1', tags: [], taxExempt: false }, userErrors: [] } } }), { status: 200 })
   }
+  if (parsed.hostname === 'api.stripe.com') {
+    const jsonRes = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json' } })
+    const m = globalThis.stripeMock
+    if (parsed.pathname === '/v1/identity/verification_sessions' && (init.method || 'GET') === 'POST') {
+      if (m.createFails) return jsonRes({ error: { type: 'api_error', message: 'boom' } }, 500)
+      const id = 'vs_TEST' + String(++m.sessionCounter).padStart(6, '0')
+      const meta = new URLSearchParams(body).get('metadata[request_id]')
+      return jsonRes({ id, object: 'identity.verification_session', url: 'https://verify.stripe.com/start/test_' + id, status: 'requires_input', livemode: false, metadata: { request_id: meta } })
+    }
+    const redact = parsed.pathname.match(/^\\/v1\\/identity\\/verification_sessions\\/(vs_[A-Za-z0-9_]+)\\/redact$/)
+    if (redact && (init.method || 'GET') === 'POST') {
+      if (m.redactAlways || m.redactFailsTimes > 0) { m.redactFailsTimes--; return jsonRes({ error: { type: 'api_error', message: m.redactErrorMessage || 'temporary failure' } }, 500) }
+      return jsonRes({ id: redact[1], object: 'identity.verification_session', redaction: { status: 'processing' } })
+    }
+    unmocked.push(u)
+    throw new Error('unmocked stripe call blocked: ' + u)
+  }
   if (u.startsWith('https://hooks.slack.com/services/')) {
     if (globalThis.slackWebhookThrows) throw new Error('slack down')
     return new Response('ok', { status: globalThis.slackWebhookOk ? 200 : 500 })
@@ -140,10 +170,26 @@ const summarize = (r) => ({ statusCode: r.statusCode, headers: r.headers, body: 
 const verifyRoute = (await import(${JSON.stringify(fileUrl('pages/api/tribal/verify.ts'))})).default
 const interactRoute = (await import(${JSON.stringify(fileUrl('pages/api/slack/tribal-interaction.ts'))})).default
 const checkEnrollmentRoute = (await import(${JSON.stringify(fileUrl('pages/api/tribal/check-enrollment.ts'))})).default
+const stripeWebhookRoute = (await import(${JSON.stringify(fileUrl('pages/api/webhooks/stripe-identity.ts'))})).default
+const stripeLib = await import(${JSON.stringify(fileUrl('lib/tribal/stripe-identity.ts'))})
 const review = await import(${JSON.stringify(fileUrl('lib/tribal/manual-review.ts'))})
 
 const RAW_ID = ${JSON.stringify(RAW_ID)}
-const validBody = (extra = {}) => ({ firstName: 'Ann', lastName: 'Lee', tribalNation: 'Navajo Nation', tribalEnrollmentId: ${JSON.stringify(RAW_ID)}, ...extra })
+const CONSENT_VERSION = (await import(${JSON.stringify(fileUrl('lib/tribal/consent.ts'))})).CONSENT_TEXT_VERSION
+// Every call yields a NEW identity (the duplicate check rejects repeats) unless the caller overrides the
+// fields. The first call keeps the plain name/RAW_ID; later ones change only the digits/suffix so the
+// ID length and last 4 characters (and therefore the mask) stay identical. All raw IDs used are
+// recorded in usedRawIds so leak assertions can check every one of them.
+let identityCounter = 0
+const usedRawIds = new Set([RAW_ID])
+const validBody = (extra = {}) => {
+  const n = identityCounter++
+  const rawId = n === 0 ? RAW_ID : 'NAV-' + String(10000 + n) + '-SECRET'
+  usedRawIds.add(rawId)
+  return { firstName: n === 0 ? 'Ann' : 'Ann' + n, lastName: n === 0 ? 'Lee' : 'Lee' + n, tribalNation: 'Navajo Nation', tribalEnrollmentId: rawId, consent: true, consentVersion: CONSENT_VERSION, ...extra }
+}
+let stripeCounter = 0
+const stripeBody = (extra = {}) => { const n = stripeCounter++; return { firstName: 'Stripe' + n, lastName: 'Person' + n, tribalNation: 'Navajo Nation', email: 'stripe' + n + '@example.com', consent: true, consentVersion: CONSENT_VERSION, ...extra } }
 let ipCounter = 0
 const callVerify = async (opts = {}) => {
   const { method = 'POST', headers, ip, cookie } = opts
@@ -182,6 +228,36 @@ const createReview = async ({ cookie = 'shopify_customer_token=good-token', body
   if (res.statusCode !== 202) throw new Error('review not created: ' + res.statusCode + ' ' + JSON.stringify(res.body))
   return res.body.reviewId
 }
+// --- Stripe Identity helpers -------------------------------------------------
+const WHSEC = ${JSON.stringify(STRIPE_WEBHOOK_SECRET)}
+const stripeSign = (raw, ts, secret = WHSEC) => 't=' + ts + ',v1=' + nodeCrypto.createHmac('sha256', secret).update(ts + '.' + raw).digest('hex')
+let evtCounter = 0
+const stripeEvent = (type, { reviewId, sessionId, livemode = false, id, lastErrorCode, metadata } = {}) => ({
+  id: id || ('evt_TEST' + String(++evtCounter).padStart(6, '0')), object: 'event', api_version: '2025-01-01', created: nowSec(), livemode, type,
+  data: { object: { id: sessionId, object: 'identity.verification_session', livemode, status: type.split('.').pop(), metadata: metadata || { request_id: reviewId },
+    ...(lastErrorCode ? { last_error: { code: lastErrorCode, reason: 'redacted reason text' } } : {}) } },
+})
+const callStripeWebhook = async ({ event, raw, ts, sig, headers, method = 'POST', secret } = {}) => {
+  const rawBody = raw ?? JSON.stringify(event ?? {})
+  const timestamp = ts ?? nowSec()
+  const req = Readable.from([Buffer.from(rawBody)])
+  req.method = method
+  req.headers = { ...(headers || {}) }
+  const signature = sig === undefined ? stripeSign(rawBody, timestamp, secret) : sig
+  if (signature !== null) req.headers['stripe-signature'] = signature
+  const res = mkRes()
+  await stripeWebhookRoute(req, res)
+  return res
+}
+// Creates a Stripe-path review through the real verify route. Requires the Stripe env (see stripeEnv).
+const createStripeReview = async ({ cookie = 'shopify_customer_token=good-token', body } = {}) => {
+  const res = await callVerify({ cookie, body: body === undefined ? stripeBody() : body })
+  if (res.statusCode !== 200 || !res.body.verificationUrl) throw new Error('stripe review not created: ' + res.statusCode + ' ' + JSON.stringify(res.body))
+  const record = await review.getReview(res.body.reviewId)
+  return { reviewId: res.body.reviewId, sessionId: record.stripeSessionId, res }
+}
+const stripeCalls = () => calls.filter((c) => new URL(c.url).hostname === 'api.stripe.com')
+const slackPosts = () => calls.filter((c) => c.url.startsWith('https://hooks.slack.com/services/')).map((c) => JSON.parse(c.body))
 const tagCalls = () => calls.filter((c) => c.body.includes('tagsAdd('))
 const gqlCalls = () => calls.filter((c) => c.url.includes('/graphql') && !c.url.includes('/account/customer/api/')) // Admin API only
 const slackReplies = () => calls.filter((c) => c.url.startsWith('https://hooks.slack.com/actions/')).map((c) => JSON.parse(c.body))
@@ -205,6 +281,12 @@ function run(body, env = {}) {
   return JSON.parse(line.slice('__TRIBAL_RESULT__'.length))
 }
 
+const stripeEnv = {
+  STRIPE_IDENTITY_ENABLED: 'true',
+  STRIPE_IDENTITY_RESTRICTED_KEY: STRIPE_KEY,
+  STRIPE_IDENTITY_WEBHOOK_SECRET: STRIPE_WEBHOOK_SECRET,
+  TRIBAL_STRIPE_RETURN_BASE_URL: 'https://www.displaycellpros.com',
+}
 const redisEnv = { UPSTASH_REDIS_REST_URL: REDIS_URL, UPSTASH_REDIS_REST_TOKEN: 'test-redis-token' }
 
-module.exports = { run, repoRoot, fileUrl, BASE_ENV, redisEnv, RAW_ID, SIGNING_SECRET, SLACK_WEBHOOK, SHOP, crypto }
+module.exports = { stripeEnv, STRIPE_KEY, STRIPE_WEBHOOK_SECRET, DUP_SECRET, run, repoRoot, fileUrl, BASE_ENV, redisEnv, RAW_ID, SIGNING_SECRET, SLACK_WEBHOOK, SHOP, crypto }

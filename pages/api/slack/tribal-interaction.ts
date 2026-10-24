@@ -9,10 +9,10 @@ import {
   isValidReviewId,
   reviewSummaryText,
   isTribalVerifyEnabled,
-  maskEnrollmentId,
   saveReview,
   verifySlackSignature,
 } from '../../../lib/tribal/manual-review.ts'
+import { redactAfterDecision } from '../../../lib/tribal/stripe-identity.ts'
 
 /**
  * Slack interactivity endpoint for tribal manual review (Approve / Deny).
@@ -96,9 +96,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const decidedAt = new Date().toISOString()
   const name = reviewSummaryText(record)
 
+  // Retention: once a human has decided, ask Stripe to redact the session (images and
+  // document data live only at Stripe). Never fails or blocks the decision; a failure
+  // is recorded and surfaced to the approver so it can be redacted from the dashboard.
+  const redactAfter = async (decided: typeof record): Promise<{ saved: typeof record; note: string }> => {
+    if (!decided.stripeSessionId) return { saved: decided, note: '' }
+    const outcome = await redactAfterDecision(decided).catch(() => ({ status: 'failed', code: 'error' }) as const)
+    const redaction = outcome.status === 'requested' ? 'requested' : outcome.status === 'failed' ? 'failed' : 'skipped'
+    const note =
+      redaction === 'requested'
+        ? ' Stripe ID data redaction requested.'
+        : redaction === 'failed'
+          ? ' Stripe redaction FAILED: redact the session in the Stripe dashboard.'
+          : ''
+    return { saved: { ...decided, redaction }, note }
+  }
+
   if (actionId === 'tribal_deny') {
-    await saveReview({ ...record, status: 'denied', decidedBy: who, decidedAt })
-    await replyToSlack(payload.response_url, `Denied by ${who}: ${name}.`)
+    const denied = { ...record, status: 'denied' as const, decidedBy: who, decidedAt }
+    await saveReview(denied)
+    const dr = await redactAfter(denied)
+    if (dr.saved.redaction) await saveReview(dr.saved)
+    await replyToSlack(payload.response_url, `Denied by ${who}: ${name}.${dr.note}`)
     return res.status(200).end()
   }
 
@@ -114,13 +133,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         verificationHash: record.id,
         verifiedAt: decidedAt,
         tribalNation: record.tribalNation,
-        maskedEnrollmentId: maskEnrollmentId(record.tribalEnrollmentId),
+        maskedEnrollmentId: record.maskedEnrollmentId || 'n/a',
       },
     })
     shopifySynced = Boolean(result?.success)
     note = shopifySynced ? 'Shopify customer tagged tribal-member-verified.' : 'Shopify update FAILED: tag the customer manually.'
   }
-  await saveReview({ ...record, status: 'approved', decidedBy: who, decidedAt, shopifySynced })
-  await replyToSlack(payload.response_url, `Approved by ${who}: ${name}. ${note}`)
+  const approved = { ...record, status: 'approved' as const, decidedBy: who, decidedAt, shopifySynced }
+  await saveReview(approved)
+  const ar = await redactAfter(approved)
+  if (ar.saved.redaction) await saveReview(ar.saved)
+  await replyToSlack(payload.response_url, `Approved by ${who}: ${name}. ${note}${ar.note}`)
   return res.status(200).end()
 }

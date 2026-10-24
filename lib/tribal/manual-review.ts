@@ -12,6 +12,7 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { Redis } from '@upstash/redis'
 import { customerAccountFetch } from '../../services/shopify-customer-account.ts'
+import { CONSENT_TEXT_VERSION } from './consent.ts'
 
 type Env = Record<string, string | undefined>
 
@@ -21,6 +22,16 @@ export function isTribalVerifyEnabled(env: Env = process.env): boolean {
 
 export type ReviewStatus = 'pending' | 'approved' | 'denied'
 
+export type StripeSessionStatus = 'created' | 'processing' | 'requires_input' | 'verified' | 'canceled'
+export type ReviewSource = 'manual' | 'stripe_identity'
+
+/**
+ * Stored in Redis (tribal:review:<id>, 30-day TTL). Deliberately holds NO raw
+ * enrollment ID, NO ID images and NO ID-document data: only first name + last
+ * initial, tribe, the Stripe session ID/status, a keyed duplicate hash and the
+ * consent timestamp/version. The manual path keeps only the masked last 4 of a
+ * self-entered enrollment number (for display).
+ */
 export interface TribalReviewRecord {
   id: string
   status: ReviewStatus
@@ -28,9 +39,19 @@ export interface TribalReviewRecord {
   customerId: string | null
   email: string | null
   firstName: string
-  lastName: string
+  lastInitial: string
   tribalNation: string
-  tribalEnrollmentId: string
+  source: ReviewSource
+  maskedEnrollmentId?: string | null
+  /** HMAC keys claimed in Redis for duplicate detection (never raw values). */
+  duplicateKeys?: string[]
+  consentAt: string
+  consentVersion: string
+  stripeSessionId?: string
+  stripeStatus?: StripeSessionStatus
+  stripeReasonCode?: string
+  stripeLivemode?: boolean
+  redaction?: 'requested' | 'failed' | 'skipped'
   decidedBy?: string
   decidedAt?: string
   shopifySynced?: boolean
@@ -75,6 +96,15 @@ export async function saveReview(record: TribalReviewRecord): Promise<void> {
   memoryStore.set(record.id, record)
 }
 
+export async function deleteReview(id: string): Promise<void> {
+  const redis = getRedis()
+  if (redis) {
+    await redis.del(KEY_PREFIX + id)
+    return
+  }
+  memoryStore.delete(id)
+}
+
 export async function getReview(id: string): Promise<TribalReviewRecord | null> {
   const redis = getRedis()
   if (redis) {
@@ -100,6 +130,76 @@ export async function acquireDecisionLock(id: string): Promise<boolean> {
   return true
 }
 
+const DUP_PREFIX = 'tribal:dup:'
+const memoryClaims = new Map<string, string>()
+
+/** Atomic claim (SET NX with TTL). Returns true if this caller got the claim. */
+export async function claimKey(key: string, value = '1', ttlSeconds = TTL_SECONDS): Promise<boolean> {
+  const redis = getRedis()
+  if (redis) {
+    const result = await redis.set(key, value, { nx: true, ex: ttlSeconds })
+    return result === 'OK'
+  }
+  if (memoryClaims.has(key)) return false
+  memoryClaims.set(key, value)
+  return true
+}
+
+export async function readClaim(key: string): Promise<string | null> {
+  const redis = getRedis()
+  if (redis) {
+    const v = await redis.get<string>(key)
+    return v === null || v === undefined ? null : String(v)
+  }
+  return memoryClaims.get(key) ?? null
+}
+
+export async function releaseKey(key: string): Promise<void> {
+  const redis = getRedis()
+  if (redis) {
+    await redis.del(key)
+    return
+  }
+  memoryClaims.delete(key)
+}
+
+export type DuplicateClaim = { claimed: true } | { claimed: false; existingId: string | null }
+
+/** Claims a duplicate-detection key for a request. Value is the request ID. */
+export async function claimDuplicateKey(dupKey: string, requestId: string): Promise<DuplicateClaim> {
+  if (await claimKey(DUP_PREFIX + dupKey, requestId)) return { claimed: true }
+  return { claimed: false, existingId: await readClaim(DUP_PREFIX + dupKey) }
+}
+
+/** Releases a duplicate key only if this request still owns it. */
+export async function releaseDuplicateKey(dupKey: string, requestId: string): Promise<void> {
+  if ((await readClaim(DUP_PREFIX + dupKey)) === requestId) await releaseKey(DUP_PREFIX + dupKey)
+}
+
+const STRIPE_ABANDONED_AFTER_MS = 24 * 60 * 60 * 1000
+
+/**
+ * A duplicate claim may be taken over only when the earlier attempt can never
+ * produce a decision: the review expired, the Stripe session was canceled, or a
+ * Stripe session was started but no outcome arrived within 24 hours (abandoned).
+ */
+export function isReclaimable(existing: TribalReviewRecord | null, now = Date.now()): boolean {
+  if (!existing) return true
+  if (existing.status !== 'pending') return false
+  if (existing.source === 'stripe_identity') {
+    if (existing.stripeStatus === 'canceled') return true
+    if (existing.stripeStatus === 'created' && now - Date.parse(existing.createdAt) > STRIPE_ABANDONED_AFTER_MS) return true
+  }
+  return false
+}
+
+/** Replaces a reclaimable duplicate claim with a new request ID. */
+export async function takeOverDuplicateKey(dupKey: string, oldId: string | null, requestId: string): Promise<boolean> {
+  if ((await readClaim(DUP_PREFIX + dupKey)) !== oldId) return false
+  await releaseKey(DUP_PREFIX + dupKey)
+  return claimKey(DUP_PREFIX + dupKey, requestId)
+}
+
 // ---------------------------------------------------------------------------
 // Input validation
 // ---------------------------------------------------------------------------
@@ -122,18 +222,29 @@ export interface ReviewInput {
   firstName: string
   lastName: string
   tribalNation: string
-  tribalEnrollmentId: string
+  /** Only collected on the manual-review path. Never stored raw (see newReviewRecord). */
+  tribalEnrollmentId?: string
 }
 
 export type ValidationResult = { ok: true; value: ReviewInput } | { ok: false; error: string }
 
-export function validateReviewInput(body: any): ValidationResult {
+export function validateReviewInput(
+  body: any,
+  opts: { requireEnrollmentId?: boolean; requireEmail?: boolean } = {}
+): ValidationResult {
+  const requireEnrollmentId = opts.requireEnrollmentId ?? true
   const out: Record<string, string> = {}
-  for (const field of ['firstName', 'lastName', 'tribalNation', 'tribalEnrollmentId'] as const) {
+  const fields = ['firstName', 'lastName', 'tribalNation', ...(requireEnrollmentId ? ['tribalEnrollmentId'] : [])] as const
+  for (const field of fields) {
     const v = body?.[field]
     if (typeof v !== 'string' || !v.trim()) return { ok: false, error: `${field} is required.` }
     if (v.trim().length > MAX_FIELD_LENGTH) return { ok: false, error: `${field} must be at most ${MAX_FIELD_LENGTH} characters.` }
     out[field] = v.trim()
+  }
+  // Optional enrollment ID (Stripe path): validate if present, but it is discarded by the route.
+  if (!requireEnrollmentId && body?.tribalEnrollmentId !== undefined && body?.tribalEnrollmentId !== null && body?.tribalEnrollmentId !== '') {
+    const v = body.tribalEnrollmentId
+    if (typeof v !== 'string' || v.trim().length > MAX_FIELD_LENGTH) return { ok: false, error: 'tribalEnrollmentId is invalid.' }
   }
   let email: string | undefined
   if (body?.email !== undefined && body?.email !== null && body?.email !== '') {
@@ -142,6 +253,7 @@ export function validateReviewInput(body: any): ValidationResult {
     if (e.length > MAX_FIELD_LENGTH || !EMAIL_RE.test(e)) return { ok: false, error: 'email is invalid.' }
     email = e.toLowerCase()
   }
+  if (opts.requireEmail && !email) return { ok: false, error: 'email is required.' }
   return {
     ok: true,
     value: {
@@ -149,9 +261,20 @@ export function validateReviewInput(body: any): ValidationResult {
       firstName: out.firstName,
       lastName: out.lastName,
       tribalNation: out.tribalNation,
-      tribalEnrollmentId: out.tribalEnrollmentId,
+      tribalEnrollmentId: requireEnrollmentId ? out.tribalEnrollmentId : undefined,
     },
   }
+}
+
+/** Explicit consent: `consent` must be boolean true and consentVersion must match the current text. */
+export function validateConsent(body: any): { ok: true } | { ok: false; error: string } {
+  if (body?.consent !== true) {
+    return { ok: false, error: 'Consent is required: please read the notice and check the consent box to continue.' }
+  }
+  if (body?.consentVersion !== CONSENT_TEXT_VERSION) {
+    return { ok: false, error: 'The consent notice has changed. Please reload the page and review it again.' }
+  }
+  return { ok: true }
 }
 
 // ---------------------------------------------------------------------------
@@ -200,17 +323,26 @@ export function getClientIp(headers: Record<string, string | string[] | undefine
   return ip || fallback || 'unknown'
 }
 
-export function newReviewRecord(input: ReviewInput & { customerId?: string | null }): TribalReviewRecord {
+export function newReviewRecord(
+  input: ReviewInput & { customerId?: string | null; source?: ReviewSource; duplicateKeys?: string[] },
+  consent: { at?: string; version?: string } = {}
+): TribalReviewRecord {
+  const now = new Date().toISOString()
   return {
     id: randomUUID(),
     status: 'pending',
-    createdAt: new Date().toISOString(),
+    createdAt: now,
     customerId: isValidCustomerGid(input.customerId) ? input.customerId : null,
     email: input.email?.trim() || null,
     firstName: input.firstName.trim(),
-    lastName: input.lastName.trim(),
+    lastInitial: input.lastName.trim().charAt(0).toUpperCase(),
     tribalNation: input.tribalNation.trim(),
-    tribalEnrollmentId: input.tribalEnrollmentId.trim(),
+    source: input.source || 'manual',
+    // Only the masked last 4 of a self-entered number is kept; the raw value is dropped here.
+    maskedEnrollmentId: input.tribalEnrollmentId ? maskEnrollmentId(input.tribalEnrollmentId.trim()) : null,
+    duplicateKeys: input.duplicateKeys,
+    consentAt: consent.at || now,
+    consentVersion: consent.version || CONSENT_TEXT_VERSION,
   }
 }
 
@@ -237,20 +369,42 @@ export function isSlackConfigured(env: Env = process.env): boolean {
   return Boolean(env.SLACK_TRIBAL_WEBHOOK_URL || (env.SLACK_BOT_TOKEN && env.SLACK_TRIBAL_CHANNEL_ID))
 }
 
-export function buildReviewBlocks(r: TribalReviewRecord) {
+export function displayName(r: TribalReviewRecord): string {
+  // Tolerates review records written before the data-minimization change (lastName).
+  const legacyLast = (r as any).lastName as string | undefined
+  const initial = r.lastInitial || (legacyLast ? legacyLast.trim().charAt(0).toUpperCase() : '')
+  return `${escapeSlack(r.firstName)}${initial ? ` ${escapeSlack(initial)}.` : ''}`
+}
+
+export type StripeOutcome =
+  | { kind: 'passed'; sessionId: string; livemode: boolean }
+  | { kind: 'manual_review'; sessionId: string; livemode: boolean; reasonCode: string }
+
+function stripeLine(o: StripeOutcome): string {
+  const mode = o.livemode ? 'Stripe' : 'Stripe test'
+  const dash = `https://dashboard.stripe.com/${o.livemode ? '' : 'test/'}identity/verification-sessions/${o.sessionId}`
+  const link = `<${dash}|Open in Stripe dashboard>`
+  if (o.kind === 'passed') {
+    return `*${mode}:* passed (a person still decides: Approve or Deny below)\n${link}`
+  }
+  return `*${mode}:* needs manual review (reason: ${escapeSlack(o.reasonCode)})\n${link}`
+}
+
+export function buildReviewBlocks(r: TribalReviewRecord, outcome?: StripeOutcome) {
+  const lines = [
+    `*Tribal verification request* (${outcome ? 'Stripe Identity' : 'manual review'})`,
+    `*Name:* ${displayName(r)}`,
+    `*Nation:* ${escapeSlack(r.tribalNation)}`,
+  ]
+  if (outcome) {
+    lines.push(stripeLine(outcome))
+  } else if (r.maskedEnrollmentId) {
+    lines.push(`*Enrollment ID:* ${escapeSlack(r.maskedEnrollmentId)}`)
+  }
+  lines.push(`*Customer:* ${r.customerId ? escapeSlack(r.customerId) : 'guest (not signed in; tag manually)'}`)
+  if (r.email) lines.push(`*Email:* ${escapeSlack(maskEmail(r.email))}`)
   return [
-    {
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text:
-          `*Tribal verification request* (manual review)\n` +
-          `*Name:* ${escapeSlack(r.firstName)} ${escapeSlack(r.lastName)}\n*Nation:* ${escapeSlack(r.tribalNation)}\n` +
-          `*Enrollment ID:* ${escapeSlack(maskEnrollmentId(r.tribalEnrollmentId))}\n` +
-          `*Customer:* ${r.customerId ? escapeSlack(r.customerId) : 'guest (not signed in; tag manually)'}` +
-          (r.email ? `\n*Email:* ${escapeSlack(maskEmail(r.email))}` : ''),
-      },
-    },
+    { type: 'section', text: { type: 'mrkdwn', text: lines.join('\n') } },
     {
       type: 'actions',
       block_id: 'tribal_review',
@@ -263,12 +417,10 @@ export function buildReviewBlocks(r: TribalReviewRecord) {
 }
 
 export function reviewSummaryText(r: TribalReviewRecord): string {
-  return `${escapeSlack(r.firstName)} ${escapeSlack(r.lastName)} (${escapeSlack(r.tribalNation)})`
+  return `${displayName(r)} (${escapeSlack(r.tribalNation)})`
 }
 
-export async function postReviewToSlack(r: TribalReviewRecord, env: Env = process.env): Promise<boolean> {
-  const text = `Tribal verification request: ${reviewSummaryText(r)}`
-  const blocks = buildReviewBlocks(r)
+async function postToSlack(text: string, blocks: unknown[], env: Env): Promise<boolean> {
   if (env.SLACK_TRIBAL_WEBHOOK_URL) {
     const res = await fetch(env.SLACK_TRIBAL_WEBHOOK_URL, {
       method: 'POST',
@@ -287,6 +439,16 @@ export async function postReviewToSlack(r: TribalReviewRecord, env: Env = proces
     return Boolean(res.ok && json?.ok)
   }
   return false
+}
+
+export async function postReviewToSlack(r: TribalReviewRecord, env: Env = process.env): Promise<boolean> {
+  return postToSlack(`Tribal verification request: ${reviewSummaryText(r)}`, buildReviewBlocks(r), env)
+}
+
+/** Posts a Stripe Identity result (name, tribe, pass / needs-review + reason code, dashboard link). No images, no ID numbers. */
+export async function postStripeOutcomeToSlack(r: TribalReviewRecord, outcome: StripeOutcome, env: Env = process.env): Promise<boolean> {
+  const label = outcome.kind === 'passed' ? 'Stripe passed' : 'Stripe needs manual review'
+  return postToSlack(`Tribal verification (${label}): ${reviewSummaryText(r)}`, buildReviewBlocks(r, outcome), env)
 }
 
 // ---------------------------------------------------------------------------
