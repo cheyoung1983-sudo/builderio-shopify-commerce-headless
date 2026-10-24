@@ -99,7 +99,7 @@ const nextConfig = {
                 'https://*.myshopify.com',
                 'https://api.elevenlabs.io wss://api.elevenlabs.io',
                 'https://livekit.rtc.elevenlabs.io wss://livekit.rtc.elevenlabs.io',
-                'https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com https://region1.analytics.google.com',
+                'https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://region1.analytics.google.com',
                 'https://cdn.jsdelivr.net/npm/us-atlas@3/',
                 // Firebase (firebase-applet-config.json): Firestore for the
                 // mail-in repair form / repair tracker / tribal checker, and
@@ -114,7 +114,7 @@ const nextConfig = {
               // img-src: mirrors next/image remotePatterns + GA4/GTM pixels, Unsplash
               // images on /services-faq, and the cleardot.gif connectivity probe
               // Firestore's WebChannel transport loads.
-              "img-src 'self' data: blob: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://images.unsplash.com https://www.google.com/images/cleardot.gif https://vercel.live https://vercel.com https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com",
+              "img-src 'self' data: blob: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://images.unsplash.com https://www.google.com/images/cleardot.gif https://vercel.live https://vercel.com https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com",
               // <audio> players use data: (base64 TTS) and blob: URLs.
               "media-src 'self' data: blob:",
               "font-src 'self' data: https://vercel.live",
