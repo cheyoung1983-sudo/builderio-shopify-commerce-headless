@@ -115,6 +115,7 @@
     "recharts": "3.10.1",
     "sanitize-html": "2.18.1",
     "shopify-buy": "2.22.0",
+    "stripe": "23.0.1",
     "tailwindcss": "4.3.3",
     "theme-ui": "0.15.5",
     "zod": "4.6.7"

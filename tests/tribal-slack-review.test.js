@@ -25,6 +25,8 @@ const BASE_ENV = {
   SLACK_TRIBAL_CHANNEL_ID: '',
 }
 
+const CONSENT = { consent: true, consentVersion: 'tribal-id-consent-2026-10-24-v1' }
+
 // Runs verify -> Slack interaction in one process (shared in-memory store).
 function flow({
   env = {},
@@ -63,7 +65,7 @@ function flow({
     const vres = mkRes()
     const vHeaders = { ...${JSON.stringify(verifyHeaders)} }
     if (${JSON.stringify(cookie)}) vHeaders.cookie = ${JSON.stringify(cookie)}
-    await verify({ method: 'POST', headers: vHeaders, socket: {}, body: { firstName: 'Ann', lastName: 'Lee', tribalNation: 'Navajo Nation', tribalEnrollmentId: 'NAV-98442', customerId: ${JSON.stringify(customerId)}, ...${JSON.stringify(body)} } }, vres)
+    await verify({ method: 'POST', headers: vHeaders, socket: {}, body: { firstName: 'Ann', lastName: 'Lee', tribalNation: 'Navajo Nation', tribalEnrollmentId: 'NAV-98442', customerId: ${JSON.stringify(customerId)}, ...${JSON.stringify(CONSENT)}, ...${JSON.stringify(body)} } }, vres)
     const verifyResult = { statusCode: vres.statusCode, body: vres.json }
     const reviewId = vres.json?.reviewId
     let interaction = null
@@ -205,7 +207,7 @@ describe('Security hardening (#1/#8 rate limiting by x-real-ip and email)', () =
       const statuses = []
       for (let i = 0; i < 11; i++) {
         const r = { statusCode: 200, setHeader() {}, status(c) { this.statusCode = c; return this }, json() { return this } }
-        await verify({ method: 'POST', headers: { 'x-real-ip': '198.51.100.7', 'x-forwarded-for': '10.0.0.' + i }, socket: {}, body: { firstName: 'A', lastName: 'B', tribalNation: 'N', tribalEnrollmentId: 'X1', customerId: 'gid://shopify/Customer/' + i } }, r)
+        await verify({ method: 'POST', headers: { 'x-real-ip': '198.51.100.7', 'x-forwarded-for': '10.0.0.' + i }, socket: {}, body: { firstName: 'A', lastName: 'B', tribalNation: 'N', tribalEnrollmentId: 'X1', ...${JSON.stringify(CONSENT)}, customerId: 'gid://shopify/Customer/' + i } }, r)
         statuses.push(r.statusCode)
       }
       console.log(JSON.stringify(statuses))`
@@ -221,7 +223,7 @@ describe('Security hardening (#1/#8 rate limiting by x-real-ip and email)', () =
       const statuses = []
       for (let i = 0; i < 6; i++) {
         const r = { statusCode: 200, setHeader() {}, status(c) { this.statusCode = c; return this }, json() { return this } }
-        await verify({ method: 'POST', headers: { 'x-real-ip': '192.0.2.' + i }, socket: {}, body: { firstName: 'A', lastName: 'B', tribalNation: 'N', tribalEnrollmentId: 'X1', email: 'Same@Example.com' } }, r)
+        await verify({ method: 'POST', headers: { 'x-real-ip': '192.0.2.' + i }, socket: {}, body: { firstName: 'A', lastName: 'B', tribalNation: 'N', tribalEnrollmentId: 'X1', ...${JSON.stringify(CONSENT)}, email: 'Same@Example.com' } }, r)
         statuses.push(r.statusCode)
       }
       console.log(JSON.stringify(statuses))`
@@ -260,7 +262,7 @@ describe('Security hardening (#2 approver authorization)', () => {
 
 describe('Security hardening (#3/#4 Slack message content)', () => {
   test('enrollment ID masked, email masked, user fields escaped', () => {
-    const r = flow({ action: 'none', body: { firstName: '<!channel>', lastName: 'A&B', tribalNation: '<https://evil.example|click>', email: 'ann.lee@example.com' } })
+    const r = flow({ action: 'none', body: { firstName: '<!channel>', lastName: '&Bee', tribalNation: '<https://evil.example|click>', email: 'ann.lee@example.com' } })
     const body = slackPost(r).body
     expect(body).not.toContain('NAV-98442')
     expect(body).toContain('*****8442')
@@ -269,7 +271,9 @@ describe('Security hardening (#3/#4 Slack message content)', () => {
     expect(body).not.toContain('<!channel>')
     expect(body).not.toContain('<https://evil.example')
     expect(body).toContain('&lt;!channel&gt;')
-    expect(body).toContain('A&amp;B')
+    // only the last initial is posted (escaped), never the full last name
+    expect(body).toContain('&lt;!channel&gt; &amp;.')
+    expect(body).not.toContain('Bee')
   })
 })
 

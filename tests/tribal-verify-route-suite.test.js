@@ -11,9 +11,8 @@
  * Everything runs against the real route code with mocked fetch (Slack,
  * Shopify) and an in-memory Upstash emulation: no real network or writes.
  *
- * Tests marked `test.failing` document a REAL gap in production code found by
- * this suite (see the PR description). They pass in CI while the gap exists
- * and will start failing (prompting removal of `.failing`) once it is fixed.
+ * The three gaps this suite originally documented with `test.failing` (consent, duplicate check,
+ * raw ID in Redis) are fixed by the Stripe Identity PR and are now ordinary passing tests.
  */
 const { run, redisEnv, RAW_ID } = require('./helpers/tribal-harness')
 
@@ -107,7 +106,7 @@ describe('verify route: HTTP methods and input validation', () => {
         await tryBody('object_' + f, validBody({ [f]: { $ne: '' } }))
         await tryBody('max_' + f, validBody({ [f]: 'x'.repeat(120) }))
         await tryBody('over_' + f, validBody({ [f]: 'x'.repeat(121) }))
-        await tryBody('paddedMax_' + f, validBody({ [f]: '  ' + 'x'.repeat(120) + '  ' }))
+        await tryBody('paddedMax_' + f, validBody({ [f]: '  ' + (f === 'tribalEnrollmentId' ? 'y' : 'x').repeat(120) + '  ' }))
       }
       await tryBody('huge', validBody({ tribalEnrollmentId: 'x'.repeat(2 * 1024 * 1024) }))
       await tryBody('emailNumber', validBody({ email: 42 }))
@@ -238,6 +237,7 @@ describe('verify route: raw enrollment ID is not logged, sent to Slack, or retur
         slackBodies: calls.filter((c) => c.url.startsWith('https://hooks.slack.com/services/')).map((c) => c.body),
         allCallBodies: calls.map((c) => c.body + ' ' + c.url),
         redisOps,
+        ids: [...usedRawIds],
       })
       `,
       redisEnv
@@ -246,65 +246,79 @@ describe('verify route: raw enrollment ID is not logged, sent to Slack, or retur
 
   test('console output (log/info/warn/error/debug) never contains the raw ID', () => {
     expect(r.logs.length).toBeGreaterThan(0) // the error paths do log
-    for (const l of r.logs) expect(l.text).not.toContain(RAW_ID)
+    for (const l of r.logs) for (const id of r.ids) expect(l.text).not.toContain(id)
   })
 
   test('no HTTP response body contains the raw ID', () => {
-    expect(JSON.stringify(r.responses)).not.toContain(RAW_ID)
+    for (const id of r.ids) expect(JSON.stringify(r.responses)).not.toContain(id)
   })
 
   test('Slack payload has only the masked ID (last 4 chars)', () => {
     expect(r.slackBodies.length).toBeGreaterThan(0)
     for (const b of r.slackBodies) {
-      expect(b).not.toContain(RAW_ID)
-      expect(b).not.toContain(RAW_ID.slice(0, -4))
-      expect(b).toContain('*' .repeat(RAW_ID.length - 4) + RAW_ID.slice(-4))
+      for (const id of r.ids) { expect(b).not.toContain(id); expect(b).not.toContain(id.slice(0, -4)) }
+      expect(b).toContain('*'.repeat(RAW_ID.length - 4) + RAW_ID.slice(-4))
     }
   })
 
   test('no outbound call other than the Redis store carries the raw ID', () => {
-    for (const b of r.allCallBodies) expect(b).not.toContain(RAW_ID)
+    for (const b of r.allCallBodies) for (const id of r.ids) expect(b).not.toContain(id)
   })
 
   test('rate-limit Redis keys never contain the raw ID', () => {
     const keys = r.redisOps.map((o) => o.args[0])
     expect(keys.some((k) => k.startsWith('ratelimit:verify:'))).toBe(true)
-    for (const k of keys) expect(k).not.toContain(RAW_ID)
+    for (const k of keys) for (const id of r.ids) expect(k).not.toContain(id)
   })
 
-  // REAL GAP (see PR body): lib/tribal/manual-review.ts newReviewRecord() persists the raw
-  // tribalEnrollmentId in Redis (tribal:review:<id>, 30-day TTL). The test plan requires that
-  // no raw ID is stored. Remove `.failing` once the record keeps only a keyed hash/last-4.
-  test.failing('Redis writes contain no raw enrollment ID (stores a keyed hash / masked value only)', () => {
+  // Fixed from PR #79: the record keeps only the masked last 4 and HMAC claim keys, never the raw ID.
+  test('Redis writes contain no raw enrollment ID (stores a keyed hash / masked value only)', () => {
     const writes = r.redisOps.filter((o) => o.op === 'SET').map((o) => o.args.join(' '))
     expect(writes.length).toBeGreaterThan(0)
-    for (const w of writes) expect(w).not.toContain(RAW_ID)
+    for (const w of writes) for (const id of r.ids) { expect(w).not.toContain(id); expect(w).not.toContain(id.slice(0, -4)) }
   })
 
-  // Characterization of the current behavior so a change is noticed deliberately.
-  test('KNOWN GAP (characterization): the review record in Redis currently holds the raw ID with a 30-day TTL', () => {
+  test('the review record keeps the masked ID, last initial only, and a 30-day TTL', () => {
     const set = r.redisOps.find((o) => o.op === 'SET' && o.args[0].startsWith('tribal:review:'))
     expect(set).toBeTruthy()
-    expect(set.args[1]).toContain(RAW_ID)
+    const rec = JSON.parse(set.args[1])
+    expect(rec.maskedEnrollmentId).toBe('*'.repeat(RAW_ID.length - 4) + RAW_ID.slice(-4))
+    expect(rec.lastInitial).toBe('L')
+    expect(rec).not.toHaveProperty('lastName')
+    expect(rec).not.toHaveProperty('tribalEnrollmentId')
     expect(set.args.slice(2)).toEqual(['ex', String(60 * 60 * 24 * 30)])
   })
 })
 
 describe('verify route: consent', () => {
-  // REAL GAP (see PR body): the route has no consent field/check. The test plan says consent
-  // must be required before a request is stored or sent to Slack.
-  test.failing('a request without explicit consent is rejected (400) and not stored or posted', () => {
+  test('a request without explicit consent (false, omitted, wrong version, truthy string) is rejected (400) and not stored or posted', () => {
     const r = run(
       `
-      const res = await callVerify({ body: validBody({ consent: false }) })
-      const res2 = await callVerify({ body: validBody() }) // consent omitted
-      emit({ a: summarize(res), b: summarize(res2), slack: calls.filter((c) => c.url.includes('hooks.slack.com')).length })
+      const a = await callVerify({ body: validBody({ consent: false }) })
+      const b = await callVerify({ body: (() => { const x = validBody(); delete x.consent; return x })() })
+      const c = await callVerify({ body: validBody({ consentVersion: 'old-version' }) })
+      const d = await callVerify({ body: validBody({ consent: 'true' }) })
+      emit({ codes: [a, b, c, d].map((x) => x.statusCode), slack: calls.filter((x) => x.url.includes('hooks.slack.com')).length, reviews: redisOps.filter((o) => o.args[0].startsWith('tribal:review:')).length })
       `,
       redisEnv
     )
-    expect(r.a.statusCode).toBe(400)
-    expect(r.b.statusCode).toBe(400)
+    expect(r.codes).toEqual([400, 400, 400, 400])
     expect(r.slack).toBe(0)
+    expect(r.reviews).toBe(0)
+  })
+
+  test('a consented request stores the consent timestamp and text version on the record', () => {
+    const r = run(
+      `
+      const res = await callVerify({})
+      const set = redisOps.find((o) => o.op === 'SET' && o.args[0].startsWith('tribal:review:'))
+      emit({ code: res.statusCode, rec: JSON.parse(set.args[1]) })
+      `,
+      redisEnv
+    )
+    expect(r.code).toBe(202)
+    expect(r.rec.consentVersion).toMatch(/^tribal-id-consent-/)
+    expect(Number.isNaN(Date.parse(r.rec.consentAt))).toBe(false)
   })
 })
 
@@ -315,29 +329,54 @@ describe('verify route: duplicate submissions', () => {
       `
       const variants = [RAW_ID, RAW_ID.toLowerCase(), '  ' + RAW_ID + '  ', RAW_ID.replace(/-/g, ' '), RAW_ID.replace(/-/g, '')]
       const out = []
-      for (const v of variants) out.push(summarize(await callVerify({ body: validBody({ tribalEnrollmentId: v }) })))
+      // different people, same enrollment ID, in several formatting variants
+      for (let i = 0; i < variants.length; i++) out.push(summarize(await callVerify({ body: validBody({ tribalEnrollmentId: variants[i] }) })))
+      // same person (name + tribe), different or no ID
+      const person = { firstName: 'Zed', lastName: 'Quill', tribalEnrollmentId: 'OTHER-1-1111' }
+      const p1 = summarize(await callVerify({ body: validBody(person) }))
+      const p2 = summarize(await callVerify({ body: validBody({ ...person, firstName: ' ZED ', lastName: 'quill', tribalEnrollmentId: 'OTHER-2-2222' }) }))
       emit({
-        responses: out,
+        responses: out, p1, p2,
         reviews: redisOps.filter((o) => o.op === 'SET' && o.args[0].startsWith('tribal:review:')).length,
         slackPosts: calls.filter((c) => c.url.startsWith('https://hooks.slack.com/services/')).length,
+        claimKeys: redisOps.filter((o) => o.args[0].startsWith('tribal:dup:')).map((o) => o.args[0]),
       })
       `,
       redisEnv
     )
   })
 
-  test('each submission gets its own distinct review id (no cross-talk)', () => {
-    const ids = r.responses.map((x) => x.body.reviewId)
-    expect(new Set(ids).size).toBe(ids.length)
-    for (const x of r.responses) expect(x.body.verified).toBe(false)
+  test('the same ID (and its formatting variants) creates only one pending review / Slack post', () => {
+    expect(r.responses.map((x) => x.statusCode)).toEqual([202, 409, 409, 409, 409])
+    expect(r.responses[1].body).toMatchObject({ success: false, verified: false })
+    expect(r.responses[0].body.verified).toBe(false)
   })
 
-  // REAL GAP (see PR body): there is no HMAC (or any) duplicate-enrollment-ID check in the
-  // route. The same ID (and trivial formatting variants) creates a new pending review and a new
-  // Slack post every time. Expected: the second submission is flagged/deduplicated.
-  test.failing('the same ID submitted twice (and its formatting variants) creates only one pending review / Slack post', () => {
-    expect(r.reviews).toBe(1)
-    expect(r.slackPosts).toBe(1)
+  test('the same person (name + tribe, case/whitespace-insensitive) cannot submit twice either', () => {
+    expect(r.p1.statusCode).toBe(202)
+    expect(r.p2.statusCode).toBe(409)
+    // 2 accepted reviews total: RAW_ID once, Zed once
+    expect(r.reviews).toBe(2)
+    expect(r.slackPosts).toBe(2)
+  })
+
+  test('claim keys are HMACs: they never contain the ID or the name', () => {
+    expect(r.claimKeys.length).toBeGreaterThan(0)
+    for (const k of r.claimKeys) {
+      expect(k).toMatch(/^tribal:dup:[0-9a-f]{64}$/)
+    }
+  })
+
+  test('without TRIBAL_DUPLICATE_HMAC_SECRET in production the route fails closed (503), nothing stored', () => {
+    const x = run(
+      `
+      const res = await callVerify({})
+      emit({ res: summarize(res), calls: calls.filter((c) => c.url.includes('hooks.slack.com')).length })
+      `,
+      { ...redisEnv, NODE_ENV: 'production', TRIBAL_DUPLICATE_HMAC_SECRET: '' }
+    )
+    expect(x.res.statusCode).toBe(503)
+    expect(x.calls).toBe(0)
   })
 })
 
