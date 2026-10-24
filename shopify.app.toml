@@ -1,22 +1,30 @@
-# Shopify app config for the store's Functions (extensions/*). Stub: Flow fills in
-# client_id from the Partner Dashboard / `shopify app config link`. No secrets here.
-client_id = "REPLACE_WITH_SHOPIFY_APP_CLIENT_ID"
-name = "DCP Store Functions"
-application_url = "https://www.displaycellpros.com"
-embedded = false
+# Shopify app config for the store's Functions (extensions/*). Linked to the
+# displaycellpros Dev Dashboard app. Fields other than client_id and access_scopes
+# mirror the app's current remote config on purpose (name, application_url, embedded,
+# auth redirect, pos, webhooks) so a deploy only adds scopes and the Function. No secrets here.
+client_id = "610d468bc61992e87c124d7e8a763628"
+name = "displaycellpros"
+application_url = "https://ais-pre-jaxozcgj5xjwxv2xfpcms5-367327296310.us-west2.run.app"
+embedded = true
 
 [build]
 automatically_update_urls_on_dev = false
-include_config_on_deploy = true
+
+[webhooks]
+api_version = "2026-07"
 
 [access_scopes]
 # write_discounts: create/manage the automatic discount that runs the Function.
 # read_customers/write_customers: tag verified tribal customers (lib/tribal/shopify-admin.ts).
 # read_products: product tags/metafields read in the Function input.
 scopes = "write_discounts,read_customers,write_customers,read_products,read_orders"
+optional_scopes = [ ]
+use_legacy_install_flow = false
 
 [auth]
-redirect_urls = ["https://www.displaycellpros.com/api/auth/callback"]
+redirect_urls = [
+  "https://ais-pre-jaxozcgj5xjwxv2xfpcms5-367327296310.us-west2.run.app/api/auth/callback"
+]
 
-[webhooks]
-api_version = "2026-10"
+[pos]
+embedded = true
