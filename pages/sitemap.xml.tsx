@@ -14,6 +14,7 @@ const STATIC_PATHS = [
   '/faq',
   '/trends',
   '/order-tracking',
+  '/tribal-discount',
 ]
 
 // Never let a slow or unreachable Shopify hang or crash the sitemap.
