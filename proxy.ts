@@ -29,7 +29,6 @@ const DEMO_PREFIXES = [
   '/api/tts',
   '/api/speech-to-text',
   '/api/elevenlabs',
-  '/api/tribal/qa-matrix',
 ]
 
 const LOCALE_PREFIX = /^\/en-US(?=\/|$)/
@@ -134,6 +133,5 @@ export const config = {
     '/api/tts/:path*',
     '/api/speech-to-text/:path*',
     '/api/elevenlabs/:path*',
-    '/api/tribal/qa-matrix',
   ],
 }

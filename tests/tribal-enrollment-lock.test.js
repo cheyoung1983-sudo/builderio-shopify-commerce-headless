@@ -36,8 +36,9 @@ describe('Tribal Enrollment Uniqueness & Customer Lock', () => {
     expect(content).toContain("res.status(409).json(enrollmentResult)")
     expect(content).toContain("res.status(400).json(enrollmentResult)")
     expect(content).toContain("evaluateAddressGeofence")
-    expect(content).toContain("appendCookie(res, 'tribal_member_verified', 'true'")
-    expect(content).toContain("appendCookie(res, 'tribal_discount_active', '20'")
+    // The legacy client-trusted cookies must stay removed.
+    expect(content).not.toContain('appendCookie')
+    expect(content).not.toMatch(/tribal_(member_verified|discount_active|email|nation|on_reservation)/)
   })
 
   test('TribalEligibilityChecker UI handles visual feedback states and duplicate blocking', () => {

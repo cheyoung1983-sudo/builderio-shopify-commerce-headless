@@ -11,7 +11,6 @@ function run(body, flag) {
   if (flag !== undefined) env.TRIBAL_TAX_EXEMPT_ENABLED = flag
   const script = `
     const { calculateAvaTaxTribalQuote } = await import(${mod('lib/tribal/avatax.ts')})
-    const { verifyTribalEnrollment } = await import(${mod('lib/tribal/verification.ts')})
     const { isTribalTaxExemptEnabled } = await import(${mod('lib/tribal/tax-flags.ts')})
     ${body}
   `
@@ -25,9 +24,7 @@ const quoteBody = `
     shippingAddress: { line1: '1 Main', city: 'Window Rock', region: 'AZ', postalCode: '86515', country: 'US' },
     lines: [{ amount: 200, quantity: 1 }],
   })
-  const v = await verifyTribalEnrollment({ firstName: 'A', lastName: 'B', tribalNation: 'Navajo Nation', tribalEnrollmentId: '12345678',
-    shippingAddress: { address1: '1 Main', city: 'Window Rock', province: 'AZ', zip: '86515', country: 'US' } })
-  console.log(JSON.stringify({ flag: isTribalTaxExemptEnabled(), q, track: v.taxExemptionTrack }))
+  console.log(JSON.stringify({ flag: isTribalTaxExemptEnabled(), q }))
 `
 
 describe('TRIBAL_TAX_EXEMPT_ENABLED flag', () => {
@@ -39,8 +36,6 @@ describe('TRIBAL_TAX_EXEMPT_ENABLED flag', () => {
     expect(r.q.totalDiscount).toBe(40)
     expect(r.q.totalTaxable).toBe(160)
     expect(r.q.totalTax).toBe(Number((160 * 0.0825).toFixed(2)))
-    expect(r.track.taxExempt).toBe(false)
-    expect(r.track.taxExemptionCode).toBeNull()
   })
 
   test('only the exact value "true" turns it on', () => {
@@ -49,6 +44,5 @@ describe('TRIBAL_TAX_EXEMPT_ENABLED flag', () => {
     expect(on.flag).toBe(true)
     expect(on.q.isTaxExempt).toBe(true)
     expect(on.q.entityUseCode).toBe('C')
-    expect(on.track.taxExempt).toBe(true)
   })
 })

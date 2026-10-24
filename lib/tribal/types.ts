@@ -41,40 +41,6 @@ export interface TribalVerificationRequest {
   }
 }
 
-export interface TribalVerificationResult {
-  verified: boolean
-  customerId?: string
-  customerTagApplied: boolean // 'tribal-member-verified'
-  discountTrack: {
-    eligible: boolean
-    discountPercentage: number // 20
-    shopifyDiscountId: string // '1826009317748'
-    code: string // 'TRIBAL-MEMBER-20'
-    message: string
-  }
-  taxExemptionTrack: {
-    eligible: boolean
-    taxExempt: boolean
-    taxExemptionCode: 'EXEMPT_INDIAN_IN_CANADA_OR_USA' | null
-    onReservation: boolean
-    reservationName?: string
-    entityUseCode?: 'C'
-    requiresCertificate: boolean
-    certificateCompleted: boolean
-    isSelfAdministered: boolean
-    tribalTaxRate?: number
-    message: string
-  }
-  audit: {
-    verificationHash: string
-    verifiedAt: string
-    provider: string
-    tribalNation: string
-    maskedEnrollmentId: string
-    certificateRef?: string
-  }
-}
-
 export interface GeofenceResult {
   onReservation: boolean
   reservationName?: string
@@ -159,30 +125,4 @@ export interface SignedCertificateRecord {
   signedAt: string
   expiresAt: string
   documentRef: string
-}
-
-export type QAScenarioName =
-  | 'ENROLLED_ON_RESERVATION'
-  | 'ENROLLED_OFF_RESERVATION'
-  | 'NOT_ENROLLED_ON_RESERVATION'
-  | 'NOT_ENROLLED_OFF_RESERVATION'
-
-export interface QAMatrixEvaluation {
-  scenario: QAScenarioName
-  description: string
-  enrolled: boolean
-  onReservation: boolean
-  expectedDiscount: boolean
-  expectedDiscountPercent: number
-  expectedTaxExempt: boolean
-  expectedEntityUseCode: string | null
-  expectedCustomerTag: string | null
-  actualResults: {
-    discountApplied: boolean
-    discountPercent: number
-    taxExemptApplied: boolean
-    entityUseCode: string | null
-    customerTag: string | null
-    passed: boolean
-  }
 }

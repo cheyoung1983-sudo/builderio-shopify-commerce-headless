@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { verifyAndLockTribalEnrollment } from '../../../lib/tribal/firebase-registry'
 import { evaluateAddressGeofence } from '../../../lib/tribal/geofencing'
-import { appendCookie, isHttpsRequest } from '../../../lib/shopify/customer-account/cookies'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -61,23 +60,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         reservationName: geofence.reservationName,
         message: geofence.message,
       }
-    }
-
-    // 3. Set cross-tab cookies if verified
-    if (enrollmentResult.verified) {
-      const secure = isHttpsRequest(req)
-      appendCookie(res, 'tribal_member_verified', 'true', { maxAge: 60 * 60 * 24 * 30, secure })
-      appendCookie(res, 'tribal_discount_active', '20', { maxAge: 60 * 60 * 24 * 30, secure })
-      appendCookie(res, 'tribal_email', customerEmail, { maxAge: 60 * 60 * 24 * 30, secure })
-      if (enrollmentResult.record?.tribalNation) {
-        appendCookie(res, 'tribal_nation', enrollmentResult.record.tribalNation, { maxAge: 60 * 60 * 24 * 30, secure })
-      }
-      appendCookie(
-        res,
-        'tribal_on_reservation',
-        taxExemptionTrack.onReservation ? 'true' : 'false',
-        { maxAge: 60 * 60 * 24 * 30, secure }
-      )
     }
 
     return res.status(200).json({

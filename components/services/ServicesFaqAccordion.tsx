@@ -152,7 +152,7 @@ const FAQ_DATABASE: FaqItem[] = [
     bulletPoints: [
       'Instant Digital Verification: Submit your full legal name, tribal affiliation, and date of birth in our secure verification modal.',
       'Document Fallback: If your records cannot be matched automatically, you can securely upload a photo of your Tribal ID, Certificate of Degree of Indian Blood (CDIB), or enrollment letter.',
-      'Account Tagging: Once approved, your customer account is tagged as Tribal_Verified, automatically unlocking 20% off every future order.',
+      'Account Tagging: Once approved, your customer account is marked as a verified tribal member, automatically unlocking 20% off every future order.',
     ],
   },
 
