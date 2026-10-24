@@ -8,7 +8,7 @@ Target `cart.lines.discounts.generate.run`, discount class **PRODUCT**.
 
 | Rule | How it's decided |
 | --- | --- |
-| Customer qualifies | Customer tag `tribal-member-verified` (legacy `Tribal_Verified` also accepted) |
+| Customer qualifies | Customer tag `tribal-member-verified` (the legacy `Tribal_Verified` tag is no longer accepted) |
 | Line qualifies | Product tag `tribal-eligible` (screen / repair products: parts + labor) |
 | Never discounted | Product tags `trip-fee` ($25 mobile trip fee), `battery-addon`, `tribal-excluded` (these win over `tribal-eligible`) |
 | Bundles | Product tag `bundle` + metafield `dcp.tribal_eligible_amount` (number, retail $ of the **non-battery** component per unit). Discount = 20% of that amount per item. No metafield = no discount on the bundle ("pending price"). **Flow fills `dcp.tribal_eligible_amount` from the live Shopify variant price of the non-battery component** (e.g. iPhone 16 OLED + battery $227 bundle: `147`, 20% = $29.40 off). |
