@@ -6,6 +6,7 @@ api_version = "2026-10"
 [[extensions]]
 name = "Tribal Member 20% Discount"
 handle = "tribal-discount"
+uid = "88bb3c7b-18c6-df04-76f8-c582a8872af7f15e5c55"
 type = "function"
 description = "20% off tribal-eligible repair lines (parts + labor) for customers tagged tribal-member-verified."
 
