@@ -3,7 +3,7 @@
  * Native American Tribal Member Commercial Discount, 20% off.
  *
  * Rules (documented in ../README.md):
- *  - Customer must carry the tag `tribal-member-verified` (or legacy `Tribal_Verified`).
+ *  - Customer must carry the tag `tribal-member-verified`.
  *  - Only product lines tagged `tribal-eligible` (screen / repair = parts + labor) qualify.
  *  - Never discounted: products tagged `trip-fee` ($25 mobile trip fee), `battery-addon`,
  *    or `tribal-excluded`, even if also tagged `tribal-eligible`.

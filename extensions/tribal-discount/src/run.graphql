@@ -2,7 +2,7 @@ query Input {
   cart {
     buyerIdentity {
       customer {
-        isTribalMember: hasAnyTag(tags: ["tribal-member-verified", "Tribal_Verified"])
+        isTribalMember: hasAnyTag(tags: ["tribal-member-verified"])
       }
     }
     lines {
