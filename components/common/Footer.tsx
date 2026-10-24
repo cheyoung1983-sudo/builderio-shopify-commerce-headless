@@ -225,11 +225,20 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
               </li>
               <li>
                 <Link
-                  href="/services-faq#tribal-overview"
+                  href="/tribal-discount"
                   className="text-amber-800 hover:text-amber-950 transition-colors inline-flex items-center gap-1 font-medium"
                 >
                   <ChevronRight className="w-3 h-3 text-amber-600" />
                   <span>20% Tribal Discount &amp; Tax</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/services-faq#tribal-overview"
+                  className="text-neutral-600 hover:text-neutral-950 transition-colors inline-flex items-center gap-1 font-medium"
+                >
+                  <ChevronRight className="w-3 h-3 text-neutral-400" />
+                  <span>Tax exemption info</span>
                 </Link>
               </li>
               <li>

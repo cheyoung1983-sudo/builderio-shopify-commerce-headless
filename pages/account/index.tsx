@@ -9,14 +9,17 @@ import {
 } from '../../services/shopify-customer-account'
 import { appendCookie, COOKIE, isHttpsRequest } from '../../lib/shopify/customer-account/cookies'
 import { OrderHistory } from '../../components/account'
-import { TribalEligibilityChecker } from '../../components/tribal/TribalEligibilityChecker'
 import { TribalDiscountAccountCard } from '../../components/account/TribalDiscountAccountCard'
 import { useAuth } from '../../hooks/useAuth'
+import { getTribalVerificationMode } from '../../lib/tribal/verification-mode'
+import { TRIBAL_ELIGIBILITY_LINE, TRIBAL_PAGE_PATH, TRIBAL_SIGN_IN_HREF } from '../../lib/tribal/verification-copy'
+import type { TribalVerificationMode } from '../../lib/tribal/verification-copy'
 import { User, MapPin, Mail, LogOut, Package, ShieldCheck, Truck, Sparkles } from 'lucide-react'
 
 interface AccountPageProps {
   customer: CustomerAccountProfile | null
   loginError: string | null
+  tribalMode: TribalVerificationMode
 }
 
 const REFRESH_TOKEN_MAX_AGE = 60 * 60 * 24 * 30
@@ -24,6 +27,7 @@ const REFRESH_TOKEN_MAX_AGE = 60 * 60 * 24 * 30
 export const getServerSideProps: GetServerSideProps<AccountPageProps> = async (ctx) => {
   const { req, res, query } = ctx
   const loginError = typeof query.error === 'string' ? query.error : null
+  const tribalMode = getTribalVerificationMode()
 
   let accessToken = req.cookies[COOKIE.accessToken]
   const expiresAt = Number(req.cookies[COOKIE.expiresAt] || 0)
@@ -51,7 +55,7 @@ export const getServerSideProps: GetServerSideProps<AccountPageProps> = async (c
   }
 
   if (!accessToken) {
-    return { props: { customer: null, loginError } }
+    return { props: { customer: null, loginError, tribalMode } }
   }
 
   try {
@@ -59,13 +63,13 @@ export const getServerSideProps: GetServerSideProps<AccountPageProps> = async (c
       accessToken,
       query: CUSTOMER_QUERY,
     })
-    return { props: { customer: data?.customer ?? null, loginError } }
+    return { props: { customer: data?.customer ?? null, loginError, tribalMode } }
   } catch {
-    return { props: { customer: null, loginError } }
+    return { props: { customer: null, loginError, tribalMode } }
   }
 }
 
-export default function AccountPage({ customer, loginError }: AccountPageProps) {
+export default function AccountPage({ customer, loginError, tribalMode }: AccountPageProps) {
   const { user } = useAuth()
   const customerOrders = (customer?.orders?.edges || []).map((edge) => edge.node)
   const customerEmail = customer?.emailAddress?.emailAddress || ''
@@ -159,17 +163,9 @@ export default function AccountPage({ customer, loginError }: AccountPageProps) 
                 </div>
               </div>
 
-              {/* Tribal Discount Status & Validation History Section */}
+              {/* Tribal discount: one card with the steps, the CTA and a privacy note */}
               <div className="mb-8">
-                <TribalDiscountAccountCard userUid={user?.uid} customerEmail={customerEmail} />
-              </div>
-
-              {/* Tribal Member 20% Discount & Benefits Section */}
-              <div className="mb-8">
-                <TribalEligibilityChecker
-                  initialEmail={customerEmail}
-                  compact={false}
-                />
+                <TribalDiscountAccountCard userUid={user?.uid} customerEmail={customerEmail} mode={tribalMode} />
               </div>
 
               {/* Secure Order History Section */}
@@ -215,23 +211,40 @@ export default function AccountPage({ customer, loginError }: AccountPageProps) 
                 </div>
               </div>
 
-              {/* Unauthenticated Tribal Eligibility Check Option */}
-              <div className="rounded-2xl border border-amber-300 bg-amber-50/50 p-6 text-left shadow-xs">
-                <div className="flex items-center gap-2 text-amber-900 font-bold text-sm mb-1">
-                  <Sparkles className="w-4 h-4 text-amber-700" />
-                  <span>Enrolled Tribal Member? Check Your 20% Discount</span>
-                </div>
-                <p className="text-xs text-neutral-600 leading-relaxed mb-4">
-                  Verify your enrollment number to lock the official 20% discount on wholesale displays and batteries to your account.
+              {/* Unauthenticated tribal discount summary */}
+              <section
+                aria-labelledby="tribal-promo-heading"
+                className="rounded-2xl border border-amber-300 bg-amber-50/50 p-6 text-left shadow-xs"
+                data-testid="account-tribal-promo"
+              >
+                <h2 id="tribal-promo-heading" className="flex items-center gap-2 text-amber-900 font-bold text-sm mb-1">
+                  <Sparkles aria-hidden="true" className="w-4 h-4 text-amber-700" />
+                  <span>Tribal Member Discount: 20% off</span>
+                </h2>
+                <p className="text-xs text-neutral-700 leading-relaxed mb-4">
+                  {TRIBAL_ELIGIBILITY_LINE} A fixed 20%, applied automatically once you are verified.
                 </p>
-                <Link
-                  href="/services-faq#interactive-tools"
-                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs inline-flex items-center gap-1.5 transition-colors"
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Open Tribal Eligibility Checker</span>
-                </Link>
-              </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Link
+                    href={`${TRIBAL_PAGE_PATH}#how-it-works`}
+                    className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs inline-flex items-center gap-1.5 transition-colors"
+                  >
+                    <ShieldCheck aria-hidden="true" className="w-4 h-4" />
+                    <span>See how verification works</span>
+                  </Link>
+                  {tribalMode !== 'manual' && (
+                    <>
+                      { }
+                      <a
+                        href={TRIBAL_SIGN_IN_HREF}
+                        className="px-4 py-2 rounded-xl bg-white hover:bg-neutral-50 text-neutral-900 border border-neutral-300 font-semibold text-xs inline-flex items-center gap-1.5 transition-colors"
+                      >
+                        <span>Sign in to start</span>
+                      </a>
+                    </>
+                  )}
+                </div>
+              </section>
             </div>
           )}
         </div>

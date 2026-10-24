@@ -12,6 +12,8 @@ import {
   FileCheck,
   AlertTriangle,
 } from 'lucide-react'
+import Link from 'next/link'
+import { TRIBAL_ELIGIBILITY_LINE, TRIBAL_PAGE_PATH } from '../../lib/tribal/verification-copy'
 
 export interface FaqItem {
   id: string
@@ -21,6 +23,8 @@ export interface FaqItem {
   answer: string
   bulletPoints?: string[]
   statuteTag?: string
+  /** Optional follow-up link rendered under the answer. */
+  link?: { href: string; label: string }
   badgeTone?: 'amber' | 'emerald' | 'blue'
 }
 
@@ -145,15 +149,16 @@ const FAQ_DATABASE: FaqItem[] = [
     category: 'tribal-discount',
     categoryLabel: '20% Commercial Discount',
     badgeTone: 'amber',
-    statuteTag: 'Digital Identity Verification',
+    statuteTag: 'Identity Verification',
     question: 'How do I verify my tribal membership to unlock the 20% discount?',
-    answer:
-      'We partner with authoritative identity platforms (SheerID / ID.me) to provide instant, secure verification with zero paperwork in under 60 seconds:',
+    answer: `${TRIBAL_ELIGIBILITY_LINE} You sign in, submit your details, and a member of our team reviews your request. A person makes the final call.`,
     bulletPoints: [
-      'Instant Digital Verification: Submit your full legal name, tribal affiliation, and date of birth in our secure verification modal.',
-      'Document Fallback: If your records cannot be matched automatically, you can securely upload a photo of your Tribal ID, Certificate of Degree of Indian Blood (CDIB), or enrollment letter.',
-      'Account Tagging: Once approved, your customer account is marked as a verified tribal member, automatically unlocking 20% off every future order.',
+      'Submit your details: Sign in to your account and send us your name and tribe.',
+      "ID check on Stripe (when open): Depending on what is open when you apply, you may be asked to photograph an unexpired photo ID and take a quick selfie on Stripe's secure page. The photos go to Stripe, not to us, and we don't store ID images or ID numbers.",
+      'Manual review: If online submission is not open, or a check is declined or fails, call (509) 255-3852 or email support@displaycellpros.com and we will review your enrollment.',
+      'Account tagging: Once approved, your account is tagged as a verified tribal member and the fixed 20% discount applies automatically at checkout. There is no code to enter.',
     ],
+    link: { href: TRIBAL_PAGE_PATH + '#how-it-works', label: 'See how verification works' },
   },
 
   // Category 3: White-Glove Mail-In Repair
@@ -487,6 +492,13 @@ export const ServicesFaqAccordion: React.FC = () => {
                           </li>
                         ))}
                       </ul>
+                    )}
+                    {item.link && (
+                      <p>
+                        <Link href={item.link.href} className="font-semibold text-emerald-800 underline hover:text-emerald-950">
+                          {item.link.label}
+                        </Link>
+                      </p>
                     )}
                   </div>
                 )}

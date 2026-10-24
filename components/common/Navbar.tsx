@@ -99,6 +99,12 @@ const Navbar: FC = () => {
                     </Link>
                   ))}
                   <Link
+                    href="/tribal-discount"
+                    className="ml-1 inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors whitespace-nowrap"
+                  >
+                    Tribal 20%
+                  </Link>
+                  <Link
                     href="/trends"
                     className="ml-1 inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors"
                   >
@@ -124,6 +130,12 @@ const Navbar: FC = () => {
                     className="px-2.5 py-1.5 text-sm font-medium text-neutral-700 hover:text-emerald-700 transition-colors rounded-md whitespace-nowrap"
                   >
                     Services &amp; FAQ
+                  </Link>
+                  <Link
+                    href="/tribal-discount"
+                    className="ml-1 inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors whitespace-nowrap"
+                  >
+                    Tribal 20%
                   </Link>
                   <Link
                     href="/trends"
@@ -263,6 +275,14 @@ const Navbar: FC = () => {
                   </Link>
                 </>
               )}
+              <Link
+                id="mobile-drawer-tribal-discount-link"
+                href="/tribal-discount"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2.5 px-3 text-base font-semibold text-emerald-800 hover:bg-emerald-50 rounded-lg border-b border-neutral-100 transition-colors"
+              >
+                Tribal Member Discount
+              </Link>
               <Link
                 id="mobile-drawer-diagnosis-link"
                 href="/diagnosis"
