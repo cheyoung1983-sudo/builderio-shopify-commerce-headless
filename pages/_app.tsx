@@ -10,6 +10,7 @@ import { useScrollRestoration } from '../lib/scroll-restoration'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Analytics } from '@vercel/analytics/next'
 import { AuthProvider } from '../hooks/useAuth'
+import GoogleTag from '@components/analytics/GoogleTag'
 
 if (builderConfig.apiKey) {
   builder.init(builderConfig.apiKey)
@@ -57,6 +58,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         <Layout pageProps={pageProps}>
           <Component {...pageProps} />
         </Layout>
+        <GoogleTag />
         {process.env.NEXT_PUBLIC_VERCEL_ENV ? (
           <>
             <SpeedInsights />
