@@ -8,49 +8,50 @@ describe('Tribal Enrollment Uniqueness & Customer Lock', () => {
   const componentPath = path.resolve(__dirname, '../components/tribal/TribalEligibilityChecker.tsx')
   const rulesPath = path.resolve(__dirname, '../firestore.rules')
 
-  test('all required enrollment lock files exist', () => {
+  test('all required enrollment files exist', () => {
     expect(fs.existsSync(enrollmentLockPath)).toBe(true)
     expect(fs.existsSync(apiRoutePath)).toBe(true)
     expect(fs.existsSync(componentPath)).toBe(true)
     expect(fs.existsSync(rulesPath)).toBe(true)
   })
 
-  test('enrollment-lock.ts defines core uniqueness and validation logic', () => {
+  test('enrollment-lock.ts only keeps ID helpers; the fake claim/verify engine is gone', () => {
     const content = fs.readFileSync(enrollmentLockPath, 'utf8')
     expect(content).toContain('normalizeEnrollmentId')
     expect(content).toContain('generateEnrollmentHash')
     expect(content).toContain('maskEnrollmentId')
     expect(content).toContain('validateEnrollmentNumberFormat')
-    expect(content).toContain('checkAndClaimTribalEnrollment')
-    expect(content).toContain("'already_claimed'")
-    expect(content).toContain("'newly_verified'")
-    expect(content).toContain("'already_verified_by_you'")
-    expect(content).toContain('discountPercentage: 20')
-    expect(content).toContain('TRIBAL-MEMBER-20')
-    expect(content).toContain('support@displaycellpros.com')
+    expect(content).not.toContain('checkAndClaimTribalEnrollment')
+    expect(content).not.toContain("'newly_verified'")
+    expect(content).not.toContain('TRIBAL-MEMBER-20')
+    expect(content).not.toContain('firebase/firestore')
   })
 
-  test('API route check-enrollment.ts handles duplicate locking and 409 Conflict', () => {
+  test('API route check-enrollment.ts never verifies; it answers manual review required', () => {
     const content = fs.readFileSync(apiRoutePath, 'utf8')
-    expect(content).toContain('verifyAndLockTribalEnrollment')
-    expect(content).toContain("res.status(409).json(enrollmentResult)")
-    expect(content).toContain("res.status(400).json(enrollmentResult)")
-    expect(content).toContain("evaluateAddressGeofence")
+    expect(content).toContain('res.status(501)')
+    expect(content).toContain('manualVerificationRequired: true')
+    expect(content).toContain('verified: false')
+    expect(content).toContain('/api/tribal/verify')
+    expect(content).not.toContain('verifyAndLockTribalEnrollment')
+    expect(content).not.toContain('firebase')
+    expect(content).not.toContain('TRIBAL-MEMBER-20')
     // The legacy client-trusted cookies must stay removed.
     expect(content).not.toContain('appendCookie')
     expect(content).not.toMatch(/tribal_(member_verified|discount_active|email|nation|on_reservation)/)
   })
 
-  test('TribalEligibilityChecker UI handles visual feedback states and duplicate blocking', () => {
+  test('TribalEligibilityChecker UI shows manual-review messaging only', () => {
     const content = fs.readFileSync(componentPath, 'utf8')
-    expect(content).toContain('Tribal Eligibility &amp; 20% Discount Checker')
-    expect(content).toContain('20% Tribal Discount Unlocked &amp; Bound to Account!')
-    expect(content).toContain('Enrollment ID Already Claimed by Another Customer')
+    expect(content).toContain('Manual Review')
     expect(content).toContain('support@displaycellpros.com')
-    expect(content).toContain('TRIBAL-MEMBER-20')
+    expect(content).toContain('(509) 255-3852')
     expect(content).toContain('data-testid="tribal-eligibility-checker"')
-    expect(content).toContain('data-testid="verification-success-alert"')
-    expect(content).toContain('data-testid="verification-duplicate-blocked-alert"')
+    expect(content).toContain('data-testid="tribal-manual-review-notice"')
+    expect(content).not.toContain('TRIBAL-MEMBER-20')
+    expect(content).not.toContain('firebase')
+    expect(content).not.toContain('Unlocked')
+    expect(content).not.toContain('clipboard')
   })
 
   test('firestore.rules protects tribal_enrollments collection', () => {
