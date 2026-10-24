@@ -20,6 +20,7 @@ import { KNOWN_TRIBAL_NATIONS } from '../../lib/tribal/geofencing'
 import { getRequiredCertificateType, getCertificateStatutoryNotice } from '../../lib/tribal/certificates'
 import { TribalIdQrScannerModal } from './TribalIdQrScannerModal'
 import type { ScannedTribalIdData } from '../../lib/tribal/qr-scanner'
+import { CONSENT_CHECKBOX_LABEL, CONSENT_TEXT_VERSION } from '../../lib/tribal/consent'
 
 export interface TribalVerificationModalProps {
   isOpen: boolean
@@ -39,13 +40,15 @@ export interface TribalVerificationModalProps {
 export function TribalVerificationModal({
   isOpen,
   onClose,
-  onVerified,
+  onVerified: _onVerified,
   initialAddress,
   initialEnrollmentData,
   customerId = 'guest',
   customerEmail = '',
 }: TribalVerificationModalProps) {
-  const [step, setStep] = useState<'form' | 'certificate' | 'success'>('form')
+  const [step, setStep] = useState<'form' | 'certificate' | 'pending'>('form')
+  const [consent, setConsent] = useState(false)
+  const [pendingMessage, setPendingMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isInternalScannerOpen, setIsInternalScannerOpen] = useState(false)
@@ -69,9 +72,6 @@ export function TribalVerificationModal({
   // Certificate signing
   const [signatureData, setSignatureData] = useState<string | null>(null)
   const [carrierMethod, setCarrierMethod] = useState<'COMMON_CARRIER' | 'SELLER_DELIVERY' | 'FOB_RESERVATION'>('COMMON_CARRIER')
-
-  // Verification result
-  const [verificationResult, setVerificationResult] = useState<any>(null)
 
   // Check geofence on demand or blur
   const handleCheckGeofence = useCallback(
@@ -158,8 +158,13 @@ export function TribalVerificationModal({
     e.preventDefault()
     setError(null)
 
-    if (!firstName.trim() || !lastName.trim() || !resolvedNation.trim() || !tribalEnrollmentId.trim()) {
+    if (!firstName.trim() || !lastName.trim() || !resolvedNation.trim()) {
       setError('Please fill in all required tribal enrollment fields.')
+      return
+    }
+
+    if (!consent) {
+      setError('Please read the notice and check the consent box to continue.')
       return
     }
 
@@ -172,7 +177,7 @@ export function TribalVerificationModal({
     }
   }
 
-  const handleSubmitVerification = async () => {
+  const handleSubmitVerification = async (manualReview = false) => {
     setLoading(true)
     setError(null)
 
@@ -182,9 +187,11 @@ export function TribalVerificationModal({
         email: customerEmail,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        birthDate: birthDate || undefined,
+        consent: true,
+        consentVersion: CONSENT_TEXT_VERSION,
+        manualReview: manualReview === true ? true : undefined,
         tribalNation: resolvedNation.trim(),
-        tribalEnrollmentId: tribalEnrollmentId.trim(),
+        tribalEnrollmentId: tribalEnrollmentId.trim() || undefined,
         shippingAddress: {
           address1,
           city,
@@ -211,17 +218,33 @@ export function TribalVerificationModal({
 
       const data = await res.json()
 
-      if (!res.ok || !data.verified) {
-        setError(data.message || data.error || 'Verification failed. Please verify enrollment number.')
+      // The API never reports anyone as verified. It either hands back a hosted Stripe
+      // URL, or acknowledges a request queued for manual review.
+      if (res.ok && typeof data.verificationUrl === 'string') {
+        let target: URL | null = null
+        try {
+          target = new URL(data.verificationUrl)
+        } catch {
+          target = null
+        }
+        if (target && target.protocol === 'https:' && target.hostname === 'verify.stripe.com') {
+          window.location.assign(target.toString())
+          return
+        }
+        setError('Verification could not be started. Please try manual review instead.')
         setLoading(false)
         return
       }
 
-      setVerificationResult(data.result)
-      setStep('success')
-      if (onVerified) {
-        onVerified(data.result)
+      if (res.ok && data.pendingReview) {
+        setPendingMessage(data.message || 'Your request was submitted for review and we will email you.')
+        setStep('pending')
+        return
       }
+
+      setError(data.message || data.error || 'Verification could not be submitted.')
+      setLoading(false)
+      return
     } catch (err: any) {
       setError(err.message || 'An error occurred during verification.')
     } finally {
@@ -361,16 +384,16 @@ export function TribalVerificationModal({
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Tribal Enrollment / Census ID *
+                    Tribal Enrollment / Census ID (optional)
                   </label>
                   <input
                     type="text"
-                    required
                     value={tribalEnrollmentId}
                     onChange={(e) => setTribalEnrollmentId(e.target.value)}
                     placeholder="e.g. NAV-98421 or 12345"
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   />
+                  <p className="text-[11px] text-slate-500 mt-1">Only used if you choose manual review. We keep just the last 4 characters.</p>
                 </div>
               </div>
 
@@ -476,6 +499,28 @@ export function TribalVerificationModal({
                 )}
               </div>
 
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-[11px] text-slate-600 leading-relaxed">
+                <p>
+                  <strong>How ID verification works.</strong> If online verification is available, you will continue on Stripe&apos;s secure page to
+                  photograph a government-issued ID (driver&apos;s license, ID card or passport; Stripe has no separate tribal ID type, so a tribal
+                  photo ID is submitted as a generic ID card) and take a live selfie, which Stripe compares to the photo on the ID. Stripe processes
+                  these images, which may include biometric data. We do not receive or store your ID images or ID numbers; we keep your first name,
+                  last initial, tribe, the Stripe session reference and your consent record. A member of our team reviews every request and decides
+                  manually; you are not verified until you hear from us. After we decide, we ask Stripe to delete the ID data. You may instead
+                  choose manual review and contact us. Wording pending legal review.
+                </p>
+                <label className="flex items-start gap-2 text-xs font-medium text-slate-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                    className="mt-0.5"
+                    aria-describedby="tribal-consent-notice"
+                  />
+                  <span id="tribal-consent-notice">{CONSENT_CHECKBOX_LABEL}</span>
+                </label>
+              </div>
+
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
@@ -483,6 +528,20 @@ export function TribalVerificationModal({
                   className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
                 >
                   Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={loading || !consent}
+                  onClick={() => {
+                    if (!firstName.trim() || !lastName.trim() || !resolvedNation.trim() || !tribalEnrollmentId.trim()) {
+                      setError('Manual review needs your name, tribe and enrollment ID.')
+                      return
+                    }
+                    void handleSubmitVerification(true)
+                  }}
+                  className="px-4 py-2 text-xs font-semibold text-slate-700 border border-slate-300 hover:bg-slate-100 rounded-xl disabled:opacity-50"
+                >
+                  Request manual review instead
                 </button>
                 <button
                   type="submit"
@@ -497,7 +556,7 @@ export function TribalVerificationModal({
                       <ChevronRight className="w-3.5 h-3.5" />
                     </>
                   ) : (
-                    'Verify & Activate 20% Discount'
+                    'Continue to ID verification'
                   )}
                 </button>
               </div>
@@ -549,7 +608,7 @@ export function TribalVerificationModal({
                 </button>
                 <button
                   type="button"
-                  onClick={handleSubmitVerification}
+                  onClick={() => void handleSubmitVerification()}
                   disabled={loading || !signatureData}
                   className="px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-50"
                 >
@@ -557,7 +616,7 @@ export function TribalVerificationModal({
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
-                      Sign Certificate & Finalize Verification
+                      Sign Certificate & Continue
                       <CheckCircle2 className="w-3.5 h-3.5" />
                     </>
                   )}
@@ -566,58 +625,21 @@ export function TribalVerificationModal({
             </div>
           )}
 
-          {step === 'success' && verificationResult && (
+          {step === 'pending' && (
             <div className="space-y-4 text-center py-2">
-              <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mx-auto">
-                <CheckCircle2 className="w-8 h-8" />
+              <div className="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 mx-auto">
+                <Info className="w-8 h-8" />
               </div>
-
               <div>
-                <h4 className="text-lg font-bold text-slate-900">Verification Successful!</h4>
-                <p className="text-xs text-slate-600 mt-1">
-                  Enrolled member record verified for {verificationResult.audit.tribalNation} ({verificationResult.audit.maskedEnrollmentId}).
-                </p>
+                <h4 className="text-lg font-bold text-slate-900">Submitted for review</h4>
+                <p className="text-xs text-slate-600 mt-1">{pendingMessage} We&apos;ll email you. No discount or tax exemption has been applied yet.</p>
               </div>
-
-              <div className="grid grid-cols-2 gap-3 text-left">
-                <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl">
-                  <div className="flex items-center gap-1.5 text-indigo-900 font-bold text-xs mb-1">
-                    <Tag className="w-3.5 h-3.5 text-indigo-600" />
-                    Track 1: 20% Discount
-                  </div>
-                  <p className="text-xs text-indigo-700">
-                    Active on all orders. Tag <code className="bg-white px-1 py-0.5 rounded text-[11px]">tribal-member-verified</code> applied to Shopify account.
-                  </p>
-                </div>
-
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
-                  <div className="flex items-center gap-1.5 text-emerald-900 font-bold text-xs mb-1">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                    Track 2: Tax Exemption
-                  </div>
-                  <p className="text-xs text-emerald-700">
-                    {verificationResult.taxExemptionTrack.taxExempt
-                      ? 'On-reservation exemption active with Entity Use Code C.'
-                      : 'Off-reservation: standard state destination tax applies.'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-left text-[11px] text-slate-500 font-mono">
-                <div className="font-semibold text-slate-700">Audit Trail Verification Record:</div>
-                <div className="truncate">Hash: {verificationResult.audit.verificationHash}</div>
-                <div>Timestamp: {verificationResult.audit.verifiedAt}</div>
-                {verificationResult.audit.certificateRef && (
-                  <div>Cert Ref: {verificationResult.audit.certificateRef}</div>
-                )}
-              </div>
-
               <button
                 type="button"
                 onClick={onClose}
                 className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition-colors"
               >
-                Done & Return to Shopping
+                Done
               </button>
             </div>
           )}
