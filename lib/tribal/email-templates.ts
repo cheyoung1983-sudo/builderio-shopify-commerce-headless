@@ -11,7 +11,7 @@ export interface TribalVerificationEmailData {
   verificationHash: string
   verifiedAt: string
   discountPercentage?: number // default 20%
-  discountCode?: string // e.g. 'TRIBAL-MEMBER-20'
+  discountCode?: string // optional; only shown when provided
   isTaxExempt?: boolean
   certificateRef?: string
   storeName?: string
@@ -39,7 +39,7 @@ YOUR VERIFIED BENEFITS
 --------------------------------------------------
 1. 20% Commercial Member Discount
    - Automatic 20% discount on all qualified screens, parts, and accessories.
-   - Code: ${data.discountCode || 'TRIBAL-MEMBER-20'} (applied automatically when signed in).
+   - ${data.discountCode ? `Code: ${data.discountCode} (applied automatically when signed in).` : 'Applied automatically to your verified account when signed in.'}
 
 2. On-Reservation Sales Tax Exemption
    - Status: ${data.isTaxExempt ? 'Active (Entity Use Code C)' : 'Eligible for On-Reservation Deliveries'}
