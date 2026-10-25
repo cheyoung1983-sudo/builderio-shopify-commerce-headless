@@ -291,13 +291,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         } = body
 
         // Prepare line items
+        const rawLines = Array.isArray(lines) ? lines : []
+        if (rawLines.length > 50) {
+          return res.status(400).json({
+            success: false,
+            error: 'Maximum 50 line items allowed per cart',
+          })
+        }
+
         const cartLines: Array<{ merchandiseId: string; quantity: number }> = []
         if (variantId) {
           const boundedQuantity = Math.min(Math.max(parseInt(String(quantity || 1), 10) || 1, 1), 100)
           cartLines.push({ merchandiseId: String(variantId).trim().slice(0, 256), quantity: boundedQuantity })
         }
-        if (Array.isArray(lines)) {
-          lines.forEach((l) => {
+        if (rawLines.length > 0) {
+          rawLines.forEach((l) => {
             if (l.variantId) {
               const boundedQuantity = Math.min(Math.max(parseInt(String(l.quantity || 1), 10) || 1, 1), 100)
               cartLines.push({ merchandiseId: String(l.variantId).trim().slice(0, 256), quantity: boundedQuantity })

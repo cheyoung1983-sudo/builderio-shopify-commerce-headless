@@ -49,6 +49,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.redirect(302, authUrl)
   } catch (err: any) {
     console.error('[CustomerAccount:Login] Failed to build authorize URL:', err)
-    return res.status(500).json({ error: err?.message || 'Authentication initialization error' })
+    return res.status(500).json({ error: 'Authentication initialization error' })
   }
 }

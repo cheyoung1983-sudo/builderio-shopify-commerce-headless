@@ -159,9 +159,20 @@ interface RateLimitResult {
 export function createRateLimiter(options: { windowMs: number; maxRequests: number }) {
   const hits = new Map<string, { count: number; resetAt: number }>()
 
+  function pruneStale(now: number) {
+    if (hits.size > 200) {
+      for (const [k, v] of hits.entries()) {
+        if (now > v.resetAt) {
+          hits.delete(k)
+        }
+      }
+    }
+  }
+
   return {
     check(key: string): RateLimitResult {
       const now = Date.now()
+      pruneStale(now)
       const record = hits.get(key)
 
       if (!record || now > record.resetAt) {

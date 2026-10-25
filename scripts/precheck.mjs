@@ -25,7 +25,7 @@ const skipBuild = args.has('--skip-build') || process.env.SKIP_BUILD === '1'
 const skipTests = args.has('--skip-tests') || process.env.SKIP_TESTS === '1'
 
 const run = (cmd, a, opts = {}) =>
-  spawnSync(cmd, a, { stdio: 'inherit', shell: false, ...opts }).status === 0
+  spawnSync(cmd, a, { stdio: 'inherit', shell: process.platform === 'win32', ...opts }).status === 0
 const git = (a) =>
   (spawnSync('git', a, { encoding: 'utf8' }).stdout || '')
     .split('\n')

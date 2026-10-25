@@ -81,7 +81,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const query =
       rawQuery === undefined
         ? ''
-        : readBoundedString(rawQuery, { maxLength: 120, truncate: false })
+        : (readBoundedString(rawQuery, { maxLength: 120, truncate: false }) || '').slice(0, 120)
 
     if (!model || query === undefined) {
       return res.status(400).json({ ok: false, error: 'Invalid model or query', results: [] })
@@ -123,6 +123,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (!response.ok) {
+      if (response.status === 404) {
+        return res.status(200).json({
+          ok: true,
+          model,
+          count: 0,
+          results: [],
+          warning: 'Model not found or unconfigured in Builder space',
+        })
+      }
       console.error('[API /api/agent/content] Builder upstream returned', response.status)
       return res.status(502).json({
         ok: false,

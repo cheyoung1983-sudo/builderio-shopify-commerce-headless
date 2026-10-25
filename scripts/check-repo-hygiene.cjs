@@ -17,7 +17,7 @@ const path = require('node:path')
 const root = path.resolve(__dirname, '..')
 const fix = process.argv.includes('--fix')
 const run = (cmd, args, opts = {}) =>
-  execFileSync(cmd, args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...opts })
+  execFileSync(cmd, args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32', ...opts })
 const problems = []
 
 // 1. Lockfile drift: npm ci --dry-run fails with EUSAGE when out of sync.

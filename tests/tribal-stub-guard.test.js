@@ -31,7 +31,7 @@ function walk(rel, out = []) {
   const full = path.join(root, rel)
   if (!fs.existsSync(full)) return out
   const st = fs.statSync(full)
-  if (st.isFile()) return out.concat(rel)
+  if (st.isFile()) return out.concat(rel.replace(/\\/g, '/'))
   for (const name of fs.readdirSync(full)) {
     if (SKIP_DIRS.has(name)) continue
     out = walk(path.join(rel, name), out)

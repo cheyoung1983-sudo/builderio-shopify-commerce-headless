@@ -17,6 +17,8 @@ function parseCookies(cookieHeader: string | undefined): Record<string, string> 
   return cookies
 }
 
+const COOKIE = { returnTo: 'shopify_oauth_return_to' }
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -26,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (error) {
     console.error('[CustomerAccount:Callback] OAuth provider returned error:', error, error_description)
-    return res.redirect(302, `/account?error=${encodeURIComponent(String(error_description || error))}`)
+    return res.redirect(302, '/account?error=oauth_error')
   }
 
   if (typeof code !== 'string' || typeof state !== 'string') {
@@ -34,9 +36,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const cookies = parseCookies(req.headers.cookie)
-  const expectedState = cookies['shopify_oauth_state']
-  const codeVerifier = cookies['shopify_pkce_verifier']
-  const returnTo = sanitizeReturnTo(cookies['shopify_oauth_return_to'])
+  const expectedState = cookies['shopify_oauth_state'] || req.cookies['shopify_oauth_state']
+  const codeVerifier = cookies['shopify_pkce_verifier'] || req.cookies['shopify_pkce_verifier']
+  const returnTo = sanitizeReturnTo(req.cookies[COOKIE.returnTo])
 
   if (!expectedState || state !== expectedState) {
     console.error('[CustomerAccount:Callback] State mismatch or missing expected state')
@@ -73,6 +75,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.redirect(302, returnTo)
   } catch (err: any) {
     console.error('[CustomerAccount:Callback] Token exchange failure:', err)
-    return res.redirect(302, `/account?error=${encodeURIComponent(err?.message || 'Token exchange failed')}`)
+    return res.redirect(302, '/account?error=token_exchange_failed')
   }
 }

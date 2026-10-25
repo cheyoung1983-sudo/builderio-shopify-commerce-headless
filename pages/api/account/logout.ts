@@ -4,6 +4,8 @@ import {
   getSiteUrl,
 } from '../../../services/shopify-customer-account'
 
+import { sanitizeReturnTo } from './login'
+
 function parseCookies(cookieHeader: string | undefined): Record<string, string> {
   if (!cookieHeader) return {}
   const cookies: Record<string, string> = {}
@@ -22,8 +24,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const cookies = parseCookies(req.headers.cookie)
+  const returnTo = sanitizeReturnTo(req.query.returnTo || cookies['shopify_oauth_return_to'])
   const idToken = cookies['shopify_customer_id_token']
-  const postLogoutRedirectUri = `${getSiteUrl(req)}/account`
+  const postLogoutRedirectUri = `${getSiteUrl(req)}${returnTo}`
 
   const isSecure = process.env.NODE_ENV === 'production'
   const clearCookieOpts = `Path=/; HttpOnly; SameSite=Lax; Max-Age=0${isSecure ? '; Secure' : ''}`
