@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useState, useEffect } from 'react'
+import React, { useRef, useState, useEffect, useCallback } from 'react'
 import { Eraser, CheckCircle2 } from 'lucide-react'
 
 interface DigitalSignaturePadProps {
@@ -10,55 +10,104 @@ interface DigitalSignaturePadProps {
 
 export function DigitalSignaturePad({ onSignatureChange, disabled = false }: DigitalSignaturePadProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [hasDrawn, setHasDrawn] = useState(false)
+  const dataUrlRef = useRef<string | null>(null)
 
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    // Set high DPI canvas resolution
-    const rect = canvas.getBoundingClientRect()
-    const dpr = window.devicePixelRatio || 1
-    canvas.width = (rect.width || 400) * dpr
-    canvas.height = (rect.height || 140) * dpr
-    ctx.scale(dpr, dpr)
-
+  const initContext = useCallback((ctx: CanvasRenderingContext2D) => {
     ctx.strokeStyle = '#1e293b'
     ctx.lineWidth = 2.5
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
   }, [])
 
+  const setupCanvas = useCallback(() => {
+    const canvas = canvasRef.current
+    const container = containerRef.current
+    if (!canvas || !container) return
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const rect = container.getBoundingClientRect()
+    const dpr = window.devicePixelRatio || 1
+    const width = rect.width || 400
+    const height = 120
+
+    let savedImage: HTMLImageElement | null = null
+    if (hasDrawn && canvas.width > 0 && canvas.height > 0) {
+      const dataUrl = canvas.toDataURL('image/png')
+      savedImage = new Image()
+      savedImage.src = dataUrl
+    }
+
+    canvas.width = width * dpr
+    canvas.height = height * dpr
+    ctx.scale(dpr, dpr)
+    initContext(ctx)
+
+    if (savedImage) {
+      savedImage.onload = () => {
+        ctx.drawImage(savedImage!, 0, 0, width, height)
+      }
+    }
+  }, [hasDrawn, initContext])
+
+  useEffect(() => {
+    setupCanvas()
+
+    const container = containerRef.current
+    if (!container) return
+
+    const observer = new ResizeObserver(() => {
+      setupCanvas()
+    })
+    observer.observe(container)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [setupCanvas])
+
   const getCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
     if (!canvas) return { x: 0, y: 0 }
     const rect = canvas.getBoundingClientRect()
+    const computedStyle = window.getComputedStyle(canvas)
+    const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0
+    const paddingTop = parseFloat(computedStyle.paddingTop) || 0
+    const borderLeft = parseFloat(computedStyle.borderLeftWidth) || 0
+    const borderTop = parseFloat(computedStyle.borderTopWidth) || 0
+
+    let clientX = 0
+    let clientY = 0
 
     if ('touches' in e && e.touches.length > 0) {
-      return {
-        x: e.touches[0].clientX - rect.left,
-        y: e.touches[0].clientY - rect.top,
-      }
+      clientX = e.touches[0].clientX
+      clientY = e.touches[0].clientY
     } else if ('clientX' in e) {
-      return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      }
+      clientX = e.clientX
+      clientY = e.clientY
     }
-    return { x: 0, y: 0 }
+
+    const cssX = clientX - rect.left - borderLeft - paddingLeft
+    const cssY = clientY - rect.top - borderTop - paddingTop
+
+    return { x: cssX, y: cssY }
   }
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (disabled) return
+    if ('touches' in e && e.cancelable) {
+      e.preventDefault()
+    }
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
+    initContext(ctx)
     const { x, y } = getCoordinates(e)
     ctx.beginPath()
     ctx.moveTo(x, y)
@@ -67,11 +116,15 @@ export function DigitalSignaturePad({ onSignatureChange, disabled = false }: Dig
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isDrawing || disabled) return
+    if ('touches' in e && e.cancelable) {
+      e.preventDefault()
+    }
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
+    initContext(ctx)
     const { x, y } = getCoordinates(e)
     ctx.lineTo(x, y)
     ctx.stroke()
@@ -84,6 +137,7 @@ export function DigitalSignaturePad({ onSignatureChange, disabled = false }: Dig
     const canvas = canvasRef.current
     if (canvas && hasDrawn) {
       const dataUrl = canvas.toDataURL('image/png')
+      dataUrlRef.current = dataUrl
       onSignatureChange(dataUrl)
     }
   }
@@ -96,12 +150,14 @@ export function DigitalSignaturePad({ onSignatureChange, disabled = false }: Dig
 
     const dpr = window.devicePixelRatio || 1
     ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr)
+    initContext(ctx)
     setHasDrawn(false)
+    dataUrlRef.current = null
     onSignatureChange(null)
   }
 
   return (
-    <div className="w-full space-y-2">
+    <div className="w-full space-y-2" ref={containerRef}>
       <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
         <span className="flex items-center gap-1.5">
           Sign Exemption Certificate Digital Declaration
