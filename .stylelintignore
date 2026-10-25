@@ -1,0 +1,4 @@
+chrome-devtools-mcp/
+node_modules/
+.next/
+public/
