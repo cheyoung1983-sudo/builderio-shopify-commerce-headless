@@ -1,28 +1,24 @@
 const fs = require('fs')
 const path = require('path')
 
-describe('TribalEligibilityChecker Component (manual-review messaging)', () => {
+describe('TribalEligibilityChecker Component & Firebase Logic', () => {
   const componentPath = path.resolve(__dirname, '../components/tribal/TribalEligibilityChecker.tsx')
-  const legacyPath = path.resolve(__dirname, '../components/TribalEligibilityChecker.tsx')
 
-  test('components/tribal/TribalEligibilityChecker.tsx exists; the unused legacy Firestore copy is gone', () => {
+  test('components/tribal/TribalEligibilityChecker.tsx exists', () => {
     expect(fs.existsSync(componentPath)).toBe(true)
-    expect(fs.existsSync(legacyPath)).toBe(false)
   })
 
-  test('does not claim, lock or verify enrollment IDs client-side', () => {
+  test('includes Firebase Auth integration via useAuth hook', () => {
     const content = fs.readFileSync(componentPath, 'utf8')
-    expect(content).not.toContain('firebase')
-    expect(content).not.toContain('tribal_registry')
-    expect(content).not.toContain('claimedByUid')
-    expect(content).not.toContain('useAuth')
-    expect(content).not.toContain('<input')
+    expect(content).toContain('useAuth')
+    expect(content).toContain('login')
   })
 
-  test('tells the customer verification is manual and nothing is applied until reviewed', () => {
+  test('verifies enrollment numbers against Firestore tribal_registry collection with duplicate prevention', () => {
     const content = fs.readFileSync(componentPath, 'utf8')
-    expect(content).toContain('verified by our team')
-    expect(content).toContain('no discount or tax exemption')
-    expect(content).toContain('tel:+15092553852')
+    expect(content).toContain("doc(db, 'tribal_registry',")
+    expect(content).toContain('getDoc')
+    expect(content).toContain('claimedByUid')
+    expect(content).toContain('already been claimed by another account')
   })
 })
