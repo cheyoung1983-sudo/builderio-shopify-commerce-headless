@@ -51,7 +51,7 @@ export default function DiagnosisPage() {
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold uppercase tracking-wider mb-4">
               <Stethoscope className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>Free online diagnosis</span>
+              <span>Free online triage</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900">
               Not sure what&apos;s wrong with your device?

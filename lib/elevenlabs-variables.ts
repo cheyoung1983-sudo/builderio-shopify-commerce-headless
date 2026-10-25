@@ -37,7 +37,7 @@ export const DEFAULT_DYNAMIC_VARIABLES: Record<string, string> = {
   warranty: "1-Year Comprehensive Warranty",
   turnaround_time: "25 to 45 minutes on-site",
   eta: "25 to 45 minutes",
-  pricing: "Free Diagnostic & Upfront Pricing",
+  pricing: "Upfront pricing; mail-in repairs have a $40 diagnostic fee, credited toward an approved repair",
 };
 
 /**

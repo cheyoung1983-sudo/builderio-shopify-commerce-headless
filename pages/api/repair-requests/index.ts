@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../../lib/firebase'
+import { buildTermsAcceptance, type MailInTermsAcceptance } from '../../../lib/pricing/mail-in-policy'
 
 export interface MailInRepairPayload {
   rmsNumber?: string
@@ -35,6 +36,8 @@ export interface MailInRepairPayload {
     batteryUnder30: boolean
     accessoriesRemoved: boolean
   }
+  /** Required: customer agreed to the $40 diagnostic fee and cancellation terms. */
+  termsAcceptance: { accepted: boolean }
   estimatedCost?: {
     part: number
     labor: number
@@ -78,6 +81,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
     }
 
+    // Require explicit acceptance of the diagnostic fee and cancellation terms.
+    // Only a literal `true` counts; the timestamp is set here, never trusted from the client.
+    const termsAcceptance: MailInTermsAcceptance | null = buildTermsAcceptance(payload.termsAcceptance)
+    if (!termsAcceptance) {
+      return res.status(400).json({
+        success: false,
+        error: 'You must agree to the diagnostic fee and cancellation terms to request a mail-in kit.',
+      })
+    }
+
     // Generate unique RMS Tracking Number
     const rmsNumber = payload.rmsNumber || `DCP-RMS-${Math.floor(100000 + Math.random() * 900000)}`
 
@@ -106,7 +119,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           state: shippingKit.address.state.trim().toUpperCase(),
           zip: shippingKit.address.zip.trim(),
         },
-        courierPreference: shippingKit.courierPreference || 'UPS_OVERNIGHT',
+        courierPreference: shippingKit.courierPreference || 'USPS_PRIORITY',
         kitType: shippingKit.kitType || 'electrostatic_foam_mailer',
         dispatchedAt: new Date().toISOString(),
       },
@@ -116,6 +129,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         batteryUnder30: Boolean(sopChecklist?.batteryUnder30),
         accessoriesRemoved: Boolean(sopChecklist?.accessoriesRemoved),
       },
+      termsAcceptance,
       estimatedCost: estimatedCost || {
         part: 129.99,
         labor: 35.0,
@@ -125,6 +139,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
+
+    // Durable proof of acceptance for disputes: Firestore writes below are best-effort (and are
+    // currently denied by firestore.rules), so also emit a structured log line. No PII.
+    console.info(
+      '[RepairRequests API] terms accepted',
+      JSON.stringify({ rmsNumber, accepted: termsAcceptance.accepted, acceptedAt: termsAcceptance.acceptedAt, termsVersion: termsAcceptance.termsVersion })
+    )
 
     // Write to Firestore if connected
     if (db) {
@@ -144,7 +165,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       success: true,
       rmsNumber,
       status: 'kit_requested',
-      message: `Mail-in repair request created. Prepaid shipping kit will be dispatched to ${shippingKit.recipientName}.`,
+      message: `Mail-in repair request created. Your shipping kit will be sent to ${shippingKit.recipientName}.`,
       record: repairRecord,
     })
   } catch (err: any) {
