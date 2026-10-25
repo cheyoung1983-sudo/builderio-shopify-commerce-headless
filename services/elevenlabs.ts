@@ -4,6 +4,9 @@
  */
 
 export const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+// Professional technician voice (e.g., "Josh" or similar high-quality clear instructional voice)
+export const PROFESSIONAL_TECHNICIAN_VOICE_ID = 'TxGEqnHWxWFTfGWLOA3x'; 
+
 
 export class ElevenLabsError extends Error {
   constructor(

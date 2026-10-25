@@ -23,7 +23,7 @@ export interface TribalVerificationRequest {
   birthDate?: string // YYYY-MM-DD
   tribalNation: string
   tribalEnrollmentId: string
-  provider?: 'sheerid' | 'idme' | 'registry'
+  provider?: 'sheerid' | 'idme' | 'registry' | 'persona'
   shippingAddress?: {
     address1: string
     address2?: string

@@ -167,7 +167,7 @@ export async function updateShopifyCustomerTribalStatus(params: {
       variables: { id: formattedId, tags: tagsToAdd },
     })
     const tagErrors = tagResult.data?.tagsAdd?.userErrors || []
-    if (!tagResult.data?.tagsAdd?.node || tagErrors.length > 0 || tagResult.errors?.length) {
+    if (tagErrors.length > 0 || (tagResult.errors && tagResult.errors.length > 0)) {
       return {
         success: false,
         data: customer,

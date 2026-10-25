@@ -227,7 +227,11 @@ export function TribalVerificationModal({
         } catch {
           target = null
         }
-        if (target && target.protocol === 'https:' && target.hostname === 'verify.stripe.com') {
+        if (
+          target &&
+          target.protocol === 'https:' &&
+          (target.hostname === 'verify.stripe.com' || target.hostname.endsWith('withpersona.com'))
+        ) {
           window.location.assign(target.toString())
           return
         }
