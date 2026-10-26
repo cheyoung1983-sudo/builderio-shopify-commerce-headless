@@ -14,9 +14,9 @@ interface HealthData {
   apiKeys: HealthStatus;
 }
 
-const StatusIcon = ({ status }: { status: string }) => 
-    status === 'connected' || status === 'healthy' || status === 'configured' 
-      ? <CheckCircle className="text-green-500 w-5 h-5" /> 
+const StatusIcon = ({ status }: { status: string }) =>
+    status === 'connected' || status === 'healthy' || status === 'configured'
+      ? <CheckCircle className="text-green-500 w-5 h-5" />
       : <AlertCircle className="text-red-500 w-5 h-5" />;
 
 const HealthCard = ({ title, status }: { title: string, status: string }) => (
@@ -34,7 +34,7 @@ const CommandBlock = ({ cmd, desc }: { cmd: string, desc: string }) => (
   <div className="bg-neutral-900 rounded-lg p-3 my-2 border border-neutral-800">
     <div className="flex items-center justify-between mb-1">
       <code className="text-emerald-400 text-xs font-mono">{cmd}</code>
-      <button 
+      <button
         onClick={() => navigator.clipboard.writeText(cmd)}
         className="text-neutral-500 hover:text-white transition-colors p-1"
         title="Copy command"
@@ -49,6 +49,7 @@ const CommandBlock = ({ cmd, desc }: { cmd: string, desc: string }) => (
 import { useAuth } from '../hooks/useAuth';
 import { db } from '../lib/firebase';
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import SlackNotificationDashboard from './mcp/SlackNotificationDashboard';
 
 interface UserProfile {
   uid: string;
@@ -61,7 +62,7 @@ export default function AdminDashboard() {
   const { user, role, logout } = useAuth();
   const [data, setData] = useState<HealthData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'health' | 'cli' | 'ucp' | 'team'>('health');
+  const [activeTab, setActiveTab] = useState<'health' | 'cli' | 'ucp' | 'team' | 'slack-queue'>('health');
   const [users, setUsers] = useState<UserProfile[]>([]);
 
   useEffect(() => {
@@ -91,11 +92,11 @@ export default function AdminDashboard() {
   const updateUserRole = async (targetUid: string, newRole: string) => {
     try {
       const userRef = doc(db, 'users', targetUid);
-      await updateDoc(userRef, { 
+      await updateDoc(userRef, {
         role: newRole,
         updatedAt: serverTimestamp()
       });
-      
+
       // Update the efficiency admin index if promoted/demoted
       const adminRef = doc(db, 'admins', targetUid);
       if (newRole === 'admin' || newRole === 'owner') {
@@ -135,29 +136,35 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-xl">
-            <button 
+            <button
               onClick={() => setActiveTab('health')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'health' ? 'bg-white text-emerald-700 shadow-sm' : 'text-neutral-50'}`}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'health' ? 'bg-white text-emerald-700 shadow-sm' : 'text-neutral-500'}`}
             >
               Health
             </button>
-            <button 
+            <button
+              onClick={() => setActiveTab('slack-queue')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'slack-queue' ? 'bg-white text-purple-700 shadow-sm' : 'text-neutral-500'}`}
+            >
+              Slack Queue
+            </button>
+            <button
               onClick={() => setActiveTab('cli')}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'cli' ? 'bg-white text-blue-700 shadow-sm' : 'text-neutral-500'}`}
             >
               CLI
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('ucp')}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'ucp' ? 'bg-white text-indigo-700 shadow-sm' : 'text-neutral-500'}`}
             >
               UCP
             </button>
             {(role === 'admin' || role === 'owner') && (
-              <button 
+              <button
                 onClick={() => setActiveTab('team')}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'team' ? 'bg-white text-orange-700 shadow-sm' : 'text-neutral-500'}`}
               >
@@ -165,7 +172,7 @@ export default function AdminDashboard() {
               </button>
             )}
           </div>
-          <button 
+          <button
             onClick={logout}
             className="p-2 text-neutral-400 hover:text-red-600 transition-colors"
             title="Sign Out"
@@ -182,7 +189,7 @@ export default function AdminDashboard() {
             <HealthCard title="Shopify Admin Webhooks" status={data?.webhooks.status || 'unknown'} />
             <HealthCard title="API Credentials Cache" status={data?.apiKeys.status || 'unknown'} />
           </div>
-          
+
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 flex items-start gap-4">
             <div className="p-3 bg-white rounded-xl shadow-sm">
               <Shield className="text-emerald-600 w-6 h-6" />
@@ -190,13 +197,15 @@ export default function AdminDashboard() {
             <div>
               <h3 className="font-bold text-emerald-900">Spokane Local Environment Secure</h3>
               <p className="text-sm text-emerald-800 mt-1">
-                Your environment is correctly configured for the Spokane storefront. 
+                Your environment is correctly configured for the Spokane storefront.
                 All API requests are currently authenticated using the <strong>{process.env.SHOPIFY_STOREFRONT_API_VERSION || '2024-07'}</strong> API version.
               </p>
             </div>
           </div>
         </div>
       )}
+
+      {activeTab === 'slack-queue' && <SlackNotificationDashboard />}
 
       {activeTab === 'cli' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -206,17 +215,17 @@ export default function AdminDashboard() {
                 <User className="text-blue-600 w-5 h-5" />
                 Authentication & Core
               </h3>
-              <CommandBlock 
-                cmd="shopify auth login" 
-                desc="Logs you in to your Shopify account. Use --alias for existing sessions." 
+              <CommandBlock
+                cmd="shopify auth login"
+                desc="Logs you in to your Shopify account. Use --alias for existing sessions."
               />
-              <CommandBlock 
-                cmd="shopify auth logout" 
-                desc="Logs you out of the Shopify account or Partner account." 
+              <CommandBlock
+                cmd="shopify auth logout"
+                desc="Logs you out of the Shopify account or Partner account."
               />
-              <CommandBlock 
-                cmd="shopify version" 
-                desc="Check current installed version of Shopify CLI." 
+              <CommandBlock
+                cmd="shopify version"
+                desc="Check current installed version of Shopify CLI."
               />
             </section>
 
@@ -225,13 +234,13 @@ export default function AdminDashboard() {
                 <Box className="text-blue-600 w-5 h-5" />
                 App Management
               </h3>
-              <CommandBlock 
-                cmd="shopify app dev" 
-                desc="Starts a local development server for your app." 
+              <CommandBlock
+                cmd="shopify app dev"
+                desc="Starts a local development server for your app."
               />
-              <CommandBlock 
-                cmd="shopify app deploy" 
-                desc="Builds and deploys your app configuration and extensions." 
+              <CommandBlock
+                cmd="shopify app deploy"
+                desc="Builds and deploys your app configuration and extensions."
               />
             </section>
           </div>
@@ -321,7 +330,7 @@ export default function AdminDashboard() {
                 <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100">
                   <p className="text-xs font-bold text-neutral-700 uppercase mb-1">Business Outcomes</p>
                   <p className="text-[11px] text-neutral-600 leading-snug">
-                    Inspect <code className="text-indigo-600">ucp.status</code> and <code className="text-indigo-600">messages</code>. 
+                    Inspect <code className="text-indigo-600">ucp.status</code> and <code className="text-indigo-600">messages</code>.
                     Handle <code className="bg-red-50 px-1 rounded text-red-700">requires_escalation</code> by using the <code className="text-indigo-600">continue_url</code> to hand off to the buyer.
                   </p>
                 </div>
