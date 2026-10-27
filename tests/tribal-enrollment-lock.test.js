@@ -42,7 +42,7 @@ describe('Tribal Enrollment Uniqueness & Customer Lock', () => {
 
   test('TribalEligibilityChecker UI handles visual feedback states and duplicate blocking', () => {
     const content = fs.readFileSync(componentPath, 'utf8')
-    expect(content).toContain('Tribal Eligibility &amp; Discount: Manual Review')
+    expect(content).toContain('Tribal Eligibility &amp; 20% Discount Checker')
     expect(content).toContain('20% Tribal Discount Unlocked &amp; Bound to Account!')
     expect(content).toContain('Enrollment ID Already Claimed by Another Customer')
     expect(content).toContain('support@displaycellpros.com')
