@@ -36,13 +36,12 @@ describe('Repair Status Tracker Component & Real-Time Firestore Sync', () => {
     expect(content).toContain('data-testid="repair-status-tracker"')
   })
 
-  test('API route pages/api/repair-requests/[rms].ts queries Firestore and demo seeds', () => {
+  test('API route pages/api/repair-requests/[rms].ts queries Firestore', () => {
     expect(fs.existsSync(apiPath)).toBe(true)
     const apiContent = fs.readFileSync(apiPath, 'utf8')
-    expect(apiContent).toContain('DCP-RMS-100001')
-    expect(apiContent).toContain('DCP-RMS-100002')
-    expect(apiContent).toContain('bench_diagnostic')
-    expect(apiContent).toContain('inbound_transit')
+    expect(apiContent).toContain('getDoc')
+    expect(apiContent).toContain('repair_requests')
+    expect(apiContent).toContain('toSafeSummary')
   })
 
   test('pages/order-tracking.tsx integrates tabbed navigation with RepairStatusTracker', () => {

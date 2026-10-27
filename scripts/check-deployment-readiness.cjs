@@ -27,8 +27,9 @@ if (hasVercelCli) {
   console.log('ℹ Vercel CLI: Can be executed via `npx vercel`')
 }
 
-// 2. Check project linkage (.vercel/project.json)
+// 2. Check project linkage (.vercel/project.json or .vercel/repo.json)
 const vercelProjectFile = path.join(repoRoot, '.vercel', 'project.json')
+const vercelRepoFile = path.join(repoRoot, '.vercel', 'repo.json')
 if (fs.existsSync(vercelProjectFile)) {
   try {
     const projectData = JSON.parse(fs.readFileSync(vercelProjectFile, 'utf8'))
@@ -36,8 +37,16 @@ if (fs.existsSync(vercelProjectFile)) {
   } catch (e) {
     console.log('⚠ .vercel/project.json exists but could not be parsed')
   }
+} else if (fs.existsSync(vercelRepoFile)) {
+  try {
+    const repoData = JSON.parse(fs.readFileSync(vercelRepoFile, 'utf8'))
+    const prj = repoData.projects?.[0]
+    console.log(`✓ Vercel project linked: ${prj?.name || 'Unknown'} (ID: ${prj?.id || 'Unknown'}, Org: ${prj?.orgId || 'Unknown'})`)
+  } catch (e) {
+    console.log('⚠ .vercel/repo.json exists but could not be parsed')
+  }
 } else {
-  console.log('ℹ Vercel project linkage: Not linked locally (.vercel/project.json not found). Link using `npx vercel link`.')
+  console.log('ℹ Vercel project linkage: Not linked locally (.vercel/project.json or repo.json not found). Link using `npx vercel link`.')
 }
 
 // 3. Execute precheck suite
