@@ -1,113 +1,99 @@
-# Implementation Plan: Repair Status Tracker & Auth0 Authentication
+# Implementation Plan: Secure Tribal Verification Admin Dashboard
 
-A unified implementation plan to create a dedicated **Repair Status Tracker** page component with dual-factor lookup (Repair Request ID + Email verification) and integrate **Auth0 authentication** (`@auth0/nextjs-auth0`) with Login, Logout, Profile components, and resilient fallback handling for the Next.js storefront.
+A dedicated, secure administration panel for Display & Cell Pros allowing authorized shop administrators (`ryan@displaycellpros.com` and `cheyoung1983@gmail.com`) to inspect pending tribal member verification requests, examine Stripe/Persona diagnostic telemetry, and execute single-click approvals or denials with automated Shopify customer tagging and Slack status synchronization.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> - **Repair Status Tracker Scope**: Dedicated page at `/track-repair` (and reusable component `components/services/RepairStatusLookup.tsx`) allowing customers to lookup repairs using their **Repair Request ID (RMS#)** and **Email Address**. Verifies email ownership before rendering private diagnostic and shipping data.
-> - **Auth0 Integration Architecture**:
->   - Implements `@auth0/nextjs-auth0` for user authentication.
->   - Provides `LoginButton.tsx`, `LogoutButton.tsx`, and `Profile.tsx` styled to match the storefront's design language.
->   - Mounts the Next.js Auth0 dynamic route handler (`pages/api/auth/[...auth0].ts`).
->   - Built with resilient runtime guards: If live Auth0 tenant environment variables (`AUTH0_SECRET`, `AUTH0_BASE_URL`, `AUTH0_ISSUER_BASE_URL`, `AUTH0_CLIENT_ID`) are not yet populated in production, graceful fallback and demo mode prevent build and dev server crashes while displaying clear setup instructions.
->   - Authenticated users automatically have their email pre-filled into the Repair Status Tracker and can view their linked repair history.
+> - **Dashboard Location**: Dedicated admin route at `/admin/tribal-audit` protected by email session authorization.
+> - **Administrative Actions**: Single-click **Approve** and **Deny** buttons that automatically update Shopify customer tags (`tribal-member-verified`), write audit logs to Firestore (`tribal_verifications`), and sync approval decisions to Slack.
+> - **Authorization & Security**: Enforce session email check restricting access exclusively to `ryan@displaycellpros.com` and `cheyoung1983@gmail.com`. Non-administrators or unauthenticated users are redirected or served an access-denied state.
 
 ---
 
-### 1. Overview & Core Concept
+## Technical Architecture & Component Mapping
 
-1. **Repair Status Tracker (`/track-repair`)**:
-   - Customers enter their **Repair Request ID** (e.g., `DCP-RMS-100001`) and the **Email Address** used during intake.
-   - The system queries Firestore (`repair_requests` collection) or the secure API route (`/api/repair-requests/lookup`), verifying that the normalized email matches the record's contact email.
-   - Renders interactive timeline stages (*Kit Dispatched $\to$ Inbound Transit $\to$ Bench Diagnostic $\to$ Microsoldering/Repair $\to$ Outbound Priority Delivery*), real-time courier tracking numbers, diagnostic technician notes, and a printable PDF/packing slip viewer.
-2. **Auth0 Authentication Setup**:
-   - Configures the Auth0 client in `lib/auth0.ts`.
-   - Adds the Auth0 handler at `pages/api/auth/[...auth0].ts`.
-   - Creates reusable client components: `LoginButton`, `LogoutButton`, and `Profile`.
-   - Provides account overview on the repair tracking page, allowing authenticated customers to view their open repairs with zero typing.
+### 1. New & Modified Components
 
----
+| File / Component | Role & Functionality |
+| :--- | :--- |
+| `pages/admin/tribal-audit.tsx` | Dedicated Admin Dashboard route with breadcrumbs, stats overview, filtering, and authorization guard. |
+| `components/tribal/AdminAuditDashboard.tsx` | Core interactive table displaying pending, approved, and denied verification requests with expandable details. |
+| `pages/api/tribal/admin/requests.ts` | Authenticated API endpoint querying pending/historical verification records from Redis/Firestore for admins. |
+| `pages/api/tribal/admin/decision.ts` | Authenticated API endpoint executing Approve/Deny decisions, updating Shopify customer tags, Firestore audit logs, and Slack thread status. |
+| `lib/tribal/admin-auth.ts` | Utility helper validating session email against the admin allowlist (`ryan@displaycellpros.com`, `cheyoung1983@gmail.com`). |
 
-### 2. User Experience & Visual Design
-
-- **Page Layout (`/track-repair`)**:
-  - **Header & Hero**: Clean, branded title with trust badges (`256-Bit SSL Encrypted Verification`, `Real-Time Lab Telemetry`).
-  - **Lookup Form**: Dual input fields:
-    - `Repair Request ID` (e.g. `DCP-RMS-100001` with format helper)
-    - `Customer Email Address` (validates against the record for privacy protection)
-  - **Auth0 Account Panel**: If signed in via Auth0, displays the customer profile card with 1-click "View My Active Repairs".
-  - **Status Progress View**:
-    - Interactive 5-stage progress ribbon with animated emerald pulses.
-    - Courier tracking links (USPS, FedEx, UPS) with live estimated delivery.
-    - Technician bench diagnosis report & device photos.
-    - Printable packing slip and customer service hotline (`(509) 255-3852`).
-
----
-
-### 3. Key Technical Decisions & Fallback Strategy
-
-- **Decision 1: Email Ownership Verification Gate**
-  - *Context*: Exposing repair records by RMS ID alone creates an enumeration/privacy risk where unauthorized parties could view names, addresses, or phone serial numbers.
-  - *Chosen Approach*: The lookup API and client hook require matching the record's email. If the RMS ID exists but the email does not match, return a generic "No matching repair record found for this ID and email combination" to avoid user enumeration.
-
-- **Decision 2: Next.js Pages Router Auth0 Integration & Resilience**
-  - *Context*: This repository uses the Next.js Pages Router with custom proxy security rules.
-  - *Chosen Approach*: Implement standard Pages Router Auth0 handling at `pages/api/auth/[...auth0].ts` and `lib/auth0.ts`. Wrap Auth0 initialization with an environment check so development and CI builds succeed without requiring immediate cloud tenant provisioning.
-  - *Environment Variables*: Declare `AUTH0_SECRET`, `AUTH0_BASE_URL`, `AUTH0_ISSUER_BASE_URL`, and `AUTH0_CLIENT_ID` in `.env.example`.
-
----
-
-### 4. Technical Architecture & Component Tree
-
-#### Architecture Diagram
+### 2. Data Flow Architecture
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│                   /track-repair Page                   │
-│                                                        │
-│  ┌────────────────────────┐  ┌──────────────────────┐  │
-│  │   Auth0 Profile Bar    │  │  Repair Lookup Card  │  │
-│  │  [User Avatar & Email] │  │  [RMS ID] + [Email]  │  │
-│  │  [Sign In / Sign Out]  │  │  [Track Progress →]  │  │
-│  └───────────┬────────────┘  └──────────┬───────────┘  │
-│              │                          │              │
-│              ▼                          ▼              │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │         /api/repair-requests/lookup API          │  │
-│  │   - Validates RMS ID exists                      │  │
-│  │   - Verifies customer email matches record       │  │
-│  │   - Sanitizes and returns status milestones      │  │
-│  └──────────────────────────┬───────────────────────┘  │
-│                             │                          │
-│                             ▼                          │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │           RepairStatusDisplay Component          │  │
-│  │  - 5-Stage Live Timeline (Kit -> Bench -> Return)│  │
-│  │  - Courier Tracking & Inbound/Outbound Status    │  │
-│  │  - Diagnostic Photos & Packing Slip Modal        │  │
-│  └──────────────────────────────────────────────────┘  │
+│             Admin User (Auth0 / Session)               │
+│   (ryan@displaycellpros.com / cheyoung1983@gmail.com)  │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│           /admin/tribal-audit Route Guard              │
+│    Validate Email Allowlist via lib/tribal/admin-auth  │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│         Admin Audit Dashboard (/api/tribal/admin)      │
+│  - Fetch Pending Requests (Redis/Firestore/Persona)    │
+│  - Display Masked Enrollment IDs, Geofence, Persona ID  │
+└───────────────┬────────────────────────┬───────────────┘
+                │                        │
+       [Approve Decision]        [Deny Decision]
+                │                        │
+                ▼                        ▼
+┌────────────────────────────────────────────────────────┐
+│              Shopify & Slack Synchronization           │
+│  1. Add 'tribal-member-verified' Tag to Shopify        │
+│  2. Update Firestore 'tribal_verifications' Record     │
+│  3. Broadcast Decision Notification to Slack Channel    │
 └────────────────────────────────────────────────────────┘
 ```
 
-#### Step-by-Step Implementation Sequence
+---
 
-1. **Package Installation**:
-   - Install `@auth0/nextjs-auth0` dependency via `install_applet_package`.
-2. **Auth0 Client & Environment Setup**:
-   - Create `lib/auth0.ts` with safe initialization and client helpers.
-   - Update `.env.example` with standard Auth0 configuration variables.
-   - Create `pages/api/auth/[...auth0].ts` handler.
-3. **Auth UI Components**:
-   - Create `components/auth/LoginButton.tsx`.
-   - Create `components/auth/LogoutButton.tsx`.
-   - Create `components/auth/Profile.tsx`.
-4. **Secure Lookup API Route**:
-   - Create `pages/api/repair-requests/lookup.ts` taking `rms` and `email`, verifying ownership against Firestore `repair_requests` (or seeded demo records).
-5. **Repair Status Tracker Component & Page**:
-   - Create `components/services/RepairStatusLookup.tsx` with dual-field verification.
-   - Create `pages/track-repair.tsx` assembling the lookup, Auth0 user session, status display, and breadcrumbs.
-6. **Navigation & Navbar Integration**:
-   - Add "Track Repair" link in the site header/footer for immediate customer discovery.
-7. **Verification**:
-   - Verify TypeScript compilation (`npm run typecheck`), ESLint (`npm run lint`), and test endpoint responses.
+## Phased Implementation Steps
+
+### Phase 1: Security & Helper Utilities (`lib/tribal/admin-auth.ts`)
+- Define `ADMIN_ALLOWLIST = ['ryan@displaycellpros.com', 'cheyoung1983@gmail.com']`.
+- Implement `isAdminSession(req)` to extract session email from Auth0 or request context and compare against `ADMIN_ALLOWLIST`.
+
+### Phase 2: Secure API Endpoints (`pages/api/tribal/admin/`)
+- **`requests.ts`**: Returns pending and processed verification requests. Restricts responses to authorized admins.
+- **`decision.ts`**: Processes `APPROVE` or `DENY` actions:
+  - Validates admin authorization.
+  - Updates Shopify customer tags (`tagsAdd` mutation).
+  - Updates Firestore `tribal_verifications` collection.
+  - Posts decision update to Slack `#tribal-approvals`.
+
+### Phase 3: Admin Dashboard UI (`components/tribal/AdminAuditDashboard.tsx`)
+- Render real-time metric cards (Pending Requests, Total Approved, On-Reservation Deliveries).
+- Render searchable/filterable request table displaying:
+  - Customer Name & Email
+  - Tribal Nation & Masked Enrollment ID
+  - Persona/Stripe Inquiry Session ID
+  - GIS Geofence Status (On-Reservation / Off-Reservation)
+  - Action Controls: **Approve** and **Deny** buttons with confirmation state.
+
+### Phase 4: Route Integration (`pages/admin/tribal-audit.tsx`)
+- Create the page view at `/admin/tribal-audit`.
+- Wrap with session email authorization guard.
+- Add navigation link in the top navigation or account dropdown for admin users.
+
+### Phase 5: Verification & Quality Assurance
+- Execute `npm run typecheck` (`tsc --noEmit`).
+- Execute `npm run lint` (`eslint`).
+- Run Jest test suite to ensure all security rules and routes pass without error.
+
+---
+
+## Risk Mitigation & Security Controls
+
+- **Access Guard**: API routes return HTTP 403 Forbidden for any non-admin email or unauthenticated request.
+- **PII Protection**: Raw enrollment IDs are never exposed; only masked IDs (`***1234`) and cryptographic hashes are rendered.
+- **Audit Logging**: Every approval or denial records the admin email and timestamp in the immutable audit log.

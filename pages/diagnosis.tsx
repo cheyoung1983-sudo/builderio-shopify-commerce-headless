@@ -2,6 +2,7 @@ import React from 'react'
 import Head from 'next/head'
 import { Stethoscope, ListChecks, Gauge, AlertTriangle, Receipt, Phone, Mail, ArrowUpRight } from 'lucide-react'
 import { Breadcrumbs } from '../components/common/Breadcrumbs'
+import { VoiceNarrator } from '../components/voice/VoiceNarrator'
 import { BUSINESS_INFO } from '../lib/business-info'
 
 const TRIAGE_URL = 'https://triage.displaycellpros.com'
@@ -96,7 +97,10 @@ export default function DiagnosisPage() {
             <ul className="mt-4 grid gap-3 sm:grid-cols-3">
               {TIERS.map((tier) => (
                 <li key={tier.name} className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
-                  <h3 className="font-semibold text-neutral-900">{tier.name}</h3>
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-semibold text-neutral-900">{tier.name}</h3>
+                    <VoiceNarrator text={`${tier.name}: ${tier.covers} ${tier.outcome}`} className="shrink-0" />
+                  </div>
                   <p className="mt-1 text-sm text-neutral-600">{tier.covers}</p>
                   <p className="mt-2 text-sm font-medium text-emerald-800">{tier.outcome}</p>
                 </li>

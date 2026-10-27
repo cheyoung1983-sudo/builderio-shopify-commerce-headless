@@ -143,6 +143,14 @@ const Navbar: FC = () => {
                   >
                     Styles &amp; Trends
                   </Link>
+                  <Link
+                    href="/admin/tribal-audit"
+                    className="ml-1 inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors"
+                  >
+                    Tribal Audit
+                  </Link>
+
+
                 </>
               )}
               <Link

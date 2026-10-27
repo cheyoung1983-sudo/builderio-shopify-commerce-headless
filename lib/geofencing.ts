@@ -305,4 +305,69 @@ export function isCoordinatesOnReservation(latitude: number, longitude: number):
   return checkCoordinatesIntersectAIANA(latitude, longitude).onReservation
 }
 
+/**
+ * Next.js Serverless GIS Geofencing Middleware / Evaluation helper
+ * (Matches specification from Architectural Implementation Framework, Section 3)
+ */
+export async function validateReservationBoundary(shippingAddress: {
+  address1?: string
+  city?: string
+  state?: string
+  zip?: string
+  lat?: number
+  lng?: number
+}): Promise<{
+  lat?: number
+  lng?: number
+  onReservation: boolean
+  reservationName?: string
+  aianaCode?: string
+}> {
+  // If coordinates are explicitly provided
+  if (typeof shippingAddress.lat === 'number' && typeof shippingAddress.lng === 'number') {
+    const geo = checkCoordinatesIntersectAIANA(shippingAddress.lat, shippingAddress.lng)
+    return {
+      lat: shippingAddress.lat,
+      lng: shippingAddress.lng,
+      onReservation: geo.onReservation,
+      reservationName: geo.reservationName,
+      aianaCode: geo.aianaCode,
+    }
+  }
+
+  // Address keyword & well-known tribal reservation center checks
+  const street = (shippingAddress.address1 || '').toLowerCase()
+  const city = (shippingAddress.city || '').toLowerCase()
+  const state = (shippingAddress.state || '').toUpperCase()
+
+  const isResKeyword =
+    street.includes('reservation') ||
+    street.includes('tribal') ||
+    street.includes('bia') ||
+    street.includes('ford rd') ||
+    city.includes('wellpinit') || // Spokane Tribe
+    city.includes('window rock') || // Navajo Nation
+    city.includes('tuba city') ||
+    city.includes('sacaton') // Gila River
+
+  const matched = TIGER_LINE_AIANA_BOUNDARIES.find((b) => b.state === state)
+
+  if (isResKeyword) {
+    const lat = matched ? (matched.bbox[0] + matched.bbox[2]) / 2 : undefined
+    const lng = matched ? (matched.bbox[1] + matched.bbox[3]) / 2 : undefined
+    return {
+      lat,
+      lng,
+      onReservation: true,
+      reservationName: matched?.name || 'Tribal Trust Land Area',
+      aianaCode: matched?.aianaCode || 'AIANA-AUTO',
+    }
+  }
+
+  return {
+    onReservation: false,
+  }
+}
+
 export default checkCoordinatesIntersectAIANA
+

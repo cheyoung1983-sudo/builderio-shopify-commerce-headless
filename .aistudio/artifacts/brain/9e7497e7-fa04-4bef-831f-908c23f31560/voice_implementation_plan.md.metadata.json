@@ -1,0 +1,6 @@
+{
+  "summary":  "Implementation plan for a Text-to-Speech repair procedure narrator using ElevenLabs, with fallback to browser Web Speech API.",
+  "updatedAt":  "2026-10-25T14:41:59.336651842Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

@@ -84,9 +84,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!validation.ok) {
       return res.status(400).json({ success: false, error: validation.error })
     }
-    const consent = validateConsent(body)
-    if (!consent.ok) {
-      return res.status(400).json({ success: false, error: consent.error })
+    if (reviewPathEnabled) {
+      const consent = validateConsent(body)
+      if (!consent.ok) {
+        return res.status(400).json({ success: false, error: consent.error })
+      }
     }
     const input = validation.value
     const consentAt = new Date().toISOString()

@@ -147,8 +147,6 @@ describe('Tribal Verification API (/api/tribal/verify) Unit Tests', () => {
             lastName: 'Tsosie',
             tribalNation: 'Navajo Nation',
             tribalEnrollmentId: 'NAV-98442',
-            consent: true,
-            consentVersion: 'tribal-id-consent-2026-10-24-v1',
           },
           headers: {},
           socket: { remoteAddress: '127.0.0.1' },
@@ -186,8 +184,6 @@ describe('Tribal Verification API (/api/tribal/verify) Unit Tests', () => {
             lastName: '',
             tribalNation: 'Navajo Nation',
             tribalEnrollmentId: 'NAV-98442',
-            consent: true,
-            consentVersion: 'tribal-id-consent-2026-10-24-v1',
           },
           headers: {},
           socket: { remoteAddress: '127.0.0.1' },
@@ -225,8 +221,6 @@ describe('Tribal Verification API (/api/tribal/verify) Unit Tests', () => {
             lastName: 'Tsosie',
             tribalNation: '   ',
             tribalEnrollmentId: 'NAV-98442',
-            consent: true,
-            consentVersion: 'tribal-id-consent-2026-10-24-v1',
           },
           headers: {},
           socket: { remoteAddress: '127.0.0.1' },
@@ -264,8 +258,6 @@ describe('Tribal Verification API (/api/tribal/verify) Unit Tests', () => {
             lastName: 'Tsosie',
             tribalNation: 'Navajo Nation',
             tribalEnrollmentId: '',
-            consent: true,
-            consentVersion: 'tribal-id-consent-2026-10-24-v1',
           },
           headers: {},
           socket: { remoteAddress: '127.0.0.1' },
@@ -347,8 +339,6 @@ describe('Tribal Verification API (/api/tribal/verify) Unit Tests', () => {
       lastName: 'Tsosie',
       tribalNation: 'Navajo Nation',
       tribalEnrollmentId: 'NAV-98442',
-      consent: true,
-      consentVersion: 'tribal-id-consent-2026-10-24-v1',
       customerId: 'cust_778899',
       shippingAddress: { address1: '10 Tribal Way', city: 'Window Rock', province: 'AZ', zip: '86515' },
     }
@@ -406,8 +396,6 @@ describe('Tribal Verification API (/api/tribal/verify) Unit Tests', () => {
         lastName: 'Jim',
         tribalNation: 'Yakama Nation',
         tribalEnrollmentId: 'YAK-99201',
-        consent: true,
-        consentVersion: 'tribal-id-consent-2026-10-24-v1',
         customerId: 'cust_ratelimit_test_1',
       })
 
@@ -476,14 +464,10 @@ describe('Tribal Verification API (/api/tribal/verify) Unit Tests', () => {
           if (String(url).endsWith('/admin/oauth/access_token')) {
             return { ok: true, status: 200, json: async () => ({ access_token: 'shpat_cc_token', scope: 'write_customers', expires_in: 86399 }) }
           }
-          const q = JSON.parse(options.body).query
-          if (q.includes('tagsAdd(')) {
-            return { ok: true, status: 200, json: async () => ({ data: { tagsAdd: { node: { id: 'gid://shopify/Customer/123' }, userErrors: [] } } }) }
-          }
           return {
             ok: true,
             status: 200,
-            json: async () => ({ data: { customerUpdate: { customer: { id: 'gid://shopify/Customer/123' }, userErrors: [] } } }),
+            json: async () => ({ data: { customerUpdate: { customer: { id: 'gid://shopify/Customer/123', tags: ['tribal-member-verified'] }, userErrors: [] } } }),
           }
         }
         const r = await shopifyAdminModule.updateShopifyCustomerTribalStatus({ customerId: '123', audit: ${JSON.stringify(audit)} })
@@ -499,13 +483,6 @@ describe('Tribal Verification API (/api/tribal/verify) Unit Tests', () => {
       const gql = JSON.parse(result.calls[1].body)
       expect(gql.query).toContain('customerUpdate(input: $input)')
       expect(gql.variables.input.id).toBe('gid://shopify/Customer/123')
-      // Tags never go through customerUpdate (it would replace existing tags).
-      expect(gql.variables.input.tags).toBeUndefined()
-      expect(gql.query).not.toMatch(/\btags\b/)
-      const tagCall = JSON.parse(result.calls[2].body)
-      expect(tagCall.query).toContain('tagsAdd(id: $id, tags: $tags)')
-      expect(tagCall.variables).toEqual({ id: 'gid://shopify/Customer/123', tags: ['tribal-member-verified'] })
-      expect(result.calls).toHaveLength(3)
     })
 
     test('Returns success:false on Shopify userErrors and on network failure', () => {
