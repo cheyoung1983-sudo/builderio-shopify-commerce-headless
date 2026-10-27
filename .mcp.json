@@ -1,0 +1,44 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "chrome-devtools": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "chrome-devtools-mcp"
+      ]
+    },
+    "shopify": {
+      "type": "http",
+      "url": "https://api.shopify.com/mcp"
+    },
+    "persona": {
+      "type": "http",
+      "url": "https://mcp.withpersona.com"
+    },
+    "stripe": {
+      "type": "http",
+      "url": "https://mcp.stripe.com"
+    },
+    "auth0": {
+      "type": "http",
+      "url": "https://mcp.auth0.com"
+    },
+    "builder-io": {
+      "type": "http",
+      "url": "https://mcp.builder.io"
+    },
+    "elevenlabs": {
+      "type": "http",
+      "url": "https://mcp.elevenlabs.io"
+    },
+    "slack": {
+      "type": "http",
+      "url": "https://mcp.slack.com"
+    },
+    "sentry": {
+      "type": "http",
+      "url": "https://mcp.sentry.io"
+    }
+  }
+}

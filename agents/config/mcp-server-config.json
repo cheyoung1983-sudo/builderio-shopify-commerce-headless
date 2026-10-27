@@ -2,7 +2,7 @@
   "mcp_servers": [
     {
       "id": "mcp_shopify_storefront",
-      "name": "Shopify Storefront MCP Server",
+      "name": "Shopify Storefront & Admin MCP Server",
       "url": "https://api.shopify.com/mcp",
       "auth_type": "oauth",
       "approval_policy": {
@@ -23,6 +23,160 @@
       ],
       "request_meta": {
         "client_source": "elevenlabs-agent-hosted"
+      }
+    },
+    {
+      "id": "mcp_persona_identity",
+      "name": "Persona Identity Verification MCP Server",
+      "url": "https://mcp.withpersona.com",
+      "auth_type": "bearer",
+      "approval_policy": {
+        "mode": "always_ask",
+        "auto_approve_reads": false
+      },
+      "tool_configurations": [
+        {
+          "tool_name": "cross_reference_fraud_signals",
+          "execution_mode": "require_approval",
+          "timeout_secs": 20
+        }
+      ],
+      "request_meta": {
+        "client_source": "display-cell-pros-backend"
+      }
+    },
+    {
+      "id": "mcp_stripe_identity",
+      "name": "Stripe Identity & Payments MCP Server",
+      "url": "https://mcp.stripe.com",
+      "auth_type": "bearer",
+      "approval_policy": {
+        "mode": "require_approval_for_writes",
+        "auto_approve_reads": true
+      },
+      "tool_configurations": [
+        {
+          "tool_name": "verify_identity_session",
+          "execution_mode": "require_approval",
+          "timeout_secs": 30
+        }
+      ],
+      "request_meta": {
+        "client_source": "stripe-webhook-handler"
+      }
+    },
+    {
+      "id": "mcp_auth0_identity",
+      "name": "Auth0 Authentication MCP Server",
+      "url": "https://mcp.auth0.com",
+      "auth_type": "bearer",
+      "approval_policy": {
+        "mode": "always_ask",
+        "auto_approve_reads": true
+      },
+      "tool_configurations": [
+        {
+          "tool_name": "validate_user_session",
+          "execution_mode": "automatic",
+          "timeout_secs": 10
+        }
+      ],
+      "request_meta": {
+        "client_source": "auth0-middleware"
+      }
+    },
+    {
+      "id": "mcp_builder_io",
+      "name": "Builder.io Content CMS MCP Server",
+      "url": "https://mcp.builder.io",
+      "auth_type": "bearer",
+      "approval_policy": {
+        "mode": "fine_grained",
+        "auto_approve_reads": true
+      },
+      "tool_configurations": [
+        {
+          "tool_name": "get_content_model",
+          "execution_mode": "automatic",
+          "timeout_secs": 15
+        }
+      ],
+      "request_meta": {
+        "client_source": "builder-registry"
+      }
+    },
+    {
+      "id": "mcp_elevenlabs_voice",
+      "name": "ElevenLabs Conversational AI Voice MCP Server",
+      "url": "https://mcp.elevenlabs.io",
+      "auth_type": "bearer",
+      "approval_policy": {
+        "mode": "no_approval",
+        "auto_approve_reads": true
+      },
+      "tool_configurations": [
+        {
+          "tool_name": "synthesize_speech",
+          "execution_mode": "automatic",
+          "timeout_secs": 15
+        }
+      ],
+      "request_meta": {
+        "client_source": "elevenlabs-agent-hosted"
+      }
+    },
+    {
+      "id": "mcp_slack_notifications",
+      "name": "Slack Notifications MCP Server",
+      "url": "https://mcp.slack.com",
+      "auth_type": "bearer",
+      "approval_policy": {
+        "mode": "fine_grained",
+        "auto_approve_reads": true
+      },
+      "tool_configurations": [
+        {
+          "tool_name": "send_slack_alert",
+          "execution_mode": "automatic",
+          "timeout_secs": 10
+        }
+      ],
+      "request_meta": {
+        "client_source": "slack-notification-dashboard"
+      }
+    },
+    {
+      "id": "mcp_sentry_observability",
+      "name": "Sentry Observability MCP Server",
+      "url": "https://mcp.sentry.io",
+      "auth_type": "bearer",
+      "approval_policy": {
+        "mode": "no_approval",
+        "auto_approve_reads": true
+      },
+      "tool_configurations": [
+        {
+          "tool_name": "capture_exception",
+          "execution_mode": "automatic",
+          "timeout_secs": 10
+        }
+      ],
+      "request_meta": {
+        "client_source": "observability-logger"
+      }
+    },
+    {
+      "id": "mcp_chrome_devtools",
+      "name": "Chrome DevTools MCP Server",
+      "url": "stdio",
+      "auth_type": "none",
+      "approval_policy": {
+        "mode": "no_approval",
+        "auto_approve_reads": true
+      },
+      "tool_configurations": [],
+      "request_meta": {
+        "client_source": "chrome-devtools-mcp"
       }
     }
   ]
