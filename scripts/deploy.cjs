@@ -63,12 +63,14 @@ function runCapture(cmd, args, opts = {}) {
 }
 
 // Mirrors the Vercel CLI's own resolution: it walks up from cwd looking for
-// `.vercel/project.json`, so a link created in an ancestor directory counts.
+// `.vercel/project.json` or `.vercel/repo.json`, so a link created in an ancestor directory counts.
 function findLinkedProjectFile(startDir) {
   let dir = startDir
   while (true) {
     const candidate = path.join(dir, '.vercel', 'project.json')
     if (fs.existsSync(candidate)) return candidate
+    const candidateRepo = path.join(dir, '.vercel', 'repo.json')
+    if (fs.existsSync(candidateRepo)) return candidateRepo
     const parent = path.dirname(dir)
     if (parent === dir) return null
     dir = parent
