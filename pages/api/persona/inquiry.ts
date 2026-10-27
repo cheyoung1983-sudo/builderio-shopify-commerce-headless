@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { personaRequest } from '../../../services/persona'
-import { v4 as uuidv4 } from 'uuid' // Assuming uuid is available, otherwise use crypto.randomUUID
+import crypto from 'node:crypto'
 
 // This endpoint should be called server-side from the frontend form submission
 // to ensure inquiries are pre-created securely.
@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const response = await personaRequest('/inquiries', {
       method: 'POST',
       headers: {
-        'Idempotency-Key': uuidv4(),
+        'Idempotency-Key': crypto.randomUUID(),
       },
       body: JSON.stringify({
         data: {
