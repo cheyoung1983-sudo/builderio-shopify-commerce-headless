@@ -68,7 +68,9 @@
     {
       "id": "mcp_auth0_identity",
       "name": "Auth0 Authentication MCP Server",
-      "url": "https://mcp.auth0.com",
+      "url": "stdio",
+      "command": "npx",
+      "args": ["-y", "@auth0/auth0-mcp-server", "run"],
       "auth_type": "bearer",
       "approval_policy": {
         "mode": "always_ask",

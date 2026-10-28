@@ -9,7 +9,7 @@ import { startLoading, stopLoading, forceStopLoading } from '../lib/progress'
 import { useScrollRestoration } from '../lib/scroll-restoration'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Analytics } from '@vercel/analytics/next'
-import { AuthProvider } from '../hooks/useAuth'
+import { Auth0Provider } from '@auth0/nextjs-auth0/client'
 import GoogleTag from '@components/analytics/GoogleTag'
 
 if (builderConfig.apiKey) {
@@ -53,7 +53,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   }, [])
 
   return (
-    <AuthProvider>
+    <Auth0Provider>
       <ErrorBoundary boundaryName="app-root-layout">
         <Layout pageProps={pageProps}>
           <Component {...pageProps} />
@@ -66,7 +66,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
           </>
         ) : null}
       </ErrorBoundary>
-    </AuthProvider>
+    </Auth0Provider>
   )
 }
 

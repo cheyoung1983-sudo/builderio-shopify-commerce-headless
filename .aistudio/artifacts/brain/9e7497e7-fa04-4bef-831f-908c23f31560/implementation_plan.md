@@ -1,29 +1,29 @@
-# Implementation Plan - Auth0 & Persona Profile Synchronization Webhook
+# Implementation Plan - Auth0 Integration (Pages Router)
 
-This plan details the creation of the API route at `/pages/api/webhooks/auth0-persona.ts` to synchronize Auth0 user profile data with Persona verification records and Firestore.
+This plan outlines the integration of Auth0 authentication into the existing Pages Router architecture, replacing Firebase Auth with Auth0.
 
-## User Review & Scope
-- **Endpoint**: `POST /api/webhooks/auth0-persona`.
-- **Security**: HMAC token verification using a shared secret in the `Authorization` header (`Bearer <secret>`).
-- **Data Synchronization**:
-  - Validates and normalizes Auth0 user ID, email, email_verified status, phone number, logins count, and user metadata.
-  - Cross-references with Persona inquiry metadata.
-- **Persistence**:
-  - Stores user profiles in Firestore (`auth0_users` collection).
-  - Logs audit trail events in Firestore (`audit_logs` collection).
+## Scope of Implementation
+1. **SDK Setup**: Configure `@auth0/nextjs-auth0` for the Pages Router (api routes: `/api/auth/[...auth0]`).
+2. **Auth Refactor**: Replace `useAuth` hook in `AdminDashboard` and `WholesaleDashboard` with `@auth0/nextjs-auth0/client` (`useUser`).
+3. **Route Protection**: Implement `withPageAuthRequired` for administrative pages.
+4. **Environment Variables**: Configure Auth0 credentials (ID, Secret, Domain, Secret).
 
 ---
 
-## Technical Architecture & File Structure
+## Technical Architecture
 
-### 1. Webhook Implementation (`pages/api/webhooks/auth0-persona.ts`)
-- HMAC verification helper checking `Authorization: Bearer ${process.env.AUTH0_WEBHOOK_SECRET || process.env.PERSONA_WEBHOOK_SECRET}`.
-- Payload parser supporting Auth0 Actions / Management API profile exports.
-- Firestore batch write updating `auth0_users` and `audit_logs`.
+### 1. Auth0 API Routes (`/pages/api/auth/[...auth0].ts`)
+- Use `handleAuth()` from `@auth0/nextjs-auth0`. This handles login, logout, callback, and user sessions.
+
+### 2. Dashboard Refactoring
+- **Admin Dashboard**: Update to use `withPageAuthRequired` and `useUser`.
+- **Wholesale Dashboard**: Update to use `useUser` for identity verification and access control.
+
+### 3. Middleware/App Wrapper
+- Update `_app.tsx` to wrap components with `UserProvider`.
 
 ---
 
 ## Verification Plan
-- Typecheck with `npm run typecheck`.
-- Lint with `npm run lint`.
-- Build with `npm run build`.
+- Typecheck, Lint, and Build.
+- Functional testing of authentication flows (Login/Logout/Protected Routes).
