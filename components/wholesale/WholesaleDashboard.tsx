@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Layers,
   ShieldCheck,
@@ -33,7 +33,7 @@ export const WholesaleDashboard: React.FC = () => {
   const [simulationResult, setSimulationResult] = useState<any>(null)
   const [webhookLogs, setWebhookLogs] = useState<any[]>([])
 
-  const fetchCatalog = async () => {
+  const fetchCatalog = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch('/api/wholesale/sync', {
@@ -55,14 +55,14 @@ export const WholesaleDashboard: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [targetMargin, shippingFee, safetyBuffer])
 
   useEffect(() => {
     const timer = setTimeout(() => {
       void fetchCatalog()
     }, 0)
     return () => clearTimeout(timer)
-  }, [])
+  }, [fetchCatalog])
 
   const handleRunSimulation = async () => {
     setSimulating(true)
