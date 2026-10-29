@@ -11,6 +11,13 @@ import { getAdminNotificationSettings } from '../../lib/admin-notification-setti
  * 3. Auth0 (via notification settings/webhook availability)
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.setHeader('Allow', 'GET, HEAD')
+    return res.status(405).json({ error: 'Method Not Allowed' })
+  }
+  // Health is live state; never let a CDN or browser cache it.
+  res.setHeader('Cache-Control', 'no-store')
+
   const statusReport = {
     timestamp: new Date().toISOString(),
     shopify: { status: 'unknown' },
