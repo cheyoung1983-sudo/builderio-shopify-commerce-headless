@@ -9,11 +9,14 @@ import {
 } from '../../../services/shopify-customer-account'
 
 export function sanitizeReturnTo(value: unknown): string {
-  if (typeof value !== 'string' || !value) return '/account'
+  if (typeof value !== 'string' || !value || value.length > 2048) return '/account'
+  // Reject whitespace/control characters outright: browsers strip tab/CR/LF from URLs, so
+  // "/\t/evil.com" would otherwise become the protocol-relative "//evil.com" (open redirect).
+  if (/[\u0000-\u0020\u007f]/.test(value)) return '/account'
   if (!value.startsWith('/') || value.startsWith('//') || value.includes('\\') || value.includes(':')) {
     return '/account'
   }
-  return value.trim()
+  return value
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

@@ -294,7 +294,6 @@ const QuickViewContent: React.FC<QuickViewContentProps> = ({
                 <ProductImageZoom
                   src={images[selectedImageIndex].url}
                   alt={images[selectedImageIndex].altText || activeProduct.title}
-                  priority
                   blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
                   sizes={RESPONSIVE_IMAGE_SIZES.productDetail}
                   zoomScales={[1.8, 2.5]}

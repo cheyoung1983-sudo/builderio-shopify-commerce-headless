@@ -8,9 +8,12 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(405).json({ success: false, error: 'Method Not Allowed' })
   }
 
-  // Ensure caller is authorized admin or internal service
-  const authorized = isAdminSession(req) || req.headers['x-internal-service'] === 'display-cell-pros-backend'
-  if (!authorized && process.env.NODE_ENV === 'production') {
+  res.setHeader('Cache-Control', 'no-store')
+
+  // proxy.ts puts this route behind ADMIN_USERNAME/ADMIN_PASSWORD Basic Auth. The old
+  // static `x-internal-service` header bypass (a public constant) and the
+  // "open outside production" exception were removed; preview builds need auth too.
+  if (!isAdminSession(req)) {
     return res.status(403).json({
       success: false,
       error: 'Access Denied: Unauthorized request to MCP integrations status.',
@@ -33,7 +36,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   } catch (err: any) {
     return res.status(500).json({
       success: false,
-      error: err?.message || 'Internal server error while evaluating MCP integrations.',
+      error: 'Internal server error while evaluating MCP integrations.',
     })
   }
 }
