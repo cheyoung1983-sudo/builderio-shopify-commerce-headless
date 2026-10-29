@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createHmac, createHash } from 'crypto'
+import { createHash } from 'crypto'
+import { verifyPersonaSignature } from '../../../lib/webhooks/persona-signature'
 import { readRawBody } from '../../../lib/api/read-raw-body'
 import { updateShopifyCustomerTribalStatus } from '../../../lib/tribal/shopify-admin'
 import { isSlackConfigured, postReviewToSlack } from '../../../lib/tribal/manual-review'
@@ -12,40 +13,22 @@ const WEBHOOK_SECRET = process.env.PERSONA_WEBHOOK_SECRET
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST')
     return res.status(405).json({ success: false, error: 'Method not allowed' })
   }
 
-  const signature = req.headers['persona-signature'] as string
-  if (!signature || !WEBHOOK_SECRET) {
-    return res.status(401).json({ success: false, error: 'Missing signature or webhook secret' })
-  }
-
   const rawBody = await readRawBody(req)
-  
-  // Verification logic per Persona Integration Framework
-  const pairs = signature.split(',')
-  let timestamp = ''
-  let signatureValue = ''
-  
-  pairs.forEach((pair) => {
-    const [key, value] = pair.trim().split('=')
-    if (key === 't') timestamp = value
-    if (key === 'v1') signatureValue = value
+
+  // Constant-time HMAC check over `${t}.${rawBody}` with a 300s replay window. A missing or
+  // non-numeric `t` is rejected (previously NaN slipped past the tolerance check).
+  const check = verifyPersonaSignature({
+    secret: WEBHOOK_SECRET,
+    header: req.headers['persona-signature'],
+    rawBody,
   })
-
-  const signedPayload = `${timestamp}.${rawBody.toString('utf8')}`
-  const computedDigest = createHmac('sha256', WEBHOOK_SECRET)
-    .update(signedPayload, 'utf8')
-    .digest('hex')
-
-  if (signatureValue !== computedDigest) {
-    return res.status(401).json({ success: false, error: 'Invalid signature' })
-  }
-
-  // Verify timestamp tolerance (300 seconds)
-  const currentTime = Math.floor(Date.now() / 1000)
-  if (Math.abs(currentTime - parseInt(timestamp, 10)) > 300) {
-    return res.status(401).json({ success: false, error: 'Timestamp out of tolerance' })
+  if (!check.ok) {
+    const status = check.reason === 'missing_secret' ? 503 : 401
+    return res.status(status).json({ success: false, error: 'Invalid or missing webhook signature' })
   }
 
   try {
@@ -147,6 +130,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ success: true, processed: true })
   } catch (err: any) {
     console.error('[Persona Webhook] Processing error:', err?.message)
-    return res.status(500).json({ success: false, error: err?.message })
+    if (err instanceof SyntaxError) {
+      return res.status(400).json({ success: false, error: 'Invalid JSON payload' })
+    }
+    return res.status(500).json({ success: false, error: 'Webhook processing failed' })
   }
 }
