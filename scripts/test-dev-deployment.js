@@ -50,7 +50,16 @@ async function checkLiveCatalog(baseUrl, allowDemo) {
     }
 
     const payload = JSON.parse(body)
-    if (!payload.shopifyConfigured) {
+    if (payload.ok !== true && payload.shopifyConfigured !== true) {
+      if (payload.shopifyConfigured !== false) {
+        return {
+          name: 'Live Shopify catalog',
+          url,
+          outcome: 'FAIL',
+          detail: 'Shopify search API did not confirm a successful catalog response',
+        }
+      }
+
       const outcome = allowDemo ? 'WARN' : 'FAIL'
       return {
         name: 'Live Shopify catalog',
