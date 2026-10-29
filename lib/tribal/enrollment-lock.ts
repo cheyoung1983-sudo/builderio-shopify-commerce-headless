@@ -50,38 +50,3 @@ export function validateEnrollmentNumberFormat(id: string): { valid: boolean; re
 
   return { valid: true }
 }
-
-/**
- * Legacy Helper for Enrollment Uniqueness Checks & Testing Compatibility
- */
-export async function checkAndClaimTribalEnrollment(
-  tribalNation: string,
-  enrollmentId: string,
-  userEmail?: string
-): Promise<{
-  status: 'already_claimed' | 'newly_verified' | 'already_verified_by_you'
-  discountPercentage: number
-  discountCode: string
-  supportEmail: string
-}> {
-  const supportEmail = 'support@displaycellpros.com'
-  const discountCode = 'TRIBAL-MEMBER-20'
-  const discountPercentage = 20
-
-  const validation = validateEnrollmentNumberFormat(enrollmentId)
-  if (!validation.valid) {
-    return {
-      status: 'already_claimed',
-      discountPercentage: 0,
-      discountCode: '',
-      supportEmail,
-    }
-  }
-
-  return {
-    status: 'newly_verified',
-    discountPercentage,
-    discountCode,
-    supportEmail,
-  }
-}
