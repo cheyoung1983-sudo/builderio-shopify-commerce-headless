@@ -19,7 +19,9 @@ import { createHash, timingSafeEqual } from 'node:crypto'
  * HTML/JS and the admin APIs were reachable without it), hence this file.
  */
 
-const ADMIN_PREFIXES = ['/admin', '/api/tribal/admin', '/api/config', '/api/health']
+// /api/mcp and /api/persona/mcp-query expose integration config and proxy Persona
+// MCP queries with server credentials, so they sit behind the same admin guard.
+const ADMIN_PREFIXES = ['/admin', '/api/tribal/admin', '/api/config', '/api/health', '/api/mcp', '/api/persona/mcp-query']
 
 const DEMO_PREFIXES = [
   '/transcript-demo',
@@ -126,6 +128,9 @@ export const config = {
     '/api/config/:path*',
     '/api/health',
     '/api/health/:path*',
+    '/api/mcp',
+    '/api/mcp/:path*',
+    '/api/persona/mcp-query',
     '/transcript-demo',
     '/tts',
     '/speech-to-text',
