@@ -18,12 +18,6 @@ const SUPPORT_PHONE_HREF = 'tel:+15092553852'
  * Tribal discount eligibility info. There is no online enrollment check: tribal
  * verification is by manual review, so this shows how to request it. It never
  * reports a customer as verified and never shows or copies a discount code.
- *
- * Legacy Reference Integration Notes (Firebase / Auth / Registration):
- * - Firebase Auth integration via useAuth hook (login).
- * - Firestore tribal registry lookup: doc(db, 'tribal_registry', enrollmentId), getDoc, claimedByUid, already been claimed by another account.
- * - Legacy UI Badges: 'Tribal Eligibility & 20% Discount Checker', '20% Tribal Discount Unlocked & Bound to Account!',
- *   'Enrollment ID Already Claimed by Another Customer', 'TRIBAL-MEMBER-20', 'support@displaycellpros.com'.
  */
 export const TribalEligibilityChecker: React.FC<TribalEligibilityCheckerProps> = ({
   className = '',
@@ -32,7 +26,7 @@ export const TribalEligibilityChecker: React.FC<TribalEligibilityCheckerProps> =
   return (
     <div
       id="tribal-eligibility-checker"
-      className={`rounded-2xl border border-emerald-900/20 bg-gradient-to-b from-emerald-50/50 via-white to-white shadow-sm ${
+      className={`rounded-2xl border border-emerald-900/20 bg-linear-to-b from-emerald-50/50 via-white to-white shadow-sm ${
         compact ? 'p-4 sm:p-5' : 'p-6 sm:p-8'
       } ${className}`}
       data-testid="tribal-eligibility-checker"
@@ -81,14 +75,6 @@ export const TribalEligibilityChecker: React.FC<TribalEligibilityCheckerProps> =
           <Mail className="w-4 h-4" />
           <span>Email {SUPPORT_EMAIL}</span>
         </a>
-      </div>
-
-      {/* Hidden test-id markers for compatibility */}
-      <div className="hidden" aria-hidden="true" data-testid="verification-success-alert">
-        20% Tribal Discount Unlocked &amp; Bound to Account! TRIBAL-MEMBER-20
-      </div>
-      <div className="hidden" aria-hidden="true" data-testid="verification-duplicate-blocked-alert">
-        Enrollment ID Already Claimed by Another Customer support@displaycellpros.com
       </div>
     </div>
   )

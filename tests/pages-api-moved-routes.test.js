@@ -46,17 +46,17 @@ describe('pages/api routes moved from app/api', () => {
     expect(require('node:fs').existsSync(path.join(repoRoot, 'app'))).toBe(false)
   })
 
-  test('GET /api/health returns the same mock status; other methods 405', () => {
-    const r = run('pages/api/health.ts', `
-      const ok = await call({ method: 'GET' })
-      const bad = await call({ method: 'POST' })
-      console.log(JSON.stringify({ ok, bad }))
-    `)
-    expect(r.ok.statusCode).toBe(200)
-    expect(Object.keys(r.ok.body)).toEqual(['elevenLabs', 'webhooks', 'apiKeys', 'audioWorklet'])
-    expect(r.ok.body.webhooks).toEqual({ status: 'healthy', pending: 0 })
-    expect(r.bad.statusCode).toBe(405)
-    expect(r.bad.headers.allow).toContain('GET')
+  // /api/health became a real connectivity report (Shopify, Firestore, Auth0)
+  // in 31491a4. Exercising GET needs live services, so the handler contract is
+  // checked statically and the method guard is checked by source.
+  test('/api/health reports per-service status and rejects non-GET methods', () => {
+    const src = require('node:fs').readFileSync(path.join(repoRoot, 'pages/api/health.ts'), 'utf8')
+    expect(src).toMatch(/req\.method !== 'GET' && req\.method !== 'HEAD'/)
+    expect(src).toMatch(/res\.status\(405\)/)
+    expect(src).toMatch(/'Allow', 'GET, HEAD'/)
+    expect(src).toMatch(/'Cache-Control', 'no-store'/)
+    for (const key of ['shopify', 'firestore', 'auth0', 'overall']) expect(src).toContain(`${key}:`)
+    expect(src).toMatch(/status\(statusReport\.overall === 'healthy' \? 200 : 503\)/)
   })
 
   test('GET/POST /api/config keeps merge semantics', () => {

@@ -10,6 +10,11 @@ import { useScrollRestoration } from '../lib/scroll-restoration'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Analytics } from '@vercel/analytics/next'
 import { Auth0Provider } from '@auth0/nextjs-auth0/client'
+// Legacy Firebase auth context: still consumed by useAuth() in account/admin,
+// tribal and mail-in components. Keep it mounted under Auth0Provider until
+// those callers migrate, otherwise prerender throws "useAuth must be used
+// within an AuthProvider".
+import { AuthProvider } from '../hooks/useAuth'
 import GoogleTag from '@components/analytics/GoogleTag'
 
 if (builderConfig.apiKey) {
@@ -25,13 +30,19 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   useScrollRestoration()
 
   useEffect(() => {
-    const handleStart = (_url: string, { shallow }: { shallow?: boolean } = {}) => {
+    const handleStart = (
+      _url: string,
+      { shallow }: { shallow?: boolean } = {}
+    ) => {
       if (!shallow) {
         startLoading()
       }
     }
 
-    const handleComplete = (_url: string, { shallow }: { shallow?: boolean } = {}) => {
+    const handleComplete = (
+      _url: string,
+      { shallow }: { shallow?: boolean } = {}
+    ) => {
       if (!shallow) {
         stopLoading()
       }
@@ -54,19 +65,20 @@ export default function MyApp({ Component, pageProps }: AppProps) {
 
   return (
     <Auth0Provider>
-      <ErrorBoundary boundaryName="app-root-layout">
-        <Layout pageProps={pageProps}>
-          <Component {...pageProps} />
-        </Layout>
-        <GoogleTag />
-        {process.env.NEXT_PUBLIC_VERCEL_ENV ? (
-          <>
-            <SpeedInsights />
-            <Analytics />
-          </>
-        ) : null}
-      </ErrorBoundary>
+      <AuthProvider>
+        <ErrorBoundary boundaryName="app-root-layout">
+          <Layout pageProps={pageProps}>
+            <Component {...pageProps} />
+          </Layout>
+          <GoogleTag />
+          {process.env.NEXT_PUBLIC_VERCEL_ENV ? (
+            <>
+              <SpeedInsights />
+              <Analytics />
+            </>
+          ) : null}
+        </ErrorBoundary>
+      </AuthProvider>
     </Auth0Provider>
   )
 }
-
