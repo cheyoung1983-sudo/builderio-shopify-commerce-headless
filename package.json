@@ -146,7 +146,7 @@
     "stylelint": "15.11.0",
     "stylelint-a11y": "1.2.3",
     "stylelint-config-standard": "30.0.1",
-    "typescript": "5.9.3"
+    "typescript": "5.7.3"
   },
   "license": "MIT",
   "allowScripts": {

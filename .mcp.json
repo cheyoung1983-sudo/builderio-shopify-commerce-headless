@@ -21,8 +21,13 @@
       "url": "https://mcp.stripe.com"
     },
     "auth0": {
-      "type": "http",
-      "url": "https://mcp.auth0.com"
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@auth0/auth0-mcp-server",
+        "run"
+      ]
     },
     "builder-io": {
       "type": "http",

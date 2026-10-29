@@ -16,6 +16,14 @@ import {
   Check,
 } from 'lucide-react'
 import { MAIL_IN_V4_BUNDLES } from '../../lib/pricing/mail-in-v4'
+import {
+  MAIL_IN_CTA,
+  MAIL_IN_DIAGNOSTIC_FEE_USD,
+  MAIL_IN_KIT_SENTENCE,
+  MAIL_IN_OVERNIGHT_NOTE,
+  MAIL_IN_SHIPPING_POLICY,
+  MAIL_IN_TERMS,
+} from '../../lib/pricing/mail-in-policy'
 
 // Pricing: Finance Pricing Sheet V4 -> retail = ceil(part x 1.8 + 75); battery add-on =
 // V4 battery retail - 25. Only RETAIL constants ship to the browser; wholesale part
@@ -38,11 +46,9 @@ export const MailInRepairEstimator: React.FC = () => {
 
   // Calculate pricing (retail only, V4)
   const bundlePrice = issueType === 'both' ? selectedDevice.bundleRetail : null
-  const outboundOvernightFreight = 0.0 // Complimentary
-  const returnGroundFreight = 0.0 // Complimentary
+  // The diagnostic fee is credited toward an approved repair, so it is not added to the total.
+  const diagnosticFee = MAIL_IN_DIAGNOSTIC_FEE_USD
   const totalRepairPrice = bundlePrice
-  void outboundOvernightFreight
-  void returnGroundFreight
 
   const isSopReady = backedUp && locksDisabled && batteryUnder30 && accessoriesRemoved
 
@@ -67,16 +73,16 @@ export const MailInRepairEstimator: React.FC = () => {
             <span>White-Glove Reverse Logistics</span>
           </div>
           <h3 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">
-            Mail-In Repair Estimator &amp; Express Kit
+            Mail-In Repair Estimator &amp; Shipping Kit
           </h3>
           <p className="text-xs sm:text-sm text-neutral-600 mt-1 max-w-xl">
-            Free outbound overnight shipping kit, custom ESD foam packaging, and insured return delivery at zero extra shipping cost.
+            {MAIL_IN_KIT_SENTENCE} {MAIL_IN_TERMS}
           </p>
         </div>
 
         <div className="inline-flex items-center gap-2 rounded-xl bg-emerald-100/70 border border-emerald-300/60 px-3.5 py-2 text-emerald-900 text-xs font-semibold self-start sm:self-auto">
           <Truck className="w-4 h-4 text-emerald-700" />
-          <span>$0 Free Return Freight</span>
+          <span>We pay return shipping</span>
         </div>
       </div>
 
@@ -228,16 +234,16 @@ export const MailInRepairEstimator: React.FC = () => {
                   <span className="font-mono">{bundlePrice !== null ? `$${bundlePrice.toFixed(2)}` : 'Quoted at intake'}</span>
                 </div>
                 <div className="flex justify-between text-neutral-400">
-                  <span>Outbound Express Shipping Kit (Overnight)</span>
-                  <span className="text-emerald-400 font-semibold">FREE ($0.00)</span>
+                  <span>Diagnostic fee (credited toward an approved repair)</span>
+                  <span className="font-mono">${diagnosticFee.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-neutral-400">
-                  <span>Inbound Reverse Transit (Pay-On-Use)</span>
-                  <span className="text-emerald-400 font-semibold">FREE ($0.00)</span>
+                  <span>Kit and return shipping (two-day USPS Priority)</span>
+                  <span className="text-emerald-400 font-semibold">We pay</span>
                 </div>
                 <div className="flex justify-between text-neutral-400">
-                  <span>Insured Return Ground Freight</span>
-                  <span className="text-emerald-400 font-semibold">FREE ($0.00)</span>
+                  <span>Label for sending your device to us</span>
+                  <span className="font-semibold">You pay</span>
                 </div>
 
                 <div className="border-t border-neutral-800 pt-3 mt-3 flex justify-between items-baseline">
@@ -248,10 +254,13 @@ export const MailInRepairEstimator: React.FC = () => {
                 </div>
               </div>
 
-              {/* Pre-auth & Safety note */}
+              {/* Fee terms & Safety note */}
               <div className="mt-5 space-y-2 rounded-lg bg-neutral-800/70 p-3 text-[11px] text-neutral-300 leading-relaxed">
                 <p>
-                  <strong>Pre-Auth Hold:</strong> A temporary $25 pre-authorization hold is placed at checkout and automatically released when our central depot scans the arriving kit.
+                  <strong>Diagnostic fee:</strong> {MAIL_IN_TERMS}
+                </p>
+                <p>
+                  <strong>Shipping:</strong> {MAIL_IN_SHIPPING_POLICY} {MAIL_IN_OVERNIGHT_NOTE}
                 </p>
                 <p>
                   <strong>Secondary Approval Gate:</strong> If our diagnostic bus scan reveals unexpected hidden damage (e.g. liquid ingress), work pauses and we text you photos with an itemized approval link.
@@ -265,13 +274,13 @@ export const MailInRepairEstimator: React.FC = () => {
                 <div className="rounded-lg bg-emerald-950/60 border border-emerald-500/40 p-3 text-center">
                   <div className="flex items-center justify-center gap-1.5 text-emerald-400 text-xs font-bold mb-1">
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Express Kit Dispatch Initiated!</span>
+                    <span>Kit Request Started!</span>
                   </div>
                   <p className="text-[11px] text-neutral-300">
                     Repair Ticket: <strong className="font-mono text-white">{ticketId}</strong>
                   </p>
                   <p className="text-[10px] text-neutral-400 mt-1">
-                    Your UN3481 compliant mailer kit will arrive via UPS Next Day / FedEx Priority Overnight within 24 hours.
+                    Your UN3481 compliant mailer kit comes by two-day USPS Priority. {MAIL_IN_OVERNIGHT_NOTE}
                   </p>
                 </div>
               ) : (
@@ -285,7 +294,7 @@ export const MailInRepairEstimator: React.FC = () => {
                       : 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
                   }`}
                 >
-                  <span>Request Free Mail-In Shipping Kit</span>
+                  <span>{MAIL_IN_CTA}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               )}

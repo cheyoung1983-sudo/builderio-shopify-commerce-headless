@@ -1,25 +1,33 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { isAuth0Enabled } from '../../../lib/auth0'
+import { auth0 } from '../../../lib/auth0'
 
-/**
- * Auth0 routes fail closed. Until Auth0 is configured and the login flow is
- * implemented: login/callback/logout return 503 and profile returns 401.
- * Never returns a made-up user.
- */
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  res.setHeader('Cache-Control', 'no-store')
-  const raw = req.query.auth0
-  const action = Array.isArray(raw) ? raw[0] : raw
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  try {
+    const host = req.headers.host || 'localhost:3000'
+    const protocol = req.headers['x-forwarded-proto'] || 'http'
+    const url = new URL(req.url || '/api/auth', `${protocol}://${host}`)
+    
+    const headers = new Headers()
+    Object.entries(req.headers).forEach(([k, v]) => {
+      if (v) headers.set(k, Array.isArray(v) ? v.join(', ') : v)
+    })
 
-  if (action === 'profile' || action === 'me') {
-    return res.status(401).json({ error: 'Not signed in' })
+    const request = new Request(url.toString(), {
+      method: req.method,
+      headers,
+    })
+
+    const response = await auth0.middleware(request)
+
+    res.status(response.status)
+    response.headers.forEach((value, key) => {
+      res.setHeader(key, value)
+    })
+
+    const text = await response.text()
+    return res.send(text)
+  } catch (error: any) {
+    console.error('[Auth0 Webhook Handler Error]:', error)
+    return res.status(500).json({ error: error?.message || 'Auth0 authentication error' })
   }
-
-  if (action === 'login' || action === 'callback' || action === 'logout') {
-    if (!isAuth0Enabled) {
-      return res.status(503).json({ error: 'Sign-in is not configured' })
-    }
-  }
-
-  return res.status(404).json({ error: 'Not found' })
 }

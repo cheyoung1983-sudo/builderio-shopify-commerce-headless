@@ -35,8 +35,8 @@ export const REPAIR_STAGES: RepairStageInfo[] = [
   {
     stage: 1,
     key: 'kit_dispatched',
-    label: 'Prepaid Mailer Dispatched',
-    description: 'Prepaid 2.0 lb ESD foam mailer and courier label dispatched to your address',
+    label: 'Mailer Dispatched',
+    description: '2.0 lb ESD foam mailer dispatched to your address',
     icon: Package,
   },
   {
