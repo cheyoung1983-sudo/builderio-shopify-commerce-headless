@@ -8,6 +8,14 @@
         "chrome-devtools-mcp"
       ]
     },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest"
+      ]
+    },
     "shopify": {
       "type": "http",
       "url": "https://api.shopify.com/mcp"
@@ -26,7 +34,8 @@
       "args": [
         "-y",
         "@auth0/auth0-mcp-server",
-        "run"
+        "run",
+        "--read-only"
       ]
     },
     "builder-io": {

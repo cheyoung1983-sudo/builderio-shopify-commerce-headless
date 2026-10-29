@@ -1,4 +1,5 @@
 const { execFileSync } = require('node:child_process')
+const fs = require('node:fs')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 
@@ -33,6 +34,39 @@ function runMcpScript(testFnBody) {
 }
 
 describe('ElevenLabs MCP Configuration & Security Module', () => {
+  test('workspace MCP config registers Playwright for browser testing', () => {
+    const configPath = path.resolve(__dirname, '../.mcp.json')
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    const playwright = config.mcpServers.playwright
+
+    expect(playwright).toMatchObject({
+      type: 'stdio',
+      command: 'npx',
+      args: ['-y', '@playwright/mcp@latest'],
+    })
+  })
+
+  test('workspace MCP config limits Auth0 tenant access to read-only tools', () => {
+    const configPath = path.resolve(__dirname, '../.mcp.json')
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+
+    expect(config.mcpServers.auth0).toMatchObject({
+      type: 'stdio',
+      command: 'npx',
+    })
+    expect(config.mcpServers.auth0.args).toContain('--read-only')
+  })
+
+  test('workspace MCP config retains the hosted Persona server', () => {
+    const configPath = path.resolve(__dirname, '../.mcp.json')
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+
+    expect(config.mcpServers.persona).toMatchObject({
+      type: 'http',
+      url: 'https://mcp.withpersona.com',
+    })
+  })
+
   test('isMcpAllowedForWorkspace permits default workspace settings', () => {
     const res = runMcpScript(`
       const check = isMcpAllowedForWorkspace()

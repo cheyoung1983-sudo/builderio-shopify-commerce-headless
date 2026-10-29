@@ -24,6 +24,7 @@ function runWebhookScript(testFnBody, extraEnv = {}) {
       // Never let tests reach a real store: blank out Admin credentials.
       SHOPIFY_STORE_DOMAIN: '',
       NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN: '',
+      TRIBAL_TAX_EXEMPT_ENABLED: 'true',
       SHOPIFY_CLIENT_ID: '',
       SHOPIFY_CLIENT_SECRET: '',
       SHOPIFY_ADMIN_ACCESS_TOKEN: '',

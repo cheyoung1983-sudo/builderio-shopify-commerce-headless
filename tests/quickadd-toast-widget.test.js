@@ -33,9 +33,8 @@ describe('floating voice widget yields to the cart drawers', () => {
   test('hides while the sidebar or cart drawer is open', () => {
     expect(wrapper).toMatch(/displaySidebar/)
     expect(wrapper).toMatch(/cart\?\.isOpen/)
-    expect(wrapper).toMatch(/'cart-drawer:state'/)
+    expect(wrapper).toMatch(/Boolean\(ui\?\.displaySidebar \|\| cart\?\.isOpen\)/)
     expect(wrapper).toMatch(/hidden=\{cartDrawerOpen\}/)
-    expect(wrapper).toMatch(/removeEventListener\('cart-drawer:state'/)
   })
 
   test('does not use throwing hooks, so it still renders outside providers', () => {
@@ -43,9 +42,8 @@ describe('floating voice widget yields to the cart drawers', () => {
     expect(wrapper).not.toMatch(/useCart\(\)/)
   })
 
-  test('CartDrawer broadcasts its open state', () => {
-    expect(read('components/CartDrawer.jsx')).toMatch(
-      /new CustomEvent\("cart-drawer:state", \{ detail: \{ open: isOpen \} \}\)/
-    )
+  test('reads shared UI and cart contexts instead of depending on a cart event bridge', () => {
+    expect(wrapper).toContain('useContext(UIContext)')
+    expect(wrapper).toContain('useContext(CartContext)')
   })
 })
