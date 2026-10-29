@@ -25,6 +25,7 @@ import {
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { compressImageFile } from '../lib/utils/image-compression'
+import { MAIL_IN_SHIPPING_POLICY, MAIL_IN_TERMS } from '../lib/pricing/mail-in-policy'
 
 export interface MailInRepairRequestProps {
   className?: string
@@ -257,7 +258,7 @@ export const MailInRepairRequest: React.FC<MailInRepairRequestProps> = ({
               state: state.trim() || 'AZ',
               zip: zip.trim() || '86515',
             },
-            courierPreference: 'UPS_OVERNIGHT',
+            courierPreference: 'USPS_PRIORITY',
             kitType: 'electrostatic_foam_mailer',
           },
           sopChecklist: {
@@ -321,7 +322,7 @@ export const MailInRepairRequest: React.FC<MailInRepairRequestProps> = ({
             Mail-In Repair Request Form
           </h3>
           <p className="text-xs sm:text-sm text-neutral-600 mt-1">
-            Provide your device details, upload diagnostic damage photos, and request a prepaid shipping kit.
+            Provide your device details, upload diagnostic damage photos, and request a shipping kit. {MAIL_IN_TERMS}
           </p>
         </div>
       </div>
@@ -419,16 +420,16 @@ export const MailInRepairRequest: React.FC<MailInRepairRequestProps> = ({
             />
           </div>
 
-          {/* Free Prepaid Shipping Kit Request Banner */}
+          {/* Shipping Kit Request Banner */}
           <div className="rounded-2xl border border-emerald-300 bg-linear-to-r from-emerald-50 via-white to-emerald-50 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
                 <Package className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-neutral-900">Request Free Prepaid Shipping Kit</h4>
+                <h4 className="text-sm font-bold text-neutral-900">Request a Shipping Kit</h4>
                 <p className="text-xs text-neutral-600 mt-0.5">
-                  We will mail you a secure corrugated box with ESD-safe bubble pouches and a Prepaid Shipping Label 100% free of charge.
+                  We will mail you a secure corrugated box with ESD-safe bubble pouches. {MAIL_IN_SHIPPING_POLICY}
                 </p>
               </div>
             </div>

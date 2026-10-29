@@ -80,7 +80,7 @@ export default function TrackRepairPage({ authEnabled }: TrackRepairPageProps) {
               <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-neutral-600">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-100 font-medium">
                   <Truck className="w-3.5 h-3.5 text-emerald-600" />
-                  Prepaid Shipping Kit Tracked
+                  Shipping Kit Tracked
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-100 font-medium">
                   <Clock className="w-3.5 h-3.5 text-emerald-600" />
@@ -143,7 +143,7 @@ export default function TrackRepairPage({ authEnabled }: TrackRepairPageProps) {
                 Have questions regarding your repair estimate or diagnostic results?
               </h3>
               <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed">
-                Our Spokane repair specialists are available Monday–Saturday. Call us directly or submit a new repair request with a complimentary prepaid shipping mailer.
+                Our Spokane repair specialists are available Monday–Saturday. Call us directly or submit a new mail-in repair request ($40 diagnostic fee, credited toward an approved repair).
               </p>
             </div>
 

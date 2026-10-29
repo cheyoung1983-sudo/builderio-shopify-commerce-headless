@@ -18,6 +18,7 @@ import {
   HelpCircle,
 } from 'lucide-react'
 import { TRIBAL_ELIGIBILITY_LINE } from '../lib/tribal/verification-copy'
+import { MAIL_IN_OVERNIGHT_NOTE, MAIL_IN_SHIPPING_POLICY, MAIL_IN_TERMS } from '../lib/pricing/mail-in-policy'
 import { Breadcrumbs } from '../components/common/Breadcrumbs'
 import { TribalEligibilityChecker } from '../components/tribal/TribalEligibilityChecker'
 import { TribalEligibilityCalculator } from '../components/services/TribalEligibilityCalculator'
@@ -38,7 +39,7 @@ export default function ServicesFaqPage() {
         <meta property="og:title" content="Services & Discounts FAQ | DisplayCellPros" />
         <meta
           property="og:description"
-          content="Learn about our official 20% tribal member discount, on-reservation sales tax exemption compliance, and complimentary mail-in repair reverse logistics."
+          content="Learn about our official 20% tribal member discount, on-reservation sales tax exemption compliance, and mail-in repair shipping and diagnostic fee terms."
         />
       </Head>
 
@@ -66,7 +67,7 @@ export default function ServicesFaqPage() {
               </h1>
 
               <p className="mt-4 text-sm sm:text-base text-neutral-600 leading-relaxed max-w-2xl">
-                Explore comprehensive guidelines and answers for our dual-track <strong>Tribal Privileges</strong> (20% official commercial discount + statutory sales tax exemptions) and our <strong>White-Glove Mail-In Device Repair Program</strong> with complimentary reverse shipping.
+                Explore comprehensive guidelines and answers for our dual-track <strong>Tribal Privileges</strong> (20% official commercial discount + statutory sales tax exemptions) and our <strong>White-Glove Mail-In Device Repair Program</strong> where we pay return shipping.
               </p>
 
               {/* Jump anchors */}
@@ -272,7 +273,7 @@ export default function ServicesFaqPage() {
                 </h2>
               </div>
               <span className="text-xs text-neutral-500 font-mono">
-                Pay-On-Use API &amp; DOT UN3481 Compliance
+                DOT UN3481 Compliance
               </span>
             </div>
 
@@ -282,15 +283,15 @@ export default function ServicesFaqPage() {
                 <span className="text-xs font-mono font-bold text-emerald-600 block">Stage 01</span>
                 <h4 className="text-sm font-bold text-neutral-900">Digital Intake &amp; Order</h4>
                 <p className="text-[11px] text-neutral-600 leading-relaxed">
-                  Select your replacement part and labor bundle. A digital service ticket is created with active inventory reservation.
+                  Select your replacement part and labor bundle. A digital service ticket is created with active inventory reservation. {MAIL_IN_TERMS}
                 </p>
               </div>
 
               <div className="rounded-xl border border-neutral-200 bg-white p-4 space-y-2">
                 <span className="text-xs font-mono font-bold text-emerald-600 block">Stage 02</span>
-                <h4 className="text-sm font-bold text-neutral-900">Express Kit Dispatch</h4>
+                <h4 className="text-sm font-bold text-neutral-900">Kit Dispatch</h4>
                 <p className="text-[11px] text-neutral-600 leading-relaxed">
-                  We rush-ship a 32-ECT box with custom foam, ESD bag, UN3481 labels, and pre-addressed return label via UPS/FedEx Overnight.
+                  We send a 32-ECT box with custom foam, ESD bag, and UN3481 labels by two-day USPS Priority. {MAIL_IN_OVERNIGHT_NOTE}
                 </p>
               </div>
 
@@ -298,7 +299,7 @@ export default function ServicesFaqPage() {
                 <span className="text-xs font-mono font-bold text-emerald-600 block">Stage 03</span>
                 <h4 className="text-sm font-bold text-neutral-900">Inbound Reverse Transit</h4>
                 <p className="text-[11px] text-neutral-600 leading-relaxed">
-                  Place device inside and hand to courier. Scan-based Pay-On-Use shipping means $0 return cost to you.
+                  Place device inside and hand to courier. {MAIL_IN_SHIPPING_POLICY}
                 </p>
               </div>
 
