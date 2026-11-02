@@ -91,7 +91,7 @@ describe('TERMS is shown on the Estimator, the Form and the FAQ via the shared m
         if (entry.isDirectory()) {
           if (['node_modules', '.next', '.git', 'tests', 'coverage'].includes(entry.name)) continue
           walk(rel)
-        } else if (/\.(tsx?|jsx?|md|txt)$/.test(entry.name)) files.push(rel)
+        } else if (/\.(tsx?|jsx?|md|txt)$/.test(entry.name)) files.push(rel.replace(/\\/g, '/'))
       }
     }
     for (const dir of ['components', 'pages', 'lib', 'services', 'docs', 'public', 'blocks', 'context', 'config']) {
@@ -162,7 +162,7 @@ describe('/api/repair-requests requires and records acceptance', () => {
           '--experimental-strip-types',
           '--no-warnings',
           '--import',
-          path.join(repoRoot, 'tests/helpers/register-api-loader.mjs'),
+          pathToFileURL(path.join(repoRoot, 'tests/helpers/register-api-loader.mjs')).href,
           path.join(repoRoot, 'tests/helpers/run-repair-requests-api.mjs'),
           JSON.stringify(body),
         ],
