@@ -6,28 +6,51 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A headless commerce storefront: **Next.js (Pages Router, v16)** for rendering, **Shopify Storefront API** for product/cart/checkout data, and **Builder.io** as the visual CMS driving page content. Live at `headless.builders`; this instance is configured for the `displaycellpros.myshopify.com` store.
+A headless commerce storefront and verification system: **Next.js (Pages Router, v16)** for rendering, **Shopify Storefront API** for product/cart/checkout data, and **Builder.io** as the visual CMS driving page content. Live at `headless.builders`; this instance is configured for the `displaycellpros.myshopify.com` store.
 
 Read `node_modules/next/dist/docs/` before writing Next.js code — this is Next 16 and APIs may differ from training data (see `AGENTS.md`).
 
 ## Commands
 
+### Core Development
 ```bash
 npm run dev              # next dev -p 3000 -H 0.0.0.0
 npm run build            # runs precheck, then next build
 npm run typecheck        # tsc --noEmit
 npm run lint             # eslint blocks components config context lib pages services
-npm run lint:a11y        # stylelint "**/*.css"
-npm run test:a11y        # jest (jest-axe accessibility tests)
-npm run check:secrets    # scan for hardcoded credentials
-npm run precheck         # node-version check + ci-integrity check + typecheck + lint + secrets (runs before build)
 ```
 
-Single Jest test file: `npx jest tests/cart-storage.test.js`
-
-Before opening a PR, run the full suite, not a subset — see "Validation" in `AGENT_WORKFLOW.md`:
+### Validation & A11y
 ```bash
-npm run precheck && npm run test:a11y && npm run build
+npm run precheck         # node-version check + ci-integrity check + typecheck + lint + secrets
+npm run test:a11y        # jest (jest-axe accessibility tests)
+npx jest tests/cart-storage.test.js # Single Jest test file
+```
+
+### Security Suite
+```bash
+npm run check:secrets    # scan for hardcoded credentials
+npm run check:xss-hardening
+npm run check:security-boundaries
+npm run audit:csp
+npm run test:security
+npm run check:security-cors
+```
+
+### Health & Maintenance
+```bash
+npm run health            # comprehensive system health check
+npm run check:project-health
+npm run check:shopify-catalog-health
+npm run check:dependency-health
+npm run check:deployment-readiness
+```
+
+### Deployment
+```bash
+npm run deploy:dev
+npm run deploy:preview
+npm run deploy:production
 ```
 
 `scripts/check-ci-integrity.js` fails the build if `.github/workflows/ci.yml` steps are stripped or if `eslint.config.mjs` disables `react-hooks` rules wholesale — don't route around a failing check by weakening it; fix the underlying issue (see `AGENT_WORKFLOW.md`).
@@ -42,11 +65,11 @@ This repo is developed by multiple isolated agents working in separate worktrees
 
 ## Architecture
 
-### Routing: Builder-driven catch-all + a few native pages
+### Routing: Builder-driven catch-all + native pages
 
 `pages/[[...path]].tsx` is the primary route handler — it resolves *any* path against Builder.io's `page` model via `resolveBuilderContent()` (`lib/resolve-builder-content.ts`) and renders it with `<BuilderComponent>`. If no Builder page exists for the root `/`, it falls back to rendering a real homepage backed by live Shopify products (`fetchAllAvailableProducts`) rather than 404ing; non-root paths with no Builder page do 404. ISR revalidates every 30s.
 
-Alongside the catch-all, a handful of routes are native Next pages, not Builder-driven: `pages/product/[handle].tsx`, `pages/collection/[handle].tsx`, `pages/products.tsx`, `pages/cart.tsx`, `pages/trends.tsx`, `pages/account/index.tsx`. When adding a new URL, decide whether it belongs in Builder (marketing/content pages) or as a native page (transactional/app-like pages).
+Alongside the catch-all, a handful of routes are native Next pages, not Builder-driven: `pages/product/[handle].tsx`, `pages/collection/[handle].tsx`, `pages/products.tsx`, `pages/cart.tsx`, `pages/trends.tsx`, `pages/account/index.tsx`, `pages/search.tsx`, `pages/wishlist.tsx`. Native administrative routes exist in `pages/admin/*` and a tools manifest system is located in `pages/api/agent/*`. When adding a new URL, decide whether it belongs in Builder (marketing/content pages) or as a native page (transactional/app-like pages).
 
 `lib/resolve-builder-content.ts` also wires up Builder's `getAsyncProps` for custom blocks (`ProductGrid`, `CollectionBox`, `ProductBox`, `ProductCollectionGrid` — defined in `blocks/`) so their Shopify data is resolved server-side in production before Builder renders them.
 
@@ -65,6 +88,16 @@ When client-side code in the browser calls `fetchAllAvailableProducts` / `fetchS
 
 `config/shopify.ts` is the single source of truth for env var resolution (domain, tokens, API version) — it validates that `NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN` isn't accidentally a private (`shpat_`/`shpua_`) token, since that would leak a private token into the browser bundle. Don't read `process.env.SHOPIFY_*` directly elsewhere; go through `config/shopify.ts` / `services/shopify.ts`'s `getShopifyConfig()`.
 
+### System Domains
+
+**Identity & KYC**: uses **Auth0** for authentication and session management, and **Persona** for identity verification and KYC processes.
+
+**AI & Speech**: integrates **Gemini** for LLM capabilities and **ElevenLabs** for multimodal speech-to-text (STT) and text-to-speech (TTS) functionality.
+
+**Verification Domain**: uses `lib/tribal` and `pages/api/tribal` to manage professional certifications and enrollment lifecycles.
+
+**Wholesale & Admin**: contains specialized administrative tools and wholesale-specific logic (including simulation) in `lib/wholesale`.
+
 ### Cart state
 
 `context/CartContext.tsx` (large, ~1050 lines) provides cart state app-wide, backed by `lib/cart-storage.ts` for persistence. It builds on the `storefront-data-hooks` cart operations, not `services/shopify.ts`'s cart mutations directly.
@@ -79,7 +112,7 @@ Configured in `tsconfig.json`: `@lib/*`, `@assets/*`, `@blocks/*`, `@config/*`, 
 
 ### Environment variables
 
-Only variables explicitly listed in `next.config.js`'s `env` block reach the browser bundle; everything else (Admin token, client secret, private Storefront token) stays server-only. `.env.example` documents every variable; copy to `.env.local` for local dev. Never commit `.env`/`.env.local`.
+Only variables explicitly listed in `next.config.js`'s `env` block reach the browser bundle; everything else (Admin token, client secret, private Storefront token, ElevenLabs, Gemini, Auth0, and Persona keys) stays server-only. `.env.example` documents every variable; copy to `.env.local` for local dev. Never commit `.env`/`.env.local`.
 
 ### Health-check scripts (`scripts/`)
 
