@@ -47,7 +47,7 @@ export function isAllowedOrigin(
   origin: string | undefined,
   options: AllowedOriginsOptions = { allowedOrigins: [] }
 ): boolean {
-  if (origin === undefined || origin === null || origin === '') return true
+  if (origin === undefined || origin === null || origin === '') return false
 
   // 1. Localhost and Loopback development origins
   if (options.allowLocalhost !== false) {
@@ -188,6 +188,7 @@ export function createRateLimiter(options: { windowMs: number; maxRequests: numb
       }
 
       record.count++
+      hits.set(key, { count: record.count, resetAt: record.resetAt })
       return { allowed: true, retryAfterSeconds: 0 }
     },
   }
