@@ -6,8 +6,9 @@ const repoRoot = path.resolve(__dirname, '..')
 function sanitize(values) {
   const src = require('node:fs').readFileSync(path.join(repoRoot, 'pages/api/account/login.ts'), 'utf8')
   const start = src.indexOf('export function sanitizeReturnTo')
-  const end = src.indexOf('\n}\n', start) + 2
-  const fn = src.slice(start, end).replace('export ', '').replace('(value: unknown): string', '(value)')
+  const match = src.slice(start).match(/export function sanitizeReturnTo[\s\S]*?\r?\n}\r?\n/)
+  if (!match) throw new Error('Could not extract sanitizeReturnTo')
+  const fn = match[0].replace('export ', '').replace('(value: unknown): string', '(value)')
   const script = `${fn}\nconsole.log(JSON.stringify(${JSON.stringify(values)}.map(sanitizeReturnTo)))`
   return JSON.parse(execFileSync(process.execPath, ['-e', script], { encoding: 'utf8' }).trim())
 }
