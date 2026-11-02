@@ -53,6 +53,21 @@ export function getShopifyClientSecret(): string {
   return (process.env.SHOPIFY_CLIENT_SECRET || '').trim()
 }
 
+/**
+ * Returns a validated, frozen Shopify configuration object.
+ * Centralizes env access to prevent leakage and ensure consistency.
+ */
+export function getShopifyConfig(): ShopifyConfig {
+  return Object.freeze({
+    domain: getShopifyDomain(),
+    storefrontAccessToken: getStorefrontAccessToken(),
+    apiVersion: getShopifyApiVersion(),
+    clientId: getShopifyClientId(),
+    clientSecret: getShopifyClientSecret(),
+    adminAccessToken: getAdminAccessToken(),
+  });
+}
+
 // Safety check for private tokens in public variables
 if (typeof window === 'undefined') {
   const publicStorefrontAccessToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_TOKEN || process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_API_TOKEN
@@ -69,13 +84,6 @@ if (typeof window === 'undefined') {
   }
 }
 
-const shopifyConfig: ShopifyConfig = {
-  domain: getShopifyDomain(),
-  storefrontAccessToken: getStorefrontAccessToken(),
-  apiVersion: getShopifyApiVersion(),
-  clientId: getShopifyClientId(),
-  clientSecret: getShopifyClientSecret(),
-  adminAccessToken: getAdminAccessToken(),
-}
+const shopifyConfig: ShopifyConfig = getShopifyConfig();
 
 export default shopifyConfig

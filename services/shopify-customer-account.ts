@@ -38,20 +38,7 @@ function getApiVersion(): string {
 /** Resolves the site's own origin used to build the OAuth redirect_uri. */
 export function getSiteUrl(req?: { headers: Record<string, string | string[] | undefined> }): string {
   const siteUrlEnv = process.env.NEXT_PUBLIC_SITE_URL;
-  const trustedProxy = process.env.TRUSTED_PROXY === 'true';
   const isProd = process.env.NODE_ENV === 'production';
-
-  if (req && trustedProxy) {
-    const forwardedProto = req.headers['x-forwarded-proto']
-    const proto = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto) || 'https'
-    const forwardedHost = req.headers['x-forwarded-host']
-    const rawHost = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost) || req.headers.host
-    if (rawHost) {
-      const host = Array.isArray(rawHost) ? rawHost[0] : rawHost
-      const finalProto = isProd && proto === 'http' ? 'https' : proto;
-      return `${finalProto}://${host}`
-    }
-  }
 
   if (siteUrlEnv) {
     const normalized = siteUrlEnv.replace(/\/+$/, '');
@@ -59,6 +46,17 @@ export function getSiteUrl(req?: { headers: Record<string, string | string[] | u
       return normalized.replace('http://', 'https://');
     }
     return normalized;
+  }
+
+  // Fallback for local development only
+  if (!isProd && req) {
+    const forwardedHost = req.headers['x-forwarded-host']
+    const rawHost = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost) || req.headers.host
+    if (rawHost) {
+      const host = Array.isArray(rawHost) ? rawHost[0] : rawHost
+      const proto = (Array.isArray(req.headers['x-forwarded-proto']) ? req.headers['x-forwarded-proto'][0] : req.headers['x-forwarded-proto']) || 'http'
+      return `${proto}://${host}`
+    }
   }
 
   return 'https://www.displaycellpros.com'
