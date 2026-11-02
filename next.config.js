@@ -105,7 +105,7 @@ const nextConfig = {
               [
                 "connect-src 'self'",
                 'https://cdn.builder.io https://builder.io https://*.builder.io',
-                'https://*.myshopify.com',
+                'https://displaycellpros.myshopify.com',
                 'https://api.elevenlabs.io wss://api.elevenlabs.io',
                 'https://livekit.rtc.elevenlabs.io wss://livekit.rtc.elevenlabs.io',
                 'https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://region1.analytics.google.com',

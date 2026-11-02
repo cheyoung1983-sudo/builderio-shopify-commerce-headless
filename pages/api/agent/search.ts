@@ -158,12 +158,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       count: products.length,
       products,
     })
-  } catch (error: any) {
-    console.error('[API /api/agent/search] Search failed:', error)
-    return res.status(500).json({
-      ok: false,
-      error: 'Product search failed',
-      products: [],
-    })
-  }
+    } catch (error: any) {
+      if (error.message?.includes('Shopify Storefront Access Token is not configured')) {
+        return res.status(503).json({
+          ok: false,
+          error: 'Shopify configuration missing',
+          products: [],
+        })
+      }
+      console.error('[API /api/agent/search] Search failed:', error)
+      return res.status(500).json({
+        ok: false,
+        error: 'Product search failed',
+        products: [],
+      })
+    }
+
 }
