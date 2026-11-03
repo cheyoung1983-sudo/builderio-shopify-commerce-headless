@@ -18,7 +18,7 @@ interface SignedUrlResponse {
   message?: string
 }
 
-export const PRIMARY_AGENT_ID = 'agent_3101m30qaxc1f3981zq05pp86ax1'
+export const PRIMARY_AGENT_ID = 'agent_6301kqxr35beedj8n91eq7gz73d7'
 export const FALLBACK_AGENT_ID = 'agent_6301kqxr35beedj8n91eq7gz73d7'
 const AGENT_ID_PATTERN = /^agent_[a-zA-Z0-9]{20,64}$/
 const rateLimiter = createRateLimiter({ maxRequests: 30, windowMs: 60_000 })
