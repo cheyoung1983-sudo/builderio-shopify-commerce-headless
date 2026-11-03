@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@lib/db';
 import { wholesaleAccounts } from '@lib/db/schema/wholesale';
 import { eq } from 'drizzle-orm';
+import { verifyPersonaSignature } from '@lib/webhooks/persona-signature';
 
 /**
  * Persona Webhook Handler
@@ -13,6 +14,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // 1. Verify Webhook Signature (Constant-time)
+    const signatureCheck = verifyPersonaSignature({
+      secret: process.env.PERSONA_WEBHOOK_SECRET,
+      header: req.headers['persona-signature'],
+      rawBody: JSON.stringify(req.body),
+    });
+
+    if (!signatureCheck.ok) {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized',
+        reason: signatureCheck.reason,
+      });
+    }
+
     const { event, data } = req.body;
 
     // We only care about completed inquiries
@@ -48,7 +64,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({
       success: false,
       error: 'Internal Server Error',
-      message: error.message,
     });
   }
 }
