@@ -2,6 +2,7 @@
 
 import { useAuth } from '../hooks/useAuth';
 import { Loader2, ShieldAlert } from 'lucide-react';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 interface ProtectedRouteProps {
@@ -59,12 +60,12 @@ export default function AdminProtectedRoute({ children, requiredRole = 'technici
           Your account ({user.email}) is registered as <strong>{role}</strong>. 
           This section requires <strong>{requiredRole}</strong> level access.
         </p>
-        <a 
+        <Link
           href="/"
           className="text-emerald-700 font-semibold hover:underline"
         >
           Return to Storefront
-        </a>
+        </Link>
       </div>
     );
   }
