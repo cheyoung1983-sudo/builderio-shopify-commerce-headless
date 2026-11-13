@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scheduled Maintenance | DisplayCellPros</title>
+  <meta name="description" content="DisplayCellPros is currently undergoing scheduled platform upgrades and maintenance until February 1, 2027." />
+  <meta name="robots" content="noindex, nofollow" />
+
+  <!-- Google Fonts: Inter & JetBrains Mono for technical precision -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              900: '#1e3a8a',
+            },
+            slate: {
+              850: '#151e2e',
+              925: '#0b111e',
+              950: '#070b14',
+            }
+          },
+          boxShadow: {
+            'glow': '0 0 40px -10px rgba(37, 99, 235, 0.25)',
+            'card': '0 20px 45px -15px rgba(15, 23, 42, 0.08)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Subtle precision engineering grid background */
+    .tech-grid {
+      background-size: 36px 36px;
+      background-image: 
+        linear-gradient(to right, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+    }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(0.85); opacity: 0.8; }
+      70% { transform: scale(1.8); opacity: 0; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+
+    .status-pulse::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 9999px;
+      background-color: #f59e0b;
+      animation: pulse-ring 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased selection:bg-brand-600 selection:text-white min-h-screen flex flex-col justify-between tech-grid relative overflow-x-hidden">
+
+  <!-- Ambient Top Accent Bar -->
+  <div class="h-1.5 w-full bg-gradient-to-r from-slate-900 via-brand-600 to-cyan-500"></div>
+
+  <!-- Soft Radial Glow -->
+  <div aria-hidden="true" class="pointer-events-none fixed inset-0 overflow-hidden -z-10">
+    <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[90vw] max-w-4xl h-80 bg-brand-500/10 blur-3xl rounded-full"></div>
+  </div>
+
+  <!-- Minimal Header (No Catalog/Navigation Links per best practices & user request) -->
+  <header class="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/80 backdrop-blur-md border border-slate-200/80 rounded-2xl px-5 py-4 shadow-sm">
+      <!-- Brand Identity -->
+      <a href="#" class="flex items-center gap-3 group focus:outline-none">
+        <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-md group-hover:bg-brand-600 transition-colors">
+          <!-- Precision Display & Circuit Emblem -->
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="5" y="2" width="14" height="20" rx="2.5" />
+            <path d="M9 6h6" />
+            <path d="M12 18h.01" />
+            <path d="M9 11l2 2 4-4" class="text-cyan-400" stroke="currentColor" />
+          </svg>
+        </div>
+        <div class="text-left">
+          <span class="block text-lg font-extrabold tracking-tight text-slate-900 leading-none">
+            Display<span class="text-brand-600">Cell</span>Pros
+          </span>
+          <span class="block text-[11px] font-medium uppercase tracking-widest text-slate-500 mt-1">
+            Spokane, Washington
+          </span>
+        </div>
+      </a>
+
+      <!-- Live Maintenance Status Pill -->
+      <div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-200/90 text-amber-900 text-xs font-semibold">
+        <span class="relative flex h-2.5 w-2.5 status-pulse">
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+        </span>
+        <span>Scheduled System Maintenance</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Maintenance Content -->
+  <main class="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 my-10 sm:my-14 flex-grow flex items-center">
+    <div class="w-full bg-white border border-slate-200/90 rounded-3xl shadow-card p-6 sm:p-10 md:p-12 relative overflow-hidden">
+      
+      <!-- Subtle Decorative Corner Accent -->
+      <div aria-hidden="true" class="hidden sm:block absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-brand-50 to-transparent rounded-bl-full pointer-events-none"></div>
+
+      <div class="relative z-10 text-center max-w-2xl mx-auto">
+        <!-- Date Badge -->
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900 text-white text-xs sm:text-sm font-medium mb-6 shadow-sm">
+          <svg class="w-4 h-4 text-cyan-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          <span>Returning Online: <strong class="font-semibold text-cyan-300">February 1, 2027</strong></span>
+        </div>
+
+        <!-- Primary Headline -->
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 leading-[1.15]">
+          Our Site Is Under Maintenance Until <span class="text-brand-600">Feb 1, 2027</span>
+        </h1>
+
+        <!-- Clear, Reassuring Explanation -->
+        <p class="mt-5 text-base sm:text-lg text-slate-600 leading-relaxed">
+          We’re upgrading our digital infrastructure and customer portal to deliver a faster, smoother experience. Our online storefront is temporarily offline while we complete these improvements.
+        </p>
+
+        <!-- Live Countdown Timer -->
+        <div class="mt-8 sm:mt-10" aria-label="Countdown to February 1, 2027">
+          <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
+            Estimated Relaunch Countdown (PT)
+          </p>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-lg mx-auto">
+            <div class="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4">
+              <span id="cd-days" class="block font-mono text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums">--</span>
+              <span class="block text-xs font-medium text-slate-500 mt-1">Days</span>
+            </div>
+            <div class="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4">
+              <span id="cd-hours" class="block font-mono text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums">--</span>
+              <span class="block text-xs font-medium text-slate-500 mt-1">Hours</span>
+            </div>
+            <div class="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4">
+              <span id="cd-minutes" class="block font-mono text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums">--</span>
+              <span class="block text-xs font-medium text-slate-500 mt-1">Minutes</span>
+            </div>
+            <div class="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4">
+              <span id="cd-seconds" class="block font-mono text-2xl sm:text-3xl font-bold text-brand-600 tabular-nums">--</span>
+              <span class="block text-xs font-medium text-slate-500 mt-1">Seconds</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Services Available During Limited Hours -->
+        <div class="mt-9 sm:mt-10 pt-8 border-t border-slate-100 text-left max-w-xl mx-auto">
+          <h2 class="text-sm font-semibold text-slate-900 text-center">
+            Services available during limited hours
+          </h2>
+          <ul class="mt-4 space-y-3 text-sm text-slate-600">
+            <li class="flex gap-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <span class="mt-1.5 w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+              <span><strong class="font-semibold text-slate-900">Diagnostics, software troubleshooting, and general IT support</strong> are fully available.</span>
+            </li>
+            <li class="flex gap-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <span class="mt-1.5 w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+              <span><strong class="font-semibold text-slate-900">Screen repairs</strong> are available, but some models may be limited until our new inventory arrives. Give us a call to check on yours.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Notify Me Form (Best Practice for Extended Maintenance) -->
+        <div class="mt-9 sm:mt-10 pt-8 border-t border-slate-100">
+          <h2 class="text-sm font-semibold text-slate-900">
+            Get notified the moment we’re back online
+          </h2>
+          <form id="notify-form" class="mt-3 flex flex-col sm:flex-row gap-2.5 max-w-md mx-auto" novalidate>
+            <label for="notify-email" class="sr-only">Email address</label>
+            <input
+              id="notify-email"
+              name="email"
+              type="email"
+              required
+              placeholder="Enter your email address"
+              class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600 transition"
+            />
+            <button
+              type="submit"
+              class="w-full sm:w-auto shrink-0 px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-[0.99] text-white font-semibold text-sm shadow-sm transition cursor-pointer"
+            >
+              Notify Me
+            </button>
+          </form>
+          <!-- Inline Feedback Banner (Replaces alert()) -->
+          <div id="notify-feedback" role="status" aria-live="polite" class="hidden mt-3 max-w-md mx-auto text-xs font-medium px-4 py-2.5 rounded-xl"></div>
+        </div>
+
+        <!-- Direct Contact Channels (Crucial Best Practice During Downtime) -->
+        <div class="mt-8 pt-8 border-t border-slate-100">
+          <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">
+            Have Questions? We’d Love to Hear From You
+          </p>
+          <p class="text-sm text-slate-600 max-w-lg mx-auto mb-5 leading-relaxed">
+            Whether you have a quick question, need a status update, or just want to connect while we upgrade our site, Ryan and our Spokane team are always happy to help.
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto text-left">
+            <!-- Phone Card -->
+            <a
+              href="tel:+15092553852"
+              class="flex items-center gap-3.5 p-3.5 rounded-2xl bg-slate-50 hover:bg-brand-50/60 border border-slate-200/80 hover:border-brand-200 transition group"
+            >
+              <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-brand-600 shrink-0 group-hover:scale-105 transition-transform">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                </svg>
+              </div>
+              <div class="min-w-0">
+                <span class="block text-xs text-slate-500">Call or Text Us</span>
+                <span class="block text-sm font-semibold text-slate-900 truncate">(509) 255-3852</span>
+              </div>
+            </a>
+
+            <!-- Email Card with Pre-filled Warm Welcome Mailto & Copy Button -->
+            <div class="flex items-center justify-between gap-2 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-brand-200 transition">
+              <a
+                href="mailto:ryan@displaycellpros.com?subject=Question%20for%20DisplayCellPros&body=Hi%20Ryan%2C%0A%0AI%20visited%20DisplayCellPros.com%20and%20had%20a%20quick%20question%3A%0A%0A"
+                class="flex items-center gap-3.5 min-w-0 group"
+              >
+                <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-brand-600 shrink-0 group-hover:scale-105 transition-transform">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2" />
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                  </svg>
+                </div>
+                <div class="min-w-0">
+                  <span class="block text-xs text-slate-500">Email Ryan Directly</span>
+                  <span id="support-email-text" class="block text-sm font-semibold text-slate-900 truncate">ryan@displaycellpros.com</span>
+                </div>
+              </a>
+              <button
+                type="button"
+                id="copy-email-btn"
+                title="Copy Ryan's email address"
+                class="p-2 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-white border border-transparent hover:border-slate-200 transition shrink-0 cursor-pointer"
+              >
+                <span class="sr-only">Copy email</span>
+                <svg id="copy-icon" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <svg id="check-icon" class="w-4 h-4 text-emerald-600 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <p class="mt-4 text-xs text-slate-500">
+            Support Hours: Wednesday – Friday, 10:00 AM – 6:00 PM PT &bull; All questions welcome
+          </p>
+        </div>
+
+        <!-- Frequently Asked Questions -->
+        <div class="mt-8 pt-8 border-t border-slate-100 text-left max-w-xl mx-auto">
+          <h2 class="text-sm font-semibold text-slate-900 text-center mb-4">
+            Frequently asked questions
+          </h2>
+          <div class="space-y-2.5">
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>When will Display &amp; Cell Pros fully reopen?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">Our full relaunch, including the online storefront, is set for February 1, 2027. Until then we're running on limited hours while we restructure our inventory.</p>
+            </details>
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>What are your hours right now?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">During limited operations we're open Wednesday through Friday, 10 AM to 6 PM, and closed other days. Call or text ahead and we'll do our best to work with your schedule.</p>
+            </details>
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>What services can I get right now?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">Diagnostics, software troubleshooting, and general IT support are fully available. Screen repairs are available too, depending on the model.</p>
+            </details>
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>How do I know if you have a screen for my device?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">Call or text us at (509) 255-3852 with your device's make and model, and we'll check stock for you. If we don't have it on hand, we'll let you know when it can be ordered in.</p>
+            </details>
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>Can I still book a screen repair if my model isn't in stock?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">Yes. Reach out and we'll walk you through the options and timing for your specific model.</p>
+            </details>
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>What devices and brands do you work on?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">We repair phones and displays and now service game consoles, and our IT support covers computers and everyday tech. Send us your make and model and we'll confirm we can help.</p>
+            </details>
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>How long will my repair take?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">Turnaround depends on the repair and whether the part is in stock. We'll give you a time estimate before any work begins.</p>
+            </details>
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>How much will it cost?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">Pricing depends on your device and the repair needed. You'll get a clear quote up front, and nothing is done without your OK.</p>
+            </details>
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>Do you offer any discounts?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">Yes. Tribal members receive a 20% discount. Just mention it when you contact us.</p>
+            </details>
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>Do you accept walk-ins?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">We recommend calling or texting ahead during limited hours so we can confirm parts and make sure someone is ready for you.</p>
+            </details>
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>Do you come to me?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">Yes, mobile service is available around the Spokane area for a $25 trip fee. Contact us to check if your location is covered.</p>
+            </details>
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>What should I bring when I drop off a device?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">Bring the device, its charger if it has trouble powering on, and a description of the problem. If you can, back up your data first and turn off Find My or device locks if we ask you to.</p>
+            </details>
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>Is my data safe during a repair?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">We only access what's needed to diagnose and test the repair, and we never browse your personal files. We always recommend backing up your device beforehand.</p>
+            </details>
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>What kind of IT support do you offer?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">We help both individuals and small businesses with setup, troubleshooting, software issues, and general tech questions. Ask us whether your issue can be handled remotely or needs a visit.</p>
+            </details>
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>What about warranties on repairs?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">Questions about a past repair or warranty coverage? Contact Ryan directly and we'll look into it right away.</p>
+            </details>
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>What if my device is already in for repair?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">Repairs already in progress keep going as normal, and we'll contact you directly with updates. Feel free to reach out anytime for a status check.</p>
+            </details>
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>How do I pay?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">We'll confirm accepted payment options when you book. Online payments will return with the full storefront on February 1, 2027.</p>
+            </details>
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>Can I sign up to hear when you're fully back?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">Yes, use the Notify Me box above or follow up with us by phone or email.</p>
+            </details>
+            <details class="group p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <summary class="flex items-center justify-between gap-3 cursor-pointer list-none text-sm font-semibold text-slate-900">
+                <span>How do I reach Ryan with a question?</span>
+                <span class="text-brand-600 transition-transform group-open:rotate-45 text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <p class="mt-2 text-sm text-slate-600 leading-relaxed">Call or text (509) 255-3852, or email ryan@displaycellpros.com. Ryan answers personally.</p>
+            </details>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Clean Minimal Footer -->
+  <footer class="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 border-t border-slate-200/80 pt-6">
+      <p>&copy; <span id="copyright-year">2026</span> DisplayCellPros. All rights reserved.</p>
+      <div class="flex items-center gap-4">
+        <span class="inline-flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>256-Bit SSL Secured</span>
+        </span>
+        <span>&bull;</span>
+        <span>www.displaycellpros.com</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Interactive Scripts: Countdown, Relaunch Notification, & Clipboard Helper -->
+  <script>
+    (function () {
+      // Set current year dynamically
+      const yearEl = document.getElementById('copyright-year');
+      if (yearEl) {
+        yearEl.textContent = new Date().getFullYear();
+      }
+
+      // Target Relaunch Date: February 1, 2027 at 00:00:00 Pacific Time (PST = UTC-8)
+      const targetTimestamp = new Date('2027-02-01T00:00:00-08:00').getTime();
+
+      const daysEl = document.getElementById('cd-days');
+      const hoursEl = document.getElementById('cd-hours');
+      const minutesEl = document.getElementById('cd-minutes');
+      const secondsEl = document.getElementById('cd-seconds');
+
+      function padZero(num) {
+        return String(num).padStart(2, '0');
+      }
+
+      function updateCountdown() {
+        const now = Date.now();
+        const diff = targetTimestamp - now;
+
+        if (diff <= 0) {
+          daysEl.textContent = '00';
+          hoursEl.textContent = '00';
+          minutesEl.textContent = '00';
+          secondsEl.textContent = '00';
+          return;
+        }
+
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((diff / (1000 * 60)) % 60);
+        const seconds = Math.floor((diff / 1000) % 60);
+
+        daysEl.textContent = days;
+        hoursEl.textContent = padZero(hours);
+        minutesEl.textContent = padZero(minutes);
+        secondsEl.textContent = padZero(seconds);
+      }
+
+      updateCountdown();
+      setInterval(updateCountdown, 1000);
+
+      // Notify Me Form Handling (No alert() dialogs)
+      const notifyForm = document.getElementById('notify-form');
+      const notifyInput = document.getElementById('notify-email');
+      const notifyFeedback = document.getElementById('notify-feedback');
+
+      if (notifyForm) {
+        notifyForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          const email = notifyInput.value.trim();
+          const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+          notifyFeedback.classList.remove('hidden', 'bg-rose-50', 'text-rose-700', 'border-rose-200', 'bg-emerald-50', 'text-emerald-800', 'border-emerald-200');
+
+          if (!isValidEmail) {
+            notifyFeedback.textContent = 'Please enter a valid email address so we can notify you.';
+            notifyFeedback.classList.add('bg-rose-50', 'text-rose-700', 'border', 'border-rose-200');
+            notifyInput.focus();
+            return;
+          }
+
+          notifyFeedback.textContent = `Thanks! We’ll send a one-time alert to ${email} on February 1, 2027.`;
+          notifyFeedback.classList.add('bg-emerald-50', 'text-emerald-800', 'border', 'border-emerald-200');
+          notifyInput.value = '';
+        });
+      }
+
+      // Copy Support Email Button using execCommand fallback for iframe compatibility
+      const copyBtn = document.getElementById('copy-email-btn');
+      const copyIcon = document.getElementById('copy-icon');
+      const checkIcon = document.getElementById('check-icon');
+
+      if (copyBtn) {
+        copyBtn.addEventListener('click', function () {
+          const emailText = 'ryan@displaycellpros.com';
+          const tempInput = document.createElement('input');
+          tempInput.value = emailText;
+          document.body.appendChild(tempInput);
+          tempInput.select();
+          try {
+            document.execCommand('copy');
+            copyIcon.classList.add('hidden');
+            checkIcon.classList.remove('hidden');
+            setTimeout(function () {
+              copyIcon.classList.remove('hidden');
+              checkIcon.classList.add('hidden');
+            }, 2000);
+          } catch (err) {
+            // Silently ignore if blocked
+          }
+          document.body.removeChild(tempInput);
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
