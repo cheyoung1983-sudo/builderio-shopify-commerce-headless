@@ -43,32 +43,6 @@
       updateCountdown();
       setInterval(updateCountdown, 1000);
 
-      // Notify Me Form Handling (No alert() dialogs)
-      const notifyForm = document.getElementById('notify-form');
-      const notifyInput = document.getElementById('notify-email');
-      const notifyFeedback = document.getElementById('notify-feedback');
-
-      if (notifyForm) {
-        notifyForm.addEventListener('submit', function (e) {
-          e.preventDefault();
-          const email = notifyInput.value.trim();
-          const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
-          notifyFeedback.classList.remove('hidden', 'bg-rose-50', 'text-rose-700', 'border-rose-200', 'bg-emerald-50', 'text-emerald-800', 'border-emerald-200');
-
-          if (!isValidEmail) {
-            notifyFeedback.textContent = 'Please enter a valid email address so we can notify you.';
-            notifyFeedback.classList.add('bg-rose-50', 'text-rose-700', 'border', 'border-rose-200');
-            notifyInput.focus();
-            return;
-          }
-
-          notifyFeedback.textContent = `Thanks! We’ll send a one-time alert to ${email} on February 1, 2027.`;
-          notifyFeedback.classList.add('bg-emerald-50', 'text-emerald-800', 'border', 'border-emerald-200');
-          notifyInput.value = '';
-        });
-      }
-
       // Copy Support Email Button using execCommand fallback for iframe compatibility
       const copyBtn = document.getElementById('copy-email-btn');
       const copyIcon = document.getElementById('copy-icon');
