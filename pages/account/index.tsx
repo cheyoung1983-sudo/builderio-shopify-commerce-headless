@@ -143,13 +143,6 @@ export default function AccountPage({ customer, loginError, tribalMode }: Accoun
 
                   {/* Header Actions */}
                   <div className="flex flex-wrap items-center gap-3">
-                    <Link
-                      href="/order-tracking"
-                      className="px-4 py-2.5 text-xs font-semibold text-neutral-800 bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 rounded-xl transition-colors inline-flex items-center gap-1.5"
-                    >
-                      <Truck className="w-3.5 h-3.5" />
-                      <span>Lookup by Order ID</span>
-                    </Link>
 
                     {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- full navigation to an API route redirect */}
                     <a
@@ -196,19 +189,6 @@ export default function AccountPage({ customer, loginError, tribalMode }: Accoun
                 >
                   <span>Sign in with Shopify</span>
                 </a>
-
-                <div className="mt-8 pt-6 border-t border-neutral-200">
-                  <p className="text-xs text-neutral-600 mb-2">
-                    Need to track a recent delivery without logging in?
-                  </p>
-                  <Link
-                    href="/order-tracking"
-                    className="text-xs font-semibold text-neutral-900 underline hover:text-neutral-700 inline-flex items-center gap-1"
-                  >
-                    <Package className="w-3.5 h-3.5" />
-                    <span>Track Order by ID & Email →</span>
-                  </Link>
-                </div>
               </div>
 
               {/* Unauthenticated tribal discount summary */}

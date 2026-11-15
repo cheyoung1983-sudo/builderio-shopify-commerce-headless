@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import type { GetServerSideProps } from 'next'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { Breadcrumbs } from '../components/common/Breadcrumbs'
@@ -6,6 +7,10 @@ import { OrderTracking } from '../components/orders'
 import { RepairStatusTracker } from '../components/services/RepairStatusTracker'
 import { ReservationMapOverlay } from '../components/tribal/ReservationMapOverlay'
 import { Truck, ShieldCheck, Clock, Headphones, ShoppingBag, Wrench } from 'lucide-react'
+
+// Order tracking is turned off for now (Ryan, Nov 15 2026): /order-tracking
+// and /track return 404. Remove this getServerSideProps to bring it back.
+export const getServerSideProps: GetServerSideProps = async () => ({ notFound: true })
 
 export default function OrderTrackingPage() {
   const router = useRouter()

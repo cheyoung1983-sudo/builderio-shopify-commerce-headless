@@ -330,9 +330,6 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({
             const totalQuantity = lineItems.reduce((sum, item) => sum + (item.node.quantity || 1), 0)
             const isExpanded = expandedOrderId === order.id
             const orderCleanNumber = order.name.replace(/^#/, '')
-            const trackingHref = `/order-tracking?orderId=${encodeURIComponent(order.name)}${
-              customerEmail ? `&email=${encodeURIComponent(customerEmail)}` : ''
-            }`
 
             return (
               <div
@@ -392,15 +389,6 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({
 
                   {/* Actions: Track Package CTA + Expand Details */}
                   <div className="flex items-center gap-2 self-start md:self-auto">
-                    <Link
-                      href={trackingHref}
-                      id={`track-btn-${orderCleanNumber}`}
-                      className="px-4 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-2xs transition-colors"
-                    >
-                      <Truck className="w-3.5 h-3.5" />
-                      <span>Track Details</span>
-                      <ArrowRight className="w-3 h-3 text-neutral-400" />
-                    </Link>
 
                     <button
                       type="button"
@@ -512,13 +500,6 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({
 
                     <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-neutral-200 text-xs text-neutral-600">
                       <span>Order ID: <code className="font-mono text-neutral-800">{order.id}</code></span>
-                      <Link
-                        href={trackingHref}
-                        className="font-semibold text-neutral-900 underline hover:text-neutral-700 inline-flex items-center gap-1"
-                      >
-                        <span>Open Full Delivery Tracking & Live Milestones</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </Link>
                     </div>
                   </div>
                 )}
