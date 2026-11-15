@@ -127,9 +127,6 @@ export function ReservationMapOverlay({
                 : 'Delivery location is outside tribal reservation boundaries. Standard commercial discount applies.'}
             </span>
           </div>
-          <span className="font-mono text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400">
-            GIS Accuracy: 99.98%
-          </span>
         </div>
       </div>
     </div>
