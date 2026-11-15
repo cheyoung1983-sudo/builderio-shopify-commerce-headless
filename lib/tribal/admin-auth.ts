@@ -1,9 +1,7 @@
 import type { NextApiRequest } from 'next'
-import { parseCookieHeader } from './manual-review'
 
 export const ADMIN_ALLOWLIST = [
   'ryan@displaycellpros.com',
-  'cheyoung1983@gmail.com',
 ]
 
 /**
@@ -15,35 +13,50 @@ export function isAdminEmail(email?: string | null): boolean {
   return ADMIN_ALLOWLIST.includes(cleanEmail)
 }
 
+export interface AdminSessionUser {
+  email?: string | null
+  email_verified?: boolean | null
+}
+
+/** Resolves the signed-in user from the server-side session. */
+export type AdminSessionResolver = (req: NextApiRequest) => Promise<AdminSessionUser | null>
+
 /**
- * Extracts and validates the authenticated admin email from a NextApiRequest.
- * Checks cookies, headers, and environment overrides.
+ * Default resolver: the server-side Auth0 session (encrypted, signed cookie
+ * validated by the Auth0 SDK). Fails closed (null) when Auth0 is not configured.
  */
-export function getAdminEmailFromRequest(req: NextApiRequest): string | null {
-  // 1. Header overrides (e.g. x-admin-email from proxy/middleware or test environment)
-  const headerEmail = req.headers['x-admin-email'] || req.headers['x-user-email']
-  if (typeof headerEmail === 'string' && isAdminEmail(headerEmail)) {
-    return headerEmail.trim().toLowerCase()
+export const auth0SessionResolver: AdminSessionResolver = async (req) => {
+  if (!(process.env.AUTH0_DOMAIN && process.env.AUTH0_CLIENT_ID && process.env.AUTH0_SECRET)) return null
+  try {
+    const { auth0 } = await import('../auth0.ts')
+    const session = await auth0.getSession(req as any)
+    return (session?.user as AdminSessionUser | undefined) || null
+  } catch {
+    return null
   }
-
-  // 2. Cookie parsing (Auth0 or session cookie)
-  const cookies = parseCookieHeader(req.headers.cookie)
-  if (cookies.user_email && isAdminEmail(cookies.user_email)) {
-    return cookies.user_email.trim().toLowerCase()
-  }
-
-  // 3. Fallback check for query email if provided
-  const queryEmail = req.query.adminEmail
-  if (typeof queryEmail === 'string' && isAdminEmail(queryEmail)) {
-    return queryEmail.trim().toLowerCase()
-  }
-
-  return null
 }
 
 /**
- * Verifies whether the request is originated by an authorized admin user.
+ * Returns the reviewer's email ONLY from the authenticated server-side session.
+ *
+ * Never trusts client-controlled input: the `x-admin-email` / `x-user-email`
+ * headers, the `user_email` cookie and the `?adminEmail=` query parameter are
+ * ignored. The session email must be verified and on ADMIN_ALLOWLIST. The HTTP
+ * Basic Auth in proxy.ts stays as the outer layer for /api/tribal/admin.
  */
-export function isAdminSession(req: NextApiRequest): boolean {
-  return getAdminEmailFromRequest(req) !== null
+export async function getAdminEmailFromRequest(
+  req: NextApiRequest,
+  resolveSession: AdminSessionResolver = auth0SessionResolver
+): Promise<string | null> {
+  const user = await resolveSession(req).catch(() => null)
+  if (!user || typeof user.email !== 'string') return null
+  if (user.email_verified === false) return null
+  return isAdminEmail(user.email) ? user.email.trim().toLowerCase() : null
+}
+
+/**
+ * Verifies whether the request comes from an authenticated, allowlisted admin session.
+ */
+export async function isAdminSession(req: NextApiRequest, resolveSession?: AdminSessionResolver): Promise<boolean> {
+  return (await getAdminEmailFromRequest(req, resolveSession)) !== null
 }

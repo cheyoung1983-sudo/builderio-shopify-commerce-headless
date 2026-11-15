@@ -10,7 +10,9 @@ import { useUser } from '@auth0/nextjs-auth0/client'
 export default function TribalAuditAdminPage() {
   const { user, isLoading } = useUser()
 
-  const userEmail = user?.email || 'cheyoung1983@gmail.com' // Fallback for dev session
+  // No fallback identity: the page shows the dashboard only for a signed-in allowlisted admin.
+  // The APIs enforce this again on the server from the Auth0 session.
+  const userEmail = user?.email || ''
   const isAuthorized = isAdminEmail(userEmail)
 
   return (
@@ -52,9 +54,14 @@ export default function TribalAuditAdminPage() {
               <h2 className="text-xl font-bold text-slate-900">Access Denied</h2>
               <p className="text-xs text-slate-600 leading-relaxed">
                 The Tribal Verification Audit Dashboard is restricted exclusively to authorized administrators (
-                <span className="font-semibold text-slate-800">ryan@displaycellpros.com</span> and{' '}
-                <span className="font-semibold text-slate-800">cheyoung1983@gmail.com</span>). Your signed-in email (
-                <span className="font-mono text-rose-700">{userEmail}</span>) is not on the admin allowlist.
+                <span className="font-semibold text-slate-800">ryan@displaycellpros.com</span>).{' '}
+                {userEmail ? (
+                  <>
+                    Your signed-in email (<span className="font-mono text-rose-700">{userEmail}</span>) is not on the admin allowlist.
+                  </>
+                ) : (
+                  'Please sign in with the administrator account.'
+                )}
               </p>
               <div className="pt-2">
                 <Link
