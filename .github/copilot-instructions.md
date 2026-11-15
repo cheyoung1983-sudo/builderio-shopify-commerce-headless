@@ -44,7 +44,7 @@ Builder components live in `blocks/`; shared UI lives in `components/`. `lib/res
 
 `services/shopify.ts` is the primary Storefront API client used by the app for product/catalog and cart operations. Shopify environment configuration belongs in `config/shopify.ts`. `services/shopify-admin.ts` and `services/shopify-customer-account.ts` serve distinct server-side Admin API and Customer Account API use cases; do not substitute one client for another.
 
-The older hook-based client under `lib/shopify/storefront-data-hooks/` remains in use by Builder content resolution. Check existing call sites before changing or replacing either data path.
+The older hook-based client under `lib/shopify/storefront-data-hooks/` remains in use by Builder content resolution and `context/CartContext.tsx`. Check existing call sites before changing or replacing either data path. Storefront reads may fall back to `lib/shopify/demo-catalog.ts` when credentials are missing or restricted; check the result's `isDemo`/`notice` before treating demo data as a broken integration.
 
 `context/CartContext.tsx` owns app-wide cart state and reconciliation; `lib/cart-storage.ts` defines cart persistence. Preserve the existing cart model and reconciliation behavior when changing cart UI or API calls.
 
