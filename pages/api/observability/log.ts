@@ -28,8 +28,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return
   }
 
-  if (!rateLimiter.check(getClientKey(req)).allowed) {
-    const result = rateLimiter.check(getClientKey(req))
+  // Check once: calling check() twice counted every request double.
+  const result = rateLimiter.check(getClientKey(req))
+  if (!result.allowed) {
     res.setHeader('Retry-After', String(result.retryAfterSeconds))
     return res.status(429).json({ ok: false, error: 'Too many requests' })
   }

@@ -112,6 +112,18 @@ const CATALOG_SUGGESTION_TERMS = [
   'OEM Display',
 ]
 
+const SECTION_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
+
+/** Escape text for safe use inside HTML element content and quoted attributes. */
+export function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -125,7 +137,13 @@ export default async function handler(
   // Parse parameters from query or body
   const params = req.method === 'GET' ? req.query : req.body || {}
   const rawQ = typeof params.q === 'string' ? params.q.trim() : ''
-  const sectionId = typeof params.section_id === 'string' ? params.section_id : null
+  const rawSectionId = typeof params.section_id === 'string' ? params.section_id : null
+  // Shopify section ids are short slugs. Anything else is rejected instead of being
+  // echoed into the HTML response (reflected HTML injection).
+  if (rawSectionId !== null && !SECTION_ID_PATTERN.test(rawSectionId)) {
+    return res.status(400).json({ error: 'Invalid section_id' })
+  }
+  const sectionId = rawSectionId
 
   if (!rawQ) {
     return res.status(200).json({
@@ -272,12 +290,12 @@ export default async function handler(
       queries = suggestionCandidates.slice(0, 4).map((text) => {
         // Highlight matching query substring in styled_text
         const index = text.toLowerCase().indexOf(lowerQ)
-        let styledText = text
+        let styledText = escapeHtml(text)
         if (index >= 0) {
           const before = text.slice(0, index)
           const match = text.slice(index, index + lowerQ.length)
           const after = text.slice(index + lowerQ.length)
-          styledText = `${before}<b>${match}</b>${after}`
+          styledText = `${escapeHtml(before)}<b>${escapeHtml(match)}</b>${escapeHtml(after)}`
         }
 
         return {
@@ -341,7 +359,7 @@ function generatePredictiveSearchHtml(params: {
   const { sectionId, terms, products, collections, pages, queries } = params
 
   return `
-    <div id="shopify-section-${sectionId}">
+    <div id="shopify-section-${escapeHtml(sectionId)}">
       <div id="predictive-search-results">
         ${
           queries.length > 0
@@ -353,7 +371,7 @@ function generatePredictiveSearchHtml(params: {
                 .map(
                   (q) => `
                 <li role="option">
-                  <a href="${q.url}">${q.styled_text}</a>
+                  <a href="${escapeHtml(q.url)}">${q.styled_text}</a>
                 </li>
               `
                 )
@@ -374,10 +392,10 @@ function generatePredictiveSearchHtml(params: {
                 .map(
                   (p) => `
                 <li role="option">
-                  <a href="${p.url}">
-                    ${p.image ? `<img src="${p.image}" alt="${p.title}" width="50" height="50" />` : ''}
-                    <span>${p.title}</span>
-                    <span class="price">${p.price}</span>
+                  <a href="${escapeHtml(p.url)}">
+                    ${p.image ? `<img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.title)}" width="50" height="50" />` : ''}
+                    <span>${escapeHtml(p.title)}</span>
+                    <span class="price">${escapeHtml(p.price)}</span>
                   </a>
                 </li>
               `
@@ -399,7 +417,7 @@ function generatePredictiveSearchHtml(params: {
                 .map(
                   (c) => `
                 <li role="option">
-                  <a href="${c.url}">${c.title}</a>
+                  <a href="${escapeHtml(c.url)}">${escapeHtml(c.title)}</a>
                 </li>
               `
                 )
@@ -420,7 +438,7 @@ function generatePredictiveSearchHtml(params: {
                 .map(
                   (pg) => `
                 <li role="option">
-                  <a href="${pg.url}">${pg.title}</a>
+                  <a href="${escapeHtml(pg.url)}">${escapeHtml(pg.title)}</a>
                 </li>
               `
                 )
@@ -433,7 +451,7 @@ function generatePredictiveSearchHtml(params: {
 
         <div class="predictive-search__footer">
           <a href="/search?q=${encodeURIComponent(terms)}" class="predictive-search__button">
-            Search for &ldquo;${terms}&rdquo;
+            Search for &ldquo;${escapeHtml(terms)}&rdquo;
           </a>
         </div>
       </div>

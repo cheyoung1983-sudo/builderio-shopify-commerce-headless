@@ -143,18 +143,7 @@ const Navbar: FC = () => {
                   >
                     Styles &amp; Trends
                   </Link>
-                  <Link
-                    href="/admin/tribal-audit"
-                    className="ml-1 inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors"
-                  >
-                    Tribal Audit
-                  </Link>
-                  <Link
-                    href="/admin/wholesale-integration"
-                    className="ml-1 inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors"
-                  >
-                    Wholesale Hub
-                  </Link>
+                  {/* Admin tools (/admin/*) are password-protected and intentionally not linked from the public menu. */}
 
 
 
