@@ -11,7 +11,7 @@ export interface LogoutButtonProps {
 
 export default function LogoutButton({
   className = '',
-  returnTo = '/track-repair',
+  returnTo = '/',
   children,
 }: LogoutButtonProps) {
   const logoutUrl = `/api/auth/logout?returnTo=${encodeURIComponent(returnTo)}`

@@ -11,7 +11,7 @@ export interface LoginButtonProps {
 
 export default function LoginButton({
   className = '',
-  returnTo = '/track-repair',
+  returnTo = '/',
   children,
 }: LoginButtonProps) {
   const loginUrl = `/api/auth/login?returnTo=${encodeURIComponent(returnTo)}`
