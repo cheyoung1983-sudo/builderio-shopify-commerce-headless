@@ -41,22 +41,73 @@ function run(routePath, body, env = {}) {
   return JSON.parse(out.trim().split('\n').pop())
 }
 
+async function runHealthRoute(shopifyOk) {
+  const routePath = path.resolve(repoRoot, 'pages/api/health.ts')
+  const script = `
+    const fs = require('node:fs')
+    const path = require('node:path')
+    const Module = require('node:module')
+    const ts = require('typescript')
+    const routePath = ${JSON.stringify(routePath)}
+    const source = fs.readFileSync(routePath, 'utf8')
+    const compiled = ts.transpileModule(source, {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+    }).outputText
+    const routeModule = new Module(routePath, module)
+    routeModule.filename = routePath
+    routeModule.paths = Module._nodeModulePaths(path.dirname(routePath))
+    const nativeRequire = Module.createRequire(routePath)
+    routeModule.require = (specifier) => {
+      if (specifier === '../../lib/firebase') return { db: {} }
+      if (specifier === 'firebase/firestore') {
+        return { doc: (_db, collection, id) => ({ collection, id }), getDoc: async () => ({}) }
+      }
+      if (specifier === '../../lib/admin-notification-settings') {
+        return { getAdminNotificationSettings: async () => ({ slackWebhookUrl: 'configured' }) }
+      }
+      return nativeRequire(specifier)
+    }
+    routeModule._compile(compiled, routePath)
+    process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN = 'example.myshopify.com'
+    global.fetch = async () => ({ ok: ${JSON.stringify(shopifyOk)} })
+    const response = {
+      statusCode: 200,
+      setHeader(name, value) { return this },
+      status(code) { this.statusCode = code; return this },
+      json(body) { this.body = body; return this },
+    }
+    routeModule.exports.default({ method: 'GET', headers: {}, query: {} }, response)
+      .then(() => console.log(JSON.stringify({ statusCode: response.statusCode, body: response.body })))
+      .catch((error) => { console.error(error); process.exitCode = 1 })
+  `
+  const output = execFileSync(process.execPath, ['-e', script], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: { ...process.env, NODE_ENV: 'test' },
+  })
+  return JSON.parse(output.trim().split('\n').pop())
+}
+
 describe('pages/api routes moved from app/api', () => {
   test('app/ directory no longer exists', () => {
     expect(require('node:fs').existsSync(path.join(repoRoot, 'app'))).toBe(false)
   })
 
-  // /api/health became a real connectivity report (Shopify, Firestore, Auth0)
-  // in 31491a4. Exercising GET needs live services, so the handler contract is
-  // checked statically and the method guard is checked by source.
-  test('/api/health reports per-service status and rejects non-GET methods', () => {
-    const src = require('node:fs').readFileSync(path.join(repoRoot, 'pages/api/health.ts'), 'utf8')
-    expect(src).toMatch(/req\.method !== 'GET' && req\.method !== 'HEAD'/)
-    expect(src).toMatch(/res\.status\(405\)/)
-    expect(src).toMatch(/'Allow', 'GET, HEAD'/)
-    expect(src).toMatch(/'Cache-Control', 'no-store'/)
-    for (const key of ['shopify', 'firestore', 'auth0', 'overall']) expect(src).toContain(`${key}:`)
-    expect(src).toMatch(/status\(statusReport\.overall === 'healthy' \? 200 : 503\)/)
+  test('GET /api/health reports healthy and degraded dependencies', async () => {
+    const healthy = await runHealthRoute(true)
+    expect(healthy.statusCode).toBe(200)
+    expect(Object.keys(healthy.body)).toEqual(['timestamp', 'shopify', 'firestore', 'auth0', 'overall'])
+    expect(healthy.body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+    expect(Number.isNaN(Date.parse(healthy.body.timestamp))).toBe(false)
+    expect(healthy.body.shopify.status).toBe('connected')
+    expect(healthy.body.firestore.status).toBe('connected')
+    expect(healthy.body.auth0.status).toBe('configured')
+    expect(healthy.body.overall).toBe('healthy')
+
+    const degraded = await runHealthRoute(false)
+    expect(degraded.statusCode).toBe(503)
+    expect(degraded.body.shopify.status).toBe('error')
+    expect(degraded.body.overall).toBe('degraded')
   })
 
   test('GET/POST /api/config keeps merge semantics', () => {

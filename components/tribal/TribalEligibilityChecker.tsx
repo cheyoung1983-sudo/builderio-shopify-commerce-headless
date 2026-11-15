@@ -15,9 +15,8 @@ const SUPPORT_PHONE_DISPLAY = '(509) 255-3852'
 const SUPPORT_PHONE_HREF = 'tel:+15092553852'
 
 /**
- * Tribal discount eligibility info. There is no online enrollment check: tribal
- * verification is by manual review, so this shows how to request it. It never
- * reports a customer as verified and never shows or copies a discount code.
+ * Tribal enrollment is verified by manual review; this component explains how
+ * customers can request review without collecting an enrollment number online.
  */
 export const TribalEligibilityChecker: React.FC<TribalEligibilityCheckerProps> = ({
   className = '',

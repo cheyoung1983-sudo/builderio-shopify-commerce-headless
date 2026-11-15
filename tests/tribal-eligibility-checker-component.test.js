@@ -17,10 +17,13 @@ describe('TribalEligibilityChecker Component (manual-review messaging)', () => {
     expect(content).not.toContain('claimedByUid')
     expect(content).not.toContain('useAuth')
     expect(content).not.toContain('<input')
+    expect(content).not.toContain("doc(db, 'tribal_registry',")
+    expect(content).not.toContain('getDoc')
   })
 
   test('tells the customer verification is manual and nothing is applied until reviewed', () => {
     const content = fs.readFileSync(componentPath, 'utf8')
+    expect(content).toContain('tribal-manual-review-notice')
     expect(content).toContain('verified by our team')
     expect(content).toContain('no discount or tax exemption')
     expect(content).toContain('tel:+15092553852')

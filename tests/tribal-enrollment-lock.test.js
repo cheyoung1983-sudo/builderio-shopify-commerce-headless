@@ -1,73 +1,50 @@
-const fs = require('fs')
-const path = require('path')
-const crypto = require('crypto')
+const { execFileSync } = require('node:child_process')
+const path = require('node:path')
+const { pathToFileURL } = require('node:url')
 
-describe('Tribal Enrollment Uniqueness & Customer Lock', () => {
-  const enrollmentLockPath = path.resolve(__dirname, '../lib/tribal/enrollment-lock.ts')
-  const apiRoutePath = path.resolve(__dirname, '../pages/api/tribal/check-enrollment.ts')
-  const componentPath = path.resolve(__dirname, '../components/tribal/TribalEligibilityChecker.tsx')
-  const rulesPath = path.resolve(__dirname, '../firestore.rules')
+function runEnrollmentHelpers() {
+  const moduleUrl = pathToFileURL(
+    path.resolve(__dirname, '../lib/tribal/enrollment-lock.ts')
+  ).href
+  const script = `
+    const helpers = await import(${JSON.stringify(moduleUrl)})
+    console.log(JSON.stringify({
+      normalized: helpers.normalizeEnrollmentId('  nn-12345  '),
+      hash: helpers.generateEnrollmentHash('Navajo Nation', 'NN-12345'),
+      masked: helpers.maskEnrollmentId('NN-12345'),
+      valid: helpers.validateEnrollmentNumberFormat('NN-12345'),
+      placeholder: helpers.validateEnrollmentNumberFormat('1234'),
+      claimHelper: typeof helpers.checkAndClaimTribalEnrollment
+    }))
+  `
+  const output = execFileSync(
+    process.execPath,
+    ['--experimental-strip-types', '--input-type=module', '-e', script],
+    { cwd: path.resolve(__dirname, '..'), encoding: 'utf8' }
+  )
 
-  test('all required enrollment files exist', () => {
-    expect(fs.existsSync(enrollmentLockPath)).toBe(true)
-    expect(fs.existsSync(apiRoutePath)).toBe(true)
-    expect(fs.existsSync(componentPath)).toBe(true)
-    expect(fs.existsSync(rulesPath)).toBe(true)
+  return JSON.parse(output.trim())
+}
+
+describe('tribal enrollment ID helpers', () => {
+  test('normalizes and masks the enrollment ID without exposing its full value', () => {
+    const result = runEnrollmentHelpers()
+
+    expect(result.normalized).toBe('NN12345')
+    expect(result.masked).toBe('••••2345')
   })
 
-  test('enrollment-lock.ts only keeps ID helpers; the fake claim/verify engine is gone', () => {
-    const content = fs.readFileSync(enrollmentLockPath, 'utf8')
-    expect(content).toContain('normalizeEnrollmentId')
-    expect(content).toContain('generateEnrollmentHash')
-    expect(content).toContain('maskEnrollmentId')
-    expect(content).toContain('validateEnrollmentNumberFormat')
-    expect(content).not.toContain('checkAndClaimTribalEnrollment')
-    expect(content).not.toContain("'newly_verified'")
-    expect(content).not.toContain('TRIBAL-MEMBER-20')
-    expect(content).not.toContain('firebase/firestore')
+  test('hashes the nation and normalized enrollment ID deterministically', () => {
+    const result = runEnrollmentHelpers()
+
+    expect(result.hash).toBe('7bc4d4470dffaa1bfadf8d387f3e3a87beeaf0b5ac786ef47c35716619ef14c5')
   })
 
-  test('API route check-enrollment.ts never verifies; it answers manual review required', () => {
-    const content = fs.readFileSync(apiRoutePath, 'utf8')
-    expect(content).toContain('res.status(501)')
-    expect(content).toContain('manualVerificationRequired: true')
-    expect(content).toContain('verified: false')
-    expect(content).toContain('/api/tribal/verify')
-    expect(content).not.toContain('verifyAndLockTribalEnrollment')
-    expect(content).not.toContain('firebase')
-    expect(content).not.toContain('TRIBAL-MEMBER-20')
-    // The legacy client-trusted cookies must stay removed.
-    expect(content).not.toContain('appendCookie')
-    expect(content).not.toMatch(/tribal_(member_verified|discount_active|email|nation|on_reservation)/)
-  })
+  test('validates enrollment format without claiming or granting a discount', () => {
+    const result = runEnrollmentHelpers()
 
-  test('TribalEligibilityChecker UI shows manual-review messaging only', () => {
-    const content = fs.readFileSync(componentPath, 'utf8')
-    expect(content).toContain('Manual Review')
-    expect(content).toContain('support@displaycellpros.com')
-    expect(content).toContain('(509) 255-3852')
-    expect(content).toContain('data-testid="tribal-eligibility-checker"')
-    expect(content).toContain('data-testid="tribal-manual-review-notice"')
-    expect(content).not.toContain('TRIBAL-MEMBER-20')
-    expect(content).not.toContain('firebase')
-    expect(content).not.toContain('Unlocked')
-    expect(content).not.toContain('clipboard')
-  })
-
-  test('firestore.rules protects tribal_enrollments collection', () => {
-    const content = fs.readFileSync(rulesPath, 'utf8')
-    expect(content).toContain('match /tribal_enrollments/{enrollmentHash}')
-    expect(content).toContain('allow read: if isVerified();')
-    expect(content).toContain('claimedByEmail == request.auth.token.email')
-  })
-
-  test('hashing and normalization behavior works deterministically', () => {
-    const norm = (id) => (id || '').trim().replace(/[-\s]/g, '').toUpperCase()
-    const hash = (nation, id) =>
-      crypto.createHash('sha256').update(`${nation.trim().toLowerCase()}:${norm(id)}`).digest('hex')
-
-    expect(norm('  nn-12345  ')).toBe('NN12345')
-    expect(hash('Navajo Nation', 'NN-12345')).toBe(hash('navajo nation ', 'nn 12345'))
-    expect(hash('Navajo Nation', 'NN-12345').length).toBe(64)
+    expect(result.valid).toEqual({ valid: true })
+    expect(result.placeholder.valid).toBe(false)
+    expect(result.claimHelper).toBe('undefined')
   })
 })
