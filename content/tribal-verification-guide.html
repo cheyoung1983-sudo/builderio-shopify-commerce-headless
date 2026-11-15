@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tribal Member Verification &amp; Checkout Tax Compliance Reference Architecture</title>
+    <title>Tribal Member Discount &amp; Washington Sales Tax Guide | Display &amp; Cell Pros</title>
     <link rel="stylesheet" href="/tribal-guide/tribal-guide.css">
 </head>
 <body class="antialiased selection:bg-blue-600 selection:text-white">
@@ -11,26 +11,21 @@
     <header class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
-                <div class="flex items-center space-x-3">
-                    <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-blue-600 text-white font-extrabold text-sm tracking-tight shadow-sm">REF</span>
+                <a href="/" class="flex items-center space-x-3 group">
+                    <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-slate-900 text-white font-extrabold text-sm tracking-tight shadow-sm group-hover:bg-blue-600 transition-colors">DCP</span>
                     <div>
-                        <div class="text-sm font-bold text-slate-900 leading-tight">Tribal Verification Architecture</div>
-                        <div class="text-xs text-slate-500">E-Commerce &amp; Tax Compliance Guide</div>
+                        <div class="text-sm font-bold text-slate-900 leading-tight">Display &amp; Cell Pros</div>
+                        <div class="text-xs text-slate-500">Tribal Member Discount &amp; Tax Guide</div>
                     </div>
-                </div>
+                </a>
                 <nav class="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-600">
-                    <a href="#overview" class="nav-link py-5 border-b-2 border-transparent hover:text-blue-600 transition-colors">Federal Data</a>
-                    <a href="#architecture" class="nav-link py-5 border-b-2 border-transparent hover:text-blue-600 transition-colors">Platform Bridge</a>
-                    <a href="#schema" class="nav-link py-5 border-b-2 border-transparent hover:text-blue-600 transition-colors">Data Model</a>
-                    <a href="#simulator" class="nav-link py-5 border-b-2 border-transparent hover:text-blue-600 transition-colors">Checkout Simulator</a>
-                    <a href="#jurisdictions" class="nav-link py-5 border-b-2 border-transparent hover:text-blue-600 transition-colors">State Tax Rules</a>
-                    <a href="#roadmap" class="nav-link py-5 border-b-2 border-transparent hover:text-blue-600 transition-colors">Blueprint</a>
+                    <a href="#overview" class="nav-link py-5 border-b-2 border-transparent hover:text-blue-600 transition-colors">Federal List</a>
+                    <a href="#how-it-works" class="nav-link py-5 border-b-2 border-transparent hover:text-blue-600 transition-colors">How It Works</a>
+                    <a href="#simulator" class="nav-link py-5 border-b-2 border-transparent hover:text-blue-600 transition-colors">Checkout Examples</a>
+                    <a href="#washington" class="nav-link py-5 border-b-2 border-transparent hover:text-blue-600 transition-colors">Washington Tax</a>
+                    <a href="#future" class="nav-link py-5 border-b-2 border-transparent hover:text-blue-600 transition-colors">Future Design</a>
                 </nav>
-                <div class="flex items-center space-x-2">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-cyan-100 text-cyan-900 border border-cyan-300">
-                        &#128218; Public Reference Guide
-                    </span>
-                </div>
+                <a href="/" class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white hover:bg-blue-600 transition-colors">&larr; Back to home</a>
             </div>
         </div>
     </header>
@@ -39,33 +34,33 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="max-w-4xl">
                 <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-cyan-300 text-xs font-semibold uppercase tracking-wider mb-5">
-                    <span>&#128737;&#65039; Spatial GIS &bull; Document Intelligence &bull; Checkout Tax Compliance</span>
+                    <span>Display &amp; Cell Pros &bull; Reference Guide</span>
                 </div>
                 <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-5">
-                    Federally Enrolled Tribal Member Verification &amp; <span class="text-cyan-400">Checkout Tax Compliance</span>
+                    Tribal Member Discount &amp; <span class="text-cyan-400">Washington Sales Tax</span>
                 </h1>
                 <p class="text-base sm:text-lg text-slate-300 leading-relaxed mb-8">
-                    Because no centralized federal API exists to query individual tribal citizenship rolls under Privacy Act (<span class="font-mono-code text-cyan-300">5 U.S.C. 552a</span>) protections, e-commerce merchants that offer tribal member discounts, and may need to handle on-reservation tax exemptions, can use a two-track approach. This public reference architecture demonstrates how identity verification, spatial GIS boundaries, and checkout tax rules separate Track 1 commercial pricing discounts from Track 2 statutory sales tax preemption.
+                    How our tribal member discount works today, and how a Washington sales tax exemption may apply. There are two separate parts: Track 1 is a store price discount for approved members. Track 2 is a possible state sales tax exemption, which is handled as a refund after checkout.
                 </p>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-8">
                 <div class="bg-white/10 backdrop-blur rounded-xl p-6 border border-white/15 shadow-lg">
                     <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-cyan-300">BIA 2026 Federal List</span>
+                        <span class="text-xs font-semibold uppercase tracking-wider text-cyan-300">BIA Federal List</span>
                         <span class="text-xl">&#127963;&#65039;</span>
                     </div>
                     <div class="text-4xl font-extrabold text-white mb-1">575</div>
-                    <p class="text-xs text-slate-300">Federally recognized tribes published in Federal Register <span class="font-mono-code">91 FR 4102</span> (Jan 30, 2026).</p>
+                    <p class="text-xs text-slate-300">Federally recognized tribes in the BIA list published in the Federal Register, <span class="font-mono-code">91 FR 4102</span> (Jan 30, 2026).</p>
                 </div>
 
                 <div class="bg-white/10 backdrop-blur rounded-xl p-6 border border-white/15 shadow-lg">
                     <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-amber-300">Track 1 Pricing Privilege</span>
+                        <span class="text-xs font-semibold uppercase tracking-wider text-amber-300">Track 1 Member Discount</span>
                         <span class="text-xl">&#127991;&#65039;</span>
                     </div>
                     <div class="text-4xl font-extrabold text-amber-400 mb-1">20% OFF</div>
-                    <p class="text-xs text-slate-300">Automatic commercial discount on eligible physical goods nationwide once citizenship is verified.</p>
+                    <p class="text-xs text-slate-300">A fixed 20% off parts and tools once your membership is approved. It does not apply to the $25 trip fee, the $40 diagnostic fee, shipping, or labor.</p>
                 </div>
 
                 <div class="bg-white/10 backdrop-blur rounded-xl p-6 border border-white/15 shadow-lg">
@@ -78,11 +73,11 @@
 
                 <div class="bg-white/10 backdrop-blur rounded-xl p-6 border border-white/15 shadow-lg">
                     <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-blue-300">Audit &amp; Privacy Balance</span>
+                        <span class="text-xs font-semibold uppercase tracking-wider text-blue-300">Your Privacy</span>
                         <span class="text-xl">&#128274;</span>
                     </div>
-                    <div class="text-4xl font-extrabold text-white mb-1">&ge; 5 Yrs</div>
-                    <p class="text-xs text-slate-300">Statutory tax record retention (<span class="font-mono-code">WAC 458-20-192</span>) paired with immediate raw ID PII purge.</p>
+                    <div class="text-2xl font-extrabold text-white mb-1">We keep the minimum</div>
+                    <p class="text-xs text-slate-300">After review we keep only the approval result, your tribe, the date, and the reviewer. ID images and enrollment numbers are deleted.</p>
                 </div>
             </div>
         </div>
@@ -92,89 +87,52 @@
 
         <section id="overview" class="scroll-mt-24">
             <div class="mb-8">
-                <span class="text-xs font-bold uppercase tracking-wider text-blue-600">01 &bull; Authoritative Reference Layer</span>
-                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">Federal Data Constraints &amp; The 2026 BIA Registry</h2>
+                <span class="text-xs font-bold uppercase tracking-wider text-blue-600">01 &bull; Federal Reference</span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">The 2026 BIA List of Federally Recognized Tribes</h2>
                 <p class="text-slate-600 mt-2 max-w-4xl leading-relaxed">
-                    Individual tribal enrollment databases are maintained independently by sovereign tribal nations and shielded from external queries; even federal Bureau of Indian Affairs (BIA) Certificate of Degree of Indian Blood (CDIB) requests require 4 to 12 months of regional processing. Consequently, compliant verification systems seed an authoritative registry with the 575 federally recognized entities published on January 30, 2026, while verifying individual credentials through document intelligence and human review.
+                    Tribal enrollment records are generally kept by each tribal nation and generally can't be looked up online. That is why a person on our team reviews membership documents by hand. For reference, the Bureau of Indian Affairs (BIA) published its current list of 575 federally recognized tribes on January 30, 2026.
                 </p>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-                <div class="lg:col-span-6 bg-white rounded-xl shadow-md border border-slate-200 p-6 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <h3 class="text-lg font-bold text-slate-900">Credential Standardization Across 575 Tribes</h3>
-                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">WHTI ETC Gap</span>
-                        </div>
-                        <p class="text-sm text-slate-600 mb-4">
-                            Only approximately 12 to 15 federally recognized tribes issue Western Hemisphere Travel Initiative (WHTI) Enhanced Tribal Cards (ETCs) with RFID and Machine Readable Zones (MRZs). Roughly 97.6% of recognized tribes issue standard ID cards or official enrollment letters lacking border-grade MRZs.
-                        </p>
-                    </div>
-                    <div class="chart-container my-2">
-                        <canvas id="credentialLandscapeChart"></canvas>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500">
-                        <strong class="text-slate-700">Architectural Takeaway:</strong> Relying solely on automated MRZ barcode readers would reject ~97.6% of legitimate tribal members. Pairing AI document extraction with human review ensures inclusive verification.
-                    </div>
+            <div class="bg-white rounded-xl shadow-md border border-slate-200 p-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-lg font-bold text-slate-900">Federal Register <span class="font-mono-code text-blue-600">91 FR 4102</span></h3>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Doc 2026-01899</span>
                 </div>
-
-                <div class="lg:col-span-6 bg-white rounded-xl shadow-md border border-slate-200 p-6 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between mb-3">
-                            <h3 class="text-lg font-bold text-slate-900">Key 2026 Federal Register (<span class="font-mono-code text-blue-600">91 FR 4102</span>) Seed Rules</h3>
-                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Doc 2026-01899</span>
+                <p class="text-sm text-slate-600 mb-5">
+                    The January 30, 2026 BIA list includes 575 tribal entities in the contiguous 48 states and Alaska. It adds the Lumbee Tribe of North Carolina and includes some name changes.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-3.5 rounded-lg bg-amber-50 border border-amber-200">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-bold text-amber-950">Lumbee Tribe of North Carolina</span>
+                            <span class="px-2 py-0.5 rounded text-xs font-mono-code font-semibold bg-amber-200 text-amber-950">ADDED</span>
                         </div>
-                        <p class="text-sm text-slate-600 mb-5">
-                            The January 30, 2026 BIA list expanded from 574 to 575 entities across Contiguous 48 and Alaska segments. Registry seed pipelines must index legacy parenthetical names as searchable aliases and encode policy flags for conditional additions.
+                        <p class="text-xs text-amber-900 mt-1">
+                            Recognized by the FY2026 National Defense Authorization Act, enacted Dec 18, 2025 (<span class="font-mono-code">Pub. L. 119-60</span> Sec. 8803), with conditions that include Secretarial verification of the tribe's roll and a delay in federal services.
                         </p>
-
-                        <div class="space-y-3">
-                            <div class="p-3.5 rounded-lg bg-amber-50 border border-amber-200">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-sm font-bold text-amber-950">Lumbee Tribe of North Carolina</span>
-                                    <span class="px-2 py-0.5 rounded text-xs font-mono-code font-semibold bg-amber-200 text-amber-950">CONDITIONAL REVIEW</span>
-                                </div>
-                                <p class="text-xs text-amber-900 mt-1">
-                                    Added Dec 18, 2025 via FY2026 NDAA (<span class="font-mono-code">Pub. L. 119-60</span> Sec. 8803), subject to Secretarial roll verification and a 3-year delay in federal service delivery.
-                                </p>
-                            </div>
-
-                            <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-sm font-bold text-slate-900">2026 Renamed Tribes (Historical Alias Matching)</span>
-                                    <span class="px-2 py-0.5 rounded text-xs font-mono-code font-semibold bg-blue-100 text-blue-800">Alias Indexing</span>
-                                </div>
-                                <ul class="text-xs text-slate-600 mt-1.5 space-y-1">
-                                    <li>&bull; <strong>Cabazon Band of Cahuilla Indians</strong> (fka Cabazon Band of Mission Indians)</li>
-                                    <li>&bull; <strong>Yuhaaviatam of San Manuel Nation</strong> (fka San Manuel Band of Mission Indians)</li>
-                                    <li>&bull; <strong>Aleut Community of St. Paul Island</strong> (fka Saint Paul Island)</li>
-                                </ul>
-                            </div>
-
-                            <div class="p-3.5 rounded-lg bg-cyan-50 border border-cyan-200">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-sm font-bold text-cyan-950">Public ETC &amp; Spatial GIS Benchmarks</span>
-                                    <span class="px-2 py-0.5 rounded text-xs font-mono-code font-semibold bg-cyan-200 text-cyan-950">WHTI ETC / GIS</span>
-                                </div>
-                                <p class="text-xs text-cyan-900 mt-1">
-                                    Includes CBP-approved ETC issuers such as <strong>Confederated Tribes of the Colville Reservation</strong> and <strong>Muscogee (Creek) Nation</strong>.
-                                </p>
-                            </div>
-                        </div>
                     </div>
-                    <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500">
-                        <strong class="text-slate-700">Exclusion Guardrail:</strong> State-recognized tribes without federal BIA listing remain excluded to maintain alignment with federal recognition &amp; Department of the Interior eligibility standards.
+                    <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-bold text-slate-900">Examples of 2026 Name Changes</span>
+                            <span class="px-2 py-0.5 rounded text-xs font-mono-code font-semibold bg-blue-100 text-blue-800">Former Names</span>
+                        </div>
+                        <ul class="text-xs text-slate-600 mt-1.5 space-y-1">
+                            <li>&bull; <strong>Cabazon Band of Cahuilla Indians</strong> (previously listed as Cabazon Band of Mission Indians)</li>
+                            <li>&bull; <strong>Yuhaaviatam of San Manuel Nation</strong> (previously listed as San Manuel Band of Mission Indians)</li>
+                            <li>&bull; <strong>Aleut Community of St. Paul Island</strong> (previously listed as Saint Paul Island)</li>
+                        </ul>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section id="architecture" class="scroll-mt-24">
+        <section id="how-it-works" class="scroll-mt-24">
             <div class="mb-8">
-                <span class="text-xs font-bold uppercase tracking-wider text-blue-600">02 &bull; System Integration &amp; Platform Bridges</span>
-                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">Bridging Identity &amp; Checkout Platform Constraints</h2>
+                <span class="text-xs font-bold uppercase tracking-wider text-blue-600">02 &bull; How It Works Today</span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">From Membership Review to Checkout</h2>
                 <p class="text-slate-600 mt-2 max-w-4xl leading-relaxed">
-                    Standard off-the-shelf identity and payment platforms cannot execute U.S. tribal tax compliance alone: native <span class="font-mono-code text-xs bg-slate-200 px-1.5 py-0.5 rounded">tribalid</span> document classes in KYC tools typically target Canadian Tribal IDs, while automated checkout tax engines operate at the state or country level without storing signed exemption certificates. Select any stage below to inspect how middleware bridges these gaps.
+                    This is how the tribal member discount works on displaycellpros.com today. Select any step to see the details.
                 </p>
             </div>
 
@@ -182,217 +140,66 @@
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-stretch" id="pipelineGrid">
                     <button type="button" data-stage="0" class="pipeline-node text-left p-5 rounded-xl border-2 border-blue-600 bg-blue-50/70 shadow-sm transition-all cursor-pointer focus:outline-none">
                         <div class="flex items-center justify-between mb-2">
-                            <span class="px-2 py-0.5 rounded text-xs font-bold bg-blue-600 text-white">STAGE 1</span>
+                            <span class="px-2 py-0.5 rounded text-xs font-bold bg-blue-600 text-white">STEP 1</span>
                             <span class="text-lg">&#128100;</span>
                         </div>
-                        <h3 class="font-bold text-slate-900 text-base">Unified Identity Hub</h3>
-                        <p class="text-xs text-slate-600 mt-1">Auth provider &amp; storefront linked via canonical UUID passed as KYC Reference ID.</p>
-                        <div class="mt-3 text-xs font-semibold text-blue-700">Inspect Architecture &rarr;</div>
+                        <h3 class="font-bold text-slate-900 text-base">Your Account</h3>
+                        <p class="text-xs text-slate-600 mt-1">Shop and check out through our Shopify store.</p>
+                        <div class="mt-3 text-xs font-semibold text-blue-700">See details &rarr;</div>
                     </button>
 
                     <button type="button" data-stage="1" class="pipeline-node text-left p-5 rounded-xl border-2 border-slate-200 bg-slate-50 hover:border-blue-400 transition-all cursor-pointer focus:outline-none">
                         <div class="flex items-center justify-between mb-2">
-                            <span class="px-2 py-0.5 rounded text-xs font-bold bg-slate-700 text-white">STAGE 2</span>
+                            <span class="px-2 py-0.5 rounded text-xs font-bold bg-slate-700 text-white">STEP 2</span>
                             <span class="text-lg">&#128269;</span>
                         </div>
-                        <h3 class="font-bold text-slate-900 text-base">2-Step KYC &amp; Redaction</h3>
-                        <p class="text-xs text-slate-600 mt-1">US GovID + Custom Document AI + Reviewer Case Gate + immediate raw PII purge.</p>
-                        <div class="mt-3 text-xs font-semibold text-blue-700">Inspect Architecture &rarr;</div>
+                        <h3 class="font-bold text-slate-900 text-base">Staff Review</h3>
+                        <p class="text-xs text-slate-600 mt-1">A person on our team reviews your ID and tribal membership by hand.</p>
+                        <div class="mt-3 text-xs font-semibold text-blue-700">See details &rarr;</div>
                     </button>
 
                     <button type="button" data-stage="2" class="pipeline-node text-left p-5 rounded-xl border-2 border-slate-200 bg-slate-50 hover:border-blue-400 transition-all cursor-pointer focus:outline-none">
                         <div class="flex items-center justify-between mb-2">
-                            <span class="px-2 py-0.5 rounded text-xs font-bold bg-slate-700 text-white">STAGE 3</span>
-                            <span class="text-lg">&#127758;</span>
+                            <span class="px-2 py-0.5 rounded text-xs font-bold bg-slate-700 text-white">STEP 3</span>
+                            <span class="text-lg">&#127991;&#65039;</span>
                         </div>
-                        <h3 class="font-bold text-slate-900 text-base">Spatial GIS &amp; Tax Rules</h3>
-                        <p class="text-xs text-slate-600 mt-1">Point-in-polygon check against Census AIANA boundaries + state statutory matrix.</p>
-                        <div class="mt-3 text-xs font-semibold text-blue-700">Inspect Architecture &rarr;</div>
+                        <h3 class="font-bold text-slate-900 text-base">20% Member Discount</h3>
+                        <p class="text-xs text-slate-600 mt-1">Once you're approved, a tag on your customer account applies a fixed 20% off parts and tools.</p>
+                        <div class="mt-3 text-xs font-semibold text-blue-700">See details &rarr;</div>
                     </button>
 
                     <button type="button" data-stage="3" class="pipeline-node text-left p-5 rounded-xl border-2 border-slate-200 bg-slate-50 hover:border-blue-400 transition-all cursor-pointer focus:outline-none">
                         <div class="flex items-center justify-between mb-2">
-                            <span class="px-2 py-0.5 rounded text-xs font-bold bg-slate-700 text-white">STAGE 4</span>
-                            <span class="text-lg">&#128179;</span>
+                            <span class="px-2 py-0.5 rounded text-xs font-bold bg-slate-700 text-white">STEP 4</span>
+                            <span class="text-lg">&#128274;</span>
                         </div>
-                        <h3 class="font-bold text-slate-900 text-base">Checkout Tax &amp; Coupon</h3>
-                        <p class="text-xs text-slate-600 mt-1">Applies 20% <span class="font-mono-code">Coupon</span> on eligible goods; sales tax is charged at checkout.</p>
-                        <div class="mt-3 text-xs font-semibold text-blue-700">Inspect Architecture &rarr;</div>
+                        <h3 class="font-bold text-slate-900 text-base">What We Keep</h3>
+                        <p class="text-xs text-slate-600 mt-1">Only the approval result, tribe, date, and reviewer. ID images and enrollment numbers are deleted.</p>
+                        <div class="mt-3 text-xs font-semibold text-blue-700">See details &rarr;</div>
                     </button>
                 </div>
 
                 <div id="pipelineDetailPanel" class="mt-6 p-5 rounded-xl bg-slate-900 text-slate-100 border border-slate-700">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-700">
                         <div>
-                            <span id="stageBadge" class="text-xs font-mono-code uppercase tracking-wider text-cyan-400">STAGE 1 ARCHITECTURAL PATTERN</span>
-                            <h4 id="stageTitle" class="text-lg font-bold text-white mt-0.5">Unified Customer Identity &amp; Reference ID Synchronization</h4>
+                            <span id="stageBadge" class="text-xs font-mono-code uppercase tracking-wider text-cyan-400">STEP 1</span>
+                            <h4 id="stageTitle" class="text-lg font-bold text-white mt-0.5">Shopify Account &amp; Checkout</h4>
                         </div>
-                        <span id="stageEndpoint" class="font-mono-code text-xs px-3 py-1 rounded bg-slate-800 text-amber-300 border border-slate-700">Canonical Customer UUID</span>
+                        <span id="stageEndpoint" class="font-mono-code text-xs px-3 py-1 rounded bg-slate-800 text-amber-300 border border-slate-700">Shopify checkout</span>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 text-sm">
                         <div>
-                            <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Platform Constraint Addressed</div>
+                            <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">What happens</div>
                             <p id="stageProblem" class="text-slate-300 leading-relaxed">
-                                Multi-surface e-commerce stacks often separate customer authentication portals from hosted checkout sessions. Launching a KYC flow without a unified reference identifier creates orphaned or duplicate verification records.
+                                You shop and check out on displaycellpros.com, and payment runs through our Shopify store's checkout.
                             </p>
                         </div>
                         <div>
-                            <div class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-1">Reference Solution &amp; Data Flow</div>
+                            <div class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-1">What it means for you</div>
                             <p id="stageSolution" class="text-slate-200 leading-relaxed">
-                                Resolve a single canonical customer UUID upon authentication and pass it as the KYC provider's <span class="font-mono-code text-xs text-cyan-300">reference-id</span> while synchronizing storefront and payment processor customer tokens.
+                                Use the same customer account each time you order, so your approved member discount follows your account.
                             </p>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="schema" class="scroll-mt-24">
-            <div class="mb-8">
-                <span class="text-xs font-bold uppercase tracking-wider text-blue-600">03 &bull; Relational &amp; Spatial Data Architecture</span>
-                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">Eight-Entity Compliance Model &amp; Privacy Segregation</h2>
-                <p class="text-slate-600 mt-2 max-w-4xl leading-relaxed">
-                    To satisfy state revenue audit laws requiring five-year retention of tax-exempt sales records (<span class="font-mono-code text-xs bg-slate-200 px-1.5 py-0.5 rounded">WAC 458-20-192</span>) without exposing raw government IDs or plaintext tribal enrollment numbers to long-term breach risk, this logical model segregates ephemeral KYC images from salted cryptographic hashes and immutable tax audit logs.
-                </p>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2 mb-6" id="schemaFilterBar">
-                <button type="button" data-tier="ALL" class="schema-filter-btn px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-sm cursor-pointer">All 8 Logical Entities</button>
-                <button type="button" data-tier="REFERENCE" class="schema-filter-btn px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 cursor-pointer">Reference Layer (3)</button>
-                <button type="button" data-tier="IDENTITY" class="schema-filter-btn px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 cursor-pointer">Customer &amp; Identity (3)</button>
-                <button type="button" data-tier="AUDIT" class="schema-filter-btn px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 cursor-pointer">Tax &amp; Checkout Audit Vault (2)</button>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10" id="schemaCardsGrid">
-                <div data-tier="REFERENCE" class="schema-card bg-white rounded-xl shadow-md border-t-4 border-t-blue-600 border border-slate-200 p-5 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between text-xs mb-2">
-                            <span class="font-bold text-blue-700 uppercase">Reference</span>
-                            <span class="font-mono-code text-slate-500">575 Entities</span>
-                        </div>
-                        <h3 class="text-base font-bold text-slate-900">Federal Tribes Registry</h3>
-                        <p class="text-xs text-slate-600 mt-2">Master BIA list (<span class="font-mono-code">91 FR 4102</span>), GIN-indexed historical aliases, WHTI ETC flags, and conditional review status.</p>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-slate-100 text-xs font-mono-code text-slate-500">
-                        Key: Tribe UUID<br>Index: Alias Array GIN
-                    </div>
-                </div>
-
-                <div data-tier="REFERENCE" class="schema-card bg-white rounded-xl shadow-md border-t-4 border-t-blue-600 border border-slate-200 p-5 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between text-xs mb-2">
-                            <span class="font-bold text-blue-700 uppercase">Spatial GIS</span>
-                            <span class="font-mono-code text-slate-500">WGS84 / SRID 4326</span>
-                        </div>
-                        <h3 class="text-base font-bold text-slate-900">AIANA Reservation Polygons</h3>
-                        <p class="text-xs text-slate-600 mt-2">U.S. Census TIGER/Line reservation &amp; trust land <span class="font-mono-code">MultiPolygon</span> boundaries replacing inaccurate 5-digit ZIP approximations.</p>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-slate-100 text-xs font-mono-code text-slate-500">
-                        Key: Boundary UUID<br>Index: Spatial GIST
-                    </div>
-                </div>
-
-                <div data-tier="REFERENCE" class="schema-card bg-white rounded-xl shadow-md border-t-4 border-t-blue-600 border border-slate-200 p-5 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between text-xs mb-2">
-                            <span class="font-bold text-blue-700 uppercase">Tax Matrix</span>
-                            <span class="font-mono-code text-slate-500">State Statutes</span>
-                        </div>
-                        <h3 class="text-base font-bold text-slate-900">Jurisdiction Tax Rules</h3>
-                        <p class="text-xs text-slate-600 mt-2">Encodes same-tribe nexus, on-reservation delivery, and required form codes.</p>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-slate-100 text-xs font-mono-code text-slate-500">
-                        Key: State Code (2-Char)<br>Rule: 5-Yr Retention Floor
-                    </div>
-                </div>
-
-                <div data-tier="IDENTITY" class="schema-card bg-white rounded-xl shadow-md border-t-4 border-t-cyan-600 border border-slate-200 p-5 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between text-xs mb-2">
-                            <span class="font-bold text-cyan-700 uppercase">Customer Hub</span>
-                            <span class="font-mono-code text-slate-500">Unified ID</span>
-                        </div>
-                        <h3 class="text-base font-bold text-slate-900">Customer Profile Bridge</h3>
-                        <p class="text-xs text-slate-600 mt-2">Links auth, storefront, and payment IDs; tracks active discount entitlement and shipping address hash for change invalidation.</p>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-slate-100 text-xs font-mono-code text-slate-500">
-                        Key: Customer UUID<br>Link: Residence Boundary
-                    </div>
-                </div>
-
-                <div data-tier="IDENTITY" class="schema-card bg-white rounded-xl shadow-md border-t-4 border-t-cyan-600 border border-slate-200 p-5 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between text-xs mb-2">
-                            <span class="font-bold text-cyan-700 uppercase">KYC Ledger</span>
-                            <span class="font-mono-code text-amber-700">PII Purged</span>
-                        </div>
-                        <h3 class="text-base font-bold text-slate-900">KYC Verification Audit</h3>
-                        <p class="text-xs text-slate-600 mt-2">Logs Inquiry ID, GovID class, Document AI match, fraud risk score, manual Case review ID, and PII redaction timestamp.</p>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-slate-100 text-xs font-mono-code text-slate-500">
-                        Key: Verification UUID<br>API: DELETE Redaction Call
-                    </div>
-                </div>
-
-                <div data-tier="IDENTITY" class="schema-card bg-white rounded-xl shadow-md border-t-4 border-t-cyan-600 border border-slate-200 p-5 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between text-xs mb-2">
-                            <span class="font-bold text-cyan-700 uppercase">Enrollment</span>
-                            <span class="font-mono-code text-emerald-700">SHA-256 Hash</span>
-                        </div>
-                        <h3 class="text-base font-bold text-slate-900">Tribal Enrollment Credential</h3>
-                        <p class="text-xs text-slate-600 mt-2">Stores salted SHA-256 enrollment number hash + last 4 digits only, reviewer sign-off, spousal flag, and duplicate-hash constraint.</p>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-slate-100 text-xs font-mono-code text-slate-500">
-                        Key: Credential UUID<br>Constraint: Unique Active Hash
-                    </div>
-                </div>
-
-                <div data-tier="AUDIT" class="schema-card bg-white rounded-xl shadow-md border-t-4 border-t-emerald-600 border border-slate-200 p-5 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between text-xs mb-2">
-                            <span class="font-bold text-emerald-700 uppercase">Tax Vault</span>
-                            <span class="font-mono-code text-emerald-700">&ge; 5-Yr Lock</span>
-                        </div>
-                        <h3 class="text-base font-bold text-slate-900">Tax Exemption Certificates</h3>
-                        <p class="text-xs text-slate-600 mt-2">Vaults signed WA Line 4a certificate URIs, delivery boundary link, and address-change invalidation logs.</p>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-slate-100 text-xs font-mono-code text-slate-500">
-                        Key: Certificate UUID<br>Policy: Immutable Retention
-                    </div>
-                </div>
-
-                <div data-tier="AUDIT" class="schema-card bg-white rounded-xl shadow-md border-t-4 border-t-emerald-600 border border-slate-200 p-5 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between text-xs mb-2">
-                            <span class="font-bold text-emerald-700 uppercase">Order Audit</span>
-                            <span class="font-mono-code text-emerald-700">Immutable</span>
-                        </div>
-                        <h3 class="text-base font-bold text-slate-900">Checkout Compliance Log</h3>
-                        <p class="text-xs text-slate-600 mt-2">Records Scenarios 1&ndash;4 outcomes, discount and tax amounts, tax refund decisions, and carrier POD URIs.</p>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-slate-100 text-xs font-mono-code text-slate-500">
-                        Key: Evaluation UUID<br>Policy: 5-Yr Audit Archive
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-white rounded-xl shadow-md border border-slate-200 p-6">
-                <div class="lg:col-span-5">
-                    <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Privacy vs. Audit Trade-Off</span>
-                    <h3 class="text-lg font-bold text-slate-900 mt-2">Data Retention Lifecycle Segregation</h3>
-                    <p class="text-sm text-slate-600 mt-2 leading-relaxed">
-                        Retaining raw government ID images and unmasked tribal enrollment numbers for five years introduces unnecessary data-breach liability. Immediately upon human Case approval and cryptographic hash logging, the workflow invokes the KYC provider's redaction endpoint (<span class="font-mono-code text-xs">DELETE /api/v1/verifications/:id</span>) to purge raw ID images within 24 hours while locking statutory tax certificates and carrier proofs of delivery for 60 months (5 years).
-                    </p>
-                    <ul class="mt-4 space-y-2 text-xs text-slate-700">
-                        <li>&#128465;&#65039; <strong>Raw GovID &amp; Tribal Card Images:</strong> Purged immediately post-review (&le; 1 day).</li>
-                        <li>&#128260; <strong>Address Exemption Cache:</strong> Invalidated immediately on any address change.</li>
-                        <li>&#128274; <strong>Tax Certificates &amp; Carrier PODs:</strong> Locked 60 months (<span class="font-mono-code">WAC 458-20-192</span>).</li>
-                    </ul>
-                </div>
-                <div class="lg:col-span-7">
-                    <div class="chart-container">
-                        <canvas id="retentionLifecycleChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -400,22 +207,22 @@
 
         <section id="simulator" class="scroll-mt-24">
             <div class="mb-8">
-                <span class="text-xs font-bold uppercase tracking-wider text-blue-600">04 &bull; Interactive Checkout Decision Engine</span>
-                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">Scenarios 1&ndash;4 Simulator &amp; Illustrative Pricing</h2>
+                <span class="text-xs font-bold uppercase tracking-wider text-blue-600">03 &bull; Checkout Examples</span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">How the Discount and Tax Work at Checkout</h2>
                 <p class="text-slate-600 mt-2 max-w-4xl leading-relaxed">
-                    Prior to initializing a Stripe Checkout Session, the compliance service evaluates tribal enrollment status, PostGIS reservation boundaries, and state nexus statutes to classify each order into one of four compliance scenarios. Toggle the preconditions below to observe how identity, GIS boundaries, and jurisdiction alter checkout pricing and tax behavior.
+                    Use the switches below to see how membership approval and the delivery location affect the discount and sales tax. Sales tax is always charged at checkout. Any Washington exemption is handled afterward as a refund.
                 </p>
             </div>
 
             <div class="bg-white rounded-xl shadow-md border border-slate-200 p-6 sm:p-8 mb-8">
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     <div class="lg:col-span-5 space-y-5">
-                        <h3 class="text-lg font-bold text-slate-900 border-b border-slate-200 pb-2">Checkout Preconditions</h3>
+                        <h3 class="text-lg font-bold text-slate-900 border-b border-slate-200 pb-2">Your Situation</h3>
 
                         <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                             <div>
-                                <div class="text-sm font-bold text-slate-900">Tribal Enrollment Approved</div>
-                                <div class="text-xs text-slate-500">Verified Federal Tribal Citizenship</div>
+                                <div class="text-sm font-bold text-slate-900">Tribal Membership Approved</div>
+                                <div class="text-xs text-slate-500">Reviewed by our staff</div>
                             </div>
                             <label class="inline-flex items-center cursor-pointer">
                                 <input type="checkbox" id="simVerified" checked class="sr-only peer">
@@ -425,8 +232,8 @@
 
                         <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                             <div>
-                                <div class="text-sm font-bold text-slate-900">PostGIS Inside Indian Country</div>
-                                <div class="text-xs text-slate-500"><span class="font-mono-code">ST_Contains(aiana.geom, point)</span></div>
+                                <div class="text-sm font-bold text-slate-900">Delivered on a Reservation in Washington</div>
+                                <div class="text-xs text-slate-500">Delivery address inside a reservation</div>
                             </div>
                             <label class="inline-flex items-center cursor-pointer">
                                 <input type="checkbox" id="simOnRes" checked class="sr-only peer">
@@ -435,10 +242,10 @@
                         </div>
 
                         <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                            <label for="simJurisdiction" class="block text-sm font-bold text-slate-900 mb-1">Delivery State &amp; Tribal Territory Nexus</label>
-                            <select id="simJurisdiction" class="w-full mt-1 rounded-lg border-slate-300 bg-white text-sm font-medium text-slate-800 p-2.5 border focus:border-blue-600 focus:ring-blue-600">
-                                <option value="WA_SAME">Washington &mdash; Same-Tribe Reservation (WAC 458-20-192)</option>
-                                <option value="WA_CROSS">Washington &mdash; Cross-Tribe Reservation (Tribe A on Tribe B Land)</option>
+                            <label for="simJurisdiction" class="block text-sm font-bold text-slate-900 mb-1">Whose Reservation?</label>
+                            <select id="simJurisdiction" class="w-full mt-1 rounded-lg border-slate-300 bg-white text-sm font-medium text-slate-800 p-2.5 border focus:border-blue-600 focus:ring-blue-600 disabled:opacity-50">
+                                <option value="WA_SAME">My own tribe's reservation</option>
+                                <option value="WA_CROSS">Another tribe's reservation</option>
                             </select>
                         </div>
                     </div>
@@ -447,35 +254,35 @@
                         <div>
                             <div class="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-slate-700">
                                 <div>
-                                    <span id="simScenarioTag" class="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">SCENARIO 1: DISCOUNT + POSSIBLE TAX REFUND</span>
-                                    <h4 id="simScenarioTitle" class="text-xl font-bold text-white mt-2">Enrolled Member + WA Same-Tribe Reservation Delivery</h4>
+                                    <span id="simScenarioTag" class="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">DISCOUNT + POSSIBLE TAX REFUND</span>
+                                    <h4 id="simScenarioTitle" class="text-xl font-bold text-white mt-2">Approved Member + Delivery Within Your Own Tribe's Reservation</h4>
                                 </div>
                             </div>
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
                                 <div class="p-4 rounded-lg bg-slate-800/90 border border-slate-700">
-                                    <div class="text-xs uppercase tracking-wider text-amber-300 font-semibold">Track 1: 20% Parts Discount</div>
-                                    <div id="simTrack1Result" class="text-lg font-extrabold text-white mt-1">ACTIVE (20% Off Eligible Goods)</div>
-                                    <p id="simTrack1Detail" class="text-xs text-slate-300 mt-1">Injects single Stripe <span class="font-mono-code">Coupon</span> via <span class="font-mono-code">discounts</span> array; <span class="font-mono-code">applies_to</span> excludes trip &amp; diagnostic fees.</p>
+                                    <div class="text-xs uppercase tracking-wider text-amber-300 font-semibold">Track 1: Member Discount</div>
+                                    <div id="simTrack1Result" class="text-lg font-extrabold text-amber-300 mt-1">20% off parts and tools</div>
+                                    <p id="simTrack1Detail" class="text-xs text-slate-300 mt-1">Applied through the tag on your customer account. It does not apply to the $25 trip fee, the $40 diagnostic fee, shipping, or labor.</p>
                                 </div>
 
                                 <div class="p-4 rounded-lg bg-slate-800/90 border border-slate-700">
-                                    <div class="text-xs uppercase tracking-wider text-cyan-300 font-semibold">Track 2: Statutory Sales Tax</div>
+                                    <div class="text-xs uppercase tracking-wider text-cyan-300 font-semibold">Track 2: Washington Sales Tax</div>
                                     <div id="simTrack2Result" class="text-lg font-extrabold text-emerald-400 mt-1">Tax charged; refund possible after we confirm eligibility</div>
-                                    <p id="simTrack2Detail" class="text-xs text-slate-300 mt-1">Sales tax is charged at checkout. If the buyer is enrolled with the tribe whose reservation receives delivery (WAC 458-20-192), we confirm eligibility, collect the signed state form, and refund the tax.</p>
+                                    <p id="simTrack2Detail" class="text-xs text-slate-300 mt-1">Sales tax is charged at checkout. If you are enrolled with the tribe whose reservation receives the delivery, you may qualify for a refund of the tax.</p>
                                 </div>
                             </div>
 
                             <div class="mt-4 p-4 rounded-lg bg-slate-800/60 border border-slate-700">
-                                <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-1">Mandatory Audit &amp; Fulfillment Artifacts</div>
+                                <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-1">What To Do</div>
                                 <p id="simAuditDetail" class="text-xs text-slate-200 leading-relaxed">
-                                    Capture signed Washington Buyers' Retail Sales Tax Exemption Certificate (Line 4a), record tribal affiliation and delivery reservation, and retain carrier proof of delivery for 5 years.
+                                    Contact us before or after you order. We'll confirm eligibility, collect the required Washington exemption form, and refund the tax if your order qualifies.
                                 </p>
                             </div>
                         </div>
 
                         <div class="mt-5 pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-mono-code text-slate-400">
-                            <span id="simStripePayload">Checkout: 20% member discount on eligible goods; sales tax charged</span>
+                            <span id="simCheckoutLine">At checkout: 20% off parts and tools; sales tax charged</span>
                         </div>
                     </div>
                 </div>
@@ -484,9 +291,9 @@
             <div class="bg-white rounded-xl shadow-md border border-slate-200 p-6">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4">
                     <div>
-                        <h3 class="text-lg font-bold text-slate-900">Illustrative Product &amp; Service Pricing Across Scenarios 2 &amp; 4</h3>
+                        <h3 class="text-lg font-bold text-slate-900">What the 20% Applies To (Example Prices)</h3>
                         <p class="text-sm text-slate-600">
-                            Illustrates how Stripe <span class="font-mono-code text-xs">applies_to</span> restricts a 20% discount to eligible hardware parts and toolkits while excluding flat operational fees ($25 mobile dispatch fee, $40 diagnostic fee) and standalone IT services ($130 software repair), modeled with an illustrative 8.5% destination sales tax in Scenarios 2 and 4.
+                            Example prices, before tax. The 20% member discount applies to parts and tools. The $25 trip fee, the $40 diagnostic fee, shipping, and labor stay at the regular price. Part, tool, and labor amounts are example prices only, not our actual prices.
                         </p>
                     </div>
                 </div>
@@ -494,17 +301,17 @@
                     <canvas id="skuPricingChart"></canvas>
                 </div>
                 <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500">
-                    <strong class="text-slate-700">Key Takeaway:</strong> In Scenario 2 (Enrolled + Off-Reservation), a $100.00 replacement battery drops to $80.00 pre-tax ($86.80 with 8.5% destination tax vs. $108.50 standard retail), whereas flat service and dispatch fees remain un-discounted across all scenarios.
+                    <strong class="text-slate-700">Example:</strong> At an example price of $100.00, a replacement battery is $80.00 before tax for an approved member. The $25 trip fee and the $40 diagnostic fee are not discounted.
                 </div>
             </div>
         </section>
 
-        <section id="jurisdictions" class="scroll-mt-24">
+        <section id="washington" class="scroll-mt-24">
             <div class="mb-8">
-                <span class="text-xs font-bold uppercase tracking-wider text-blue-600">05 &bull; Multi-State Revenue Compliance</span>
-                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">State Statutory Tax Rules &amp; 2026 Fraud Guardrails</h2>
+                <span class="text-xs font-bold uppercase tracking-wider text-blue-600">04 &bull; Washington Sales Tax</span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">Washington Rules &amp; Fake Tax Credit Warnings</h2>
                 <p class="text-slate-600 mt-2 max-w-4xl leading-relaxed">
-                    Because state revenue departments enforce distinct territorial, residency, and title-passage conditions for on-reservation sales, exemption rules must be checked state by state. This guide covers Washington only.
+                    Sales tax rules for deliveries to reservations differ from state to state. This guide covers Washington only.
                 </p>
             </div>
 
@@ -513,10 +320,10 @@
                     <table class="min-w-full divide-y divide-slate-200 text-sm">
                         <thead class="bg-slate-900 text-white">
                             <tr>
-                                <th class="px-5 py-3.5 text-left font-bold uppercase text-xs tracking-wider">Jurisdiction &amp; Statute</th>
-                                <th class="px-5 py-3.5 text-left font-bold uppercase text-xs tracking-wider">Required Form</th>
-                                <th class="px-5 py-3.5 text-left font-bold uppercase text-xs tracking-wider">Territorial &amp; Residency Rule</th>
-                                <th class="px-5 py-3.5 text-left font-bold uppercase text-xs tracking-wider">Invoice &amp; Delivery Requirement</th>
+                                <th class="px-5 py-3.5 text-left font-bold uppercase text-xs tracking-wider">State &amp; Rule</th>
+                                <th class="px-5 py-3.5 text-left font-bold uppercase text-xs tracking-wider">Form</th>
+                                <th class="px-5 py-3.5 text-left font-bold uppercase text-xs tracking-wider">Who May Qualify</th>
+                                <th class="px-5 py-3.5 text-left font-bold uppercase text-xs tracking-wider">Delivery</th>
                                 <th class="px-5 py-3.5 text-left font-bold uppercase text-xs tracking-wider">At Checkout</th>
                             </tr>
                         </thead>
@@ -526,15 +333,15 @@
                                     Washington (WA)<br>
                                     <span class="font-mono-code text-xs font-normal text-blue-600">WAC 458-20-192</span>
                                 </td>
-                                <td class="px-5 py-4 font-mono-code text-xs text-slate-700">WA Buyers' Exemption Cert (Line 4a)</td>
+                                <td class="px-5 py-4 text-xs text-slate-700">A signed Washington tax exemption certificate is generally required.</td>
                                 <td class="px-5 py-4 text-xs text-slate-700">
-                                    <strong>Same-Tribe Nexus Required:</strong> Buyer must be enrolled with (or eligible spouse of) the tribe whose territory receives delivery.
+                                    Generally, an enrolled member (or, in some cases, a member's spouse) of the tribe whose reservation receives the delivery.
                                 </td>
                                 <td class="px-5 py-4 text-xs text-slate-700">
-                                    Delivery inside Indian Country; must re-verify upon any address change; 5-year audit retention.
+                                    Delivery generally must be within that tribe's reservation. A new delivery address may need a new form.
                                 </td>
                                 <td class="px-5 py-4">
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">Tax charged; refund possible after we confirm eligibility</span>
+                                    <span class="inline-block px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800">Tax charged; refund possible after we confirm eligibility</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -546,69 +353,43 @@
                 <div class="bg-rose-50 border border-rose-200 rounded-xl p-6">
                     <div class="flex items-center space-x-2 text-rose-900 font-bold text-base mb-2">
                         <span>&#9888;&#65039;</span>
-                        <span>IRS Anti-Fraud Compliance (<span class="font-mono-code text-sm">IR-2026-112</span>, Sept 18, 2026)</span>
+                        <span>IRS Warning on Fake &ldquo;Tribal Tax Credits&rdquo; (<span class="font-mono-code text-sm">IR-2026-112</span>, Sept 18, 2026)</span>
                     </div>
                     <p class="text-xs sm:text-sm text-rose-950 leading-relaxed">
-                        The IRS issued an official warning against promoters marketing fake "Tribal Tax Credits" (reportable on IRS Form 14242). Public-facing invoices, database fields, and checkout labels must explicitly classify Track 1 as a <strong>commercial retail price discount</strong> and Track 2 as <strong>state retail sales tax preemption</strong>&mdash;never a federal tax credit.
+                        The IRS warned about promoters selling &ldquo;Tribal Tax Credits&rdquo; that do not exist under federal law, and asks people to report suspected schemes on IRS Form 14242. Our 20% member discount is a <strong>store price discount</strong>, and any Washington refund is a <strong>state sales tax</strong> matter. Neither one is a federal tax credit.
                     </p>
                 </div>
 
                 <div class="bg-blue-50 border border-blue-200 rounded-xl p-6">
                     <div class="flex items-center space-x-2 text-blue-900 font-bold text-base mb-2">
                         <span>&#128260;</span>
-                        <span>Address-Change &amp; Credential Safeguards</span>
+                        <span>If Your Delivery Address Changes</span>
                     </div>
                     <p class="text-xs sm:text-sm text-blue-950 leading-relaxed">
-                        Under <span class="font-mono-code text-xs">WAC 458-20-192</span>, any change in delivery address invalidates an existing exemption statement. Comparing a cryptographic hash of the normalized shipping address at checkout automatically triggers fresh PostGIS boundary verification and certificate renewal, while unique credential hash indexing prevents multi-account sharing.
+                        Under <span class="font-mono-code text-xs">WAC 458-20-192</span>, a change of delivery address may affect whether an exemption applies. Contact us before ordering to a new address, and we'll tell you whether a new form is needed.
                     </p>
                 </div>
             </div>
         </section>
 
-        <section id="roadmap" class="scroll-mt-24">
+        <section id="future" class="scroll-mt-24">
             <div class="mb-8">
-                <span class="text-xs font-bold uppercase tracking-wider text-blue-600">06 &bull; Reference Implementation Blueprint</span>
-                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">Five-Phase Engineering &amp; Compliance Blueprint (11 Weeks)</h2>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">Possible future design, not in use</span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2">Ideas We May Add Later</h2>
                 <p class="text-slate-600 mt-2 max-w-4xl leading-relaxed">
-                    Sequencing registry seeding, KYC Document AI configuration, payment processor product exclusions, and end-to-end compliance testing across an 11-week reference schedule minimizes tax audit exposure prior to production cutover.
+                    None of these are in use on displaycellpros.com today. Today, membership is reviewed by a person and Washington tax is refunded after we confirm eligibility.
                 </p>
             </div>
-
-            <div class="bg-white rounded-xl shadow-md border border-slate-200 p-6 mb-8">
-                <h3 class="text-lg font-bold text-slate-900 mb-3">Illustrative 11-Week Implementation Cadence</h3>
-                <div class="chart-container-wide">
-                    <canvas id="roadmapGanttChart"></canvas>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="bg-white rounded-xl shadow-md border-t-4 border-t-amber-500 border border-slate-200 p-5">
+                    <div class="text-xs font-bold text-amber-700 uppercase mb-2">Possible future design, not in use</div>
+                    <h3 class="text-base font-bold text-slate-900">Reservation Address Check</h3>
+                    <p class="text-xs text-slate-600 mt-2">A tool that checks whether a delivery address is inside a reservation boundary, so our staff can confirm eligibility faster.</p>
                 </div>
-                <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500">
-                    <strong class="text-slate-700">Critical Path Gate:</strong> Phase 5 compliance audits (Weeks 9&ndash;11) validate WA same-tribe vs. cross-tribe routing, WA tax refund handling, Scenario 2 off-reservation tax collection, and immediate KYC PII redaction prior to launch.
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-                    <span class="text-xs font-bold text-blue-600">WEEKS 1&ndash;2</span>
-                    <h4 class="font-bold text-slate-900 text-sm mt-1">1. GIS &amp; 575 BIA Seed</h4>
-                    <p class="text-xs text-slate-600 mt-1">Deploy relational DDL, ingest Jan 2026 BIA list (<span class="font-mono-code">91 FR 4102</span>), load Census AIANA shapefiles, set conditional review flags.</p>
-                </div>
-                <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-                    <span class="text-xs font-bold text-cyan-600">WEEKS 3&ndash;5</span>
-                    <h4 class="font-bold text-slate-900 text-sm mt-1">2. KYC Doc AI &amp; Cases</h4>
-                    <p class="text-xs text-slate-600 mt-1">Configure US GovID + Custom Document AI types, name-match comparison, manual Case review queue, and <span class="font-mono-code">DELETE</span> PII redaction.</p>
-                </div>
-                <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-                    <span class="text-xs font-bold text-amber-600">WEEKS 5&ndash;7</span>
-                    <h4 class="font-bold text-slate-900 text-sm mt-1">3. Catalog &amp; Tax Rules</h4>
-                    <p class="text-xs text-slate-600 mt-1">Configure 20% <span class="font-mono-code">Coupon</span> with <span class="font-mono-code">applies_to</span> exclusions and unbundle labor vs. goods.</p>
-                </div>
-                <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-                    <span class="text-xs font-bold text-indigo-600">WEEKS 7&ndash;9</span>
-                    <h4 class="font-bold text-slate-900 text-sm mt-1">4. Identity &amp; Cart Sync</h4>
-                    <p class="text-xs text-slate-600 mt-1">Unify Auth provider, storefront, payment customer IDs, and KYC reference identifiers across sessions.</p>
-                </div>
-                <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-                    <span class="text-xs font-bold text-emerald-600">WEEKS 9&ndash;11</span>
-                    <h4 class="font-bold text-slate-900 text-sm mt-1">5. Scenario 1&ndash;4 QA</h4>
-                    <p class="text-xs text-slate-600 mt-1">Execute WA same/cross-tribe tests, WA tax refund test, Scenario 2 tax collection test, and verify 5-year audit archive.</p>
+                <div class="bg-white rounded-xl shadow-md border-t-4 border-t-amber-500 border border-slate-200 p-5">
+                    <div class="text-xs font-bold text-amber-700 uppercase mb-2">Possible future design, not in use</div>
+                    <h3 class="text-base font-bold text-slate-900">Online ID Submission</h3>
+                    <p class="text-xs text-slate-600 mt-2">A secure way to send your ID for review online. A person on our team would still make the decision, and the same data limits would apply.</p>
                 </div>
             </div>
         </section>
@@ -616,12 +397,18 @@
     </main>
 
     <footer class="bg-slate-900 text-slate-400 border-t border-slate-800 py-10 mt-16">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-            <div>
-                <span class="font-bold text-white">Public Compliance Reference Architecture</span> &bull; Tribal Member Verification &amp; Checkout Tax Engine
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4 text-xs">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                    <a href="/" class="font-bold text-white hover:text-cyan-300 transition-colors">Display &amp; Cell Pros</a> &bull; Tribal Member Discount &amp; Washington Sales Tax Guide
+                </div>
+                <div>
+                    Questions? Call <a href="tel:+15092553852" class="text-white hover:text-cyan-300">(509) 255-3852</a> or email <a href="mailto:ryan@displaycellpros.com" class="text-white hover:text-cyan-300">ryan@displaycellpros.com</a>
+                </div>
             </div>
+            <p class="text-slate-300">General information only, not legal or tax advice. Rules change; confirm with the Washington Department of Revenue or a tax professional.</p>
             <div>
-                Public Sources: Federal Register <span class="font-mono-code">91 FR 4102</span> (Jan 30, 2026) &bull; U.S. Census AIANA &bull; <span class="font-mono-code">WAC 458-20-192</span> &bull; IRS <span class="font-mono-code">IR-2026-112</span>
+                Public sources: Federal Register <span class="font-mono-code">91 FR 4102</span> (Jan 30, 2026) &bull; <span class="font-mono-code">WAC 458-20-192</span> &bull; IRS <span class="font-mono-code">IR-2026-112</span>
             </div>
         </div>
     </footer>
