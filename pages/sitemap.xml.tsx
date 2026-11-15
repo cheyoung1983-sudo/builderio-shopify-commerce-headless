@@ -13,7 +13,6 @@ const STATIC_PATHS = [
   '/services-faq',
   '/faq',
   '/trends',
-  '/order-tracking',
   '/tribal-discount',
 ]
 
