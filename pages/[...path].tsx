@@ -30,7 +30,7 @@ export async function getStaticProps({
     const path = params?.path || []
     const urlPath = `/${path.join('/')}`.replace(/\/$/, '') || '/'
     const page = await resolveBuilderContent(builderModel, locale, { urlPath }).catch((err) => {
-      console.error('[pages/[[...path]]] Error resolving builder content:', err)
+      console.error('[pages/[...path]] Error resolving builder content:', err)
       return null
     })
 
@@ -50,12 +50,12 @@ export async function getStaticProps({
         const result = await fetchAllAvailableProducts({ batchSize: 16, onlyAvailable: false })
         fallbackProducts = result.products
       } catch (error) {
-        console.error('[pages/[[...path]]] Failed to load fallback homepage products:', error)
+        console.error('[pages/[...path]] Failed to load fallback homepage products:', error)
       }
     }
 
     const layoutProps = await getLayoutProps().catch((err) => {
-      console.error('[pages/[[...path]]] Error fetching layout props:', err)
+      console.error('[pages/[...path]] Error fetching layout props:', err)
       return { theme: null }
     })
 
@@ -68,7 +68,7 @@ export async function getStaticProps({
       revalidate: 30,
     }
   } catch (error) {
-    console.error('[pages/[[...path]]] Unexpected error in getStaticProps:', error)
+    console.error('[pages/[...path]] Unexpected error in getStaticProps:', error)
     return {
       notFound: true,
       revalidate: 30,
@@ -76,9 +76,11 @@ export async function getStaticProps({
   }
 }
 
-export async function getStaticPaths({ locales }: GetStaticPathsContext) {
+export async function getStaticPaths(_context: GetStaticPathsContext) {
+  // `/` is served by pages/index.tsx. This required catch-all only matches
+  // non-root paths, which are rendered on demand with blocking fallback.
   return {
-    paths: locales?.flatMap((locale) => [{ params: { path: [] }, locale }]) || [{ params: { path: [] } }],
+    paths: [],
     fallback: 'blocking',
   }
 }

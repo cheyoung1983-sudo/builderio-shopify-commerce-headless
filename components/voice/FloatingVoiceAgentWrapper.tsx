@@ -1,7 +1,6 @@
 'use client'
 
-import React, { Suspense, useContext, useEffect, useState } from 'react'
-import dynamic from 'next/dynamic'
+import React, { useCallback, useContext, useRef, useState } from 'react'
 import { useIsMounted } from '@lib/hooks/useIsMounted'
 import { UIContext } from '@components/common/context'
 import { CartContext } from '../../context/CartContext'
@@ -11,20 +10,35 @@ import AudioWaveformVisualizer from './AudioWaveformVisualizer'
 // The real agent pulls in @elevenlabs/client + LiveKit (~180 KB gzipped).
 // It is only downloaded once the shopper shows intent (hover/focus/tap on the
 // launcher), so it no longer competes with the page's first paint.
-const loadAgent = () => import('@components/ElevenLabsAgent')
-const ElevenLabsAgent = dynamic(loadAgent, {
-  ssr: false,
-  loading: () => <VoiceLauncherStub />,
-}) as React.ComponentType<{ initialOpen?: boolean }>
+// The resolved module is stored in state and only rendered once loaded, so the
+// interactive stub stays mounted (and clickable) while the chunk downloads.
+type AgentComponent = React.ComponentType<{ initialOpen?: boolean }>
+let agentPromise: Promise<AgentComponent> | null = null
+const loadAgent = (): Promise<AgentComponent> => {
+  if (!agentPromise) {
+    agentPromise = import('@components/ElevenLabsAgent')
+      .then((m) => (m.default || m) as AgentComponent)
+      .catch((err) => {
+        agentPromise = null // allow Retry to refetch
+        throw err
+      })
+  }
+  return agentPromise
+}
+
+type StubState = 'idle' | 'loading' | 'error'
 
 /** Lightweight copy of the agent's closed "Offline" launcher button. */
 function VoiceLauncherStub({
   onActivate,
   onIntent,
+  state = 'idle',
 }: {
-  onActivate?: () => void
-  onIntent?: () => void
+  onActivate: () => void
+  onIntent: () => void
+  state?: StubState
 }) {
+  const badge = state === 'loading' ? 'Connecting' : state === 'error' ? 'Retry' : 'Offline'
   return (
     <div
       id="elevenlabs-voice-agent-container"
@@ -37,7 +51,9 @@ function VoiceLauncherStub({
         onPointerEnter={onIntent}
         onFocus={onIntent}
         onTouchStart={onIntent}
-        aria-label="Open Spokane Repair Voice Specialist"
+        aria-busy={state === 'loading' || undefined}
+        data-state={state}
+        aria-label={state === 'error' ? 'Voice assistant failed to load. Retry' : 'Open Spokane Repair Voice Specialist'}
         title="Spokane Repair Voice Specialist • Click to talk"
         className="pointer-events-auto group relative flex items-center gap-2.5 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-full shadow-2xl backdrop-blur-xl border border-white/20 transition-all duration-300 hover:scale-[1.03] cursor-pointer bg-neutral-900 text-white hover:bg-black hover:scale-105"
       >
@@ -50,8 +66,8 @@ function VoiceLauncherStub({
           </span>
           <span className="text-[10px] text-white/80 font-medium hidden sm:inline">Spokane On-Site</span>
         </div>
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-xs bg-neutral-800 text-neutral-300 border-neutral-700/80">
-          Offline
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-xs bg-neutral-800 text-neutral-300 border-neutral-700/80" aria-live="polite">
+          {badge}
         </span>
       </button>
     </div>
@@ -78,8 +94,27 @@ export const FloatingVoiceAgentWrapper: React.FC<FloatingVoiceAgentWrapperProps>
   const ui = useContext(UIContext) as { displaySidebar?: boolean } | undefined
   const cart = useContext(CartContext)
   const cartDrawerOpen = Boolean(ui?.displaySidebar || cart?.isOpen)
-  // null = not loaded yet; false = loaded closed; true = loaded and opened by a tap
-  const [activated, setActivated] = useState<null | boolean>(null)
+  const [Agent, setAgent] = useState<AgentComponent | null>(null)
+  const [stubState, setStubState] = useState<StubState>('idle')
+  const pending = useRef(false)
+
+  const onIntent = useCallback(() => {
+    loadAgent().catch(() => {}) // preload only; errors surface on click
+  }, [])
+  const onActivate = useCallback(() => {
+    if (pending.current) return
+    pending.current = true
+    setStubState('loading')
+    loadAgent()
+      .then((C) => setAgent(() => C))
+      .catch((err) => {
+        console.error('[voice] failed to load ElevenLabsAgent', err)
+        setStubState('error')
+      })
+      .finally(() => {
+        pending.current = false
+      })
+  }, [])
 
   if (!isMounted) {
     return null
@@ -94,16 +129,11 @@ export const FloatingVoiceAgentWrapper: React.FC<FloatingVoiceAgentWrapperProps>
       hidden={cartDrawerOpen}
       className={`fixed bottom-6 right-6 z-[90] pointer-events-none ${cartDrawerOpen ? 'hidden' : ''} ${className}`}
     >
-      <Suspense fallback={null}>
-        {activated === null ? (
-          <VoiceLauncherStub
-            onIntent={() => { void loadAgent() }}
-            onActivate={() => setActivated(true)}
-          />
-        ) : (
-          <ElevenLabsAgent initialOpen={activated} />
-        )}
-      </Suspense>
+      {Agent ? (
+        <Agent initialOpen />
+      ) : (
+        <VoiceLauncherStub state={stubState} onIntent={onIntent} onActivate={onActivate} />
+      )}
     </aside>
   )
 }

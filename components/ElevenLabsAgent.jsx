@@ -31,7 +31,7 @@ import { createActivityKeeper, ELEVENLABS_ACTIVITY_EVENT } from "../lib/elevenla
 import { buildDynamicVariables, resolveDynamicVariables } from "../lib/elevenlabs-variables";
 import { debugLog } from "../lib/debug-log";
 
-const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || "agent_3101m30qaxc1f3981zq05pp86ax1";
+const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || "agent_6301kqxr35beedj8n91eq7gz73d7";
 
 async function resolveWorkletUrl(path) {
   if (typeof window === "undefined") return null;

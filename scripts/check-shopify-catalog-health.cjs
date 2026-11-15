@@ -5,7 +5,7 @@ const REPO_ROOT = path.resolve(__dirname, '..')
 const demoCatalogPath = path.join(REPO_ROOT, 'lib', 'shopify', 'demo-catalog.ts')
 const shopifyServicePath = path.join(REPO_ROOT, 'services', 'shopify.ts')
 const productsPagePath = path.join(REPO_ROOT, 'pages', 'products.tsx')
-const homepagePath = path.join(REPO_ROOT, 'pages', '[[...path]].tsx')
+const homepagePath = path.join(REPO_ROOT, 'pages', '[...path].tsx')
 const liveUrlIndex = process.argv.indexOf('--url')
 const liveUrl = liveUrlIndex >= 0 ? process.argv[liveUrlIndex + 1] : null
 const allowDemo = process.argv.includes('--allow-demo')
