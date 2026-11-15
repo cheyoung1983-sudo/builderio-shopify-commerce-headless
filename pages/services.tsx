@@ -16,6 +16,7 @@ import { Breadcrumbs } from '../components/common/Breadcrumbs'
 import { MailInRepairRequestForm } from '../components/services/MailInRepairRequestForm'
 import { RepairStatusTracker } from '../components/services/RepairStatusTracker'
 import { MailInRepairEstimator } from '../components/services/MailInRepairEstimator'
+import { HowYourRepairWorks } from '../components/services/HowYourRepairWorks'
 import { PREPAID_SHIPPING_SPECS } from '../lib/repair-bridge'
 import { MAIL_IN_TERMS } from '../lib/pricing/mail-in-policy'
 
@@ -110,6 +111,9 @@ export default function ServicesPage() {
 
         {/* Main Form Intake Section */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 space-y-12">
+          {/* How Your Repair Works (on-site + mail-in steps) */}
+          <HowYourRepairWorks />
+
           {/* Intake Form */}
           <section id="intake-form-section" className="scroll-mt-20">
             <MailInRepairRequestForm />
