@@ -31,12 +31,12 @@ function wrapLabel(label, maxLen) {
 
 // ---- Example pricing chart (example prices, before tax) ----
 var skuLabels = [
-    'Replacement Battery (Part, example $100)',
-    'Display Assembly (Part, example $180)',
-    'Repair Toolkit (Tool, example $80)',
+    'Screen Repair (example $180)',
+    'Battery Repair (example $100)',
+    'Phone Case (Accessory, example $30)',
     'Trip Fee ($25)',
-    'Diagnostic Fee ($40)',
-    'Repair Labor (example $130)'
+    'Mail-In Kit ($40)',
+    'IT Service (example $130)'
 ].map(function (l) { return wrapLabel(l, 16); });
 
 var pricingCanvas = document.getElementById('skuPricingChart');
@@ -47,14 +47,14 @@ if (pricingCanvas && window.Chart) {
             labels: skuLabels,
             datasets: [
                 {
-                    label: 'Approved member: 20% off parts & tools (example prices, before tax)',
-                    data: [80.00, 144.00, 64.00, 25.00, 40.00, 130.00],
+                    label: 'Approved member: 20% off repairs & accessories (example prices, before tax)',
+                    data: [144.00, 80.00, 24.00, 25.00, 40.00, 130.00],
                     backgroundColor: '#2563EB',
                     borderRadius: 4
                 },
                 {
                     label: 'Regular price (example prices, before tax)',
-                    data: [100.00, 180.00, 80.00, 25.00, 40.00, 130.00],
+                    data: [180.00, 100.00, 30.00, 25.00, 40.00, 130.00],
                     backgroundColor: '#94A3B8',
                     borderRadius: 4
                 }
@@ -117,17 +117,17 @@ var pipelineStages = [
     },
     {
         badge: 'STEP 3',
-        title: 'Fixed 20% Off Parts and Tools',
+        title: 'Fixed 20% Off Repairs and Accessories',
         endpoint: 'Customer account tag',
-        problem: 'Once you\'re approved, we add a tag to your customer account. The tag applies a fixed 20% discount to parts and tools.',
-        solution: 'The 20% does not apply to the $25 trip fee, the $40 diagnostic fee, shipping, or labor. Sales tax is still charged at checkout.'
+        problem: 'Once you\'re approved, we add a tag to your customer account. The tag applies a fixed 20% discount to the full price of all repairs and accessories.',
+        solution: 'The 20% does not apply to the $25 trip fee, the $40 mail-in kit, shipping, or IT services. Sales tax is still charged at checkout.'
     },
     {
         badge: 'STEP 4',
-        title: 'What We Keep After Review',
-        endpoint: 'Minimal records',
-        problem: 'After review, we keep only the approval result, your tribe, the date, and the reviewer.',
-        solution: 'ID images and enrollment numbers are deleted after review.'
+        title: 'Your ID Documents',
+        endpoint: 'Staff review',
+        problem: 'Your ID documents are reviewed by a person on our team and stored securely.',
+        solution: 'Questions about your documents? Contact us.'
     }
 ];
 
@@ -157,8 +157,8 @@ var simOnResEl = document.getElementById('simOnRes');
 var simJurisdictionEl = document.getElementById('simJurisdiction');
 
 var TAG = 'px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider ';
-var DISCOUNT_ON = '20% off parts and tools';
-var DISCOUNT_ON_DETAIL = 'Applied through the tag on your customer account. It does not apply to the $25 trip fee, the $40 diagnostic fee, shipping, or labor.';
+var DISCOUNT_ON = '20% off repairs and accessories';
+var DISCOUNT_ON_DETAIL = 'Applied to the full price through the tag on your customer account. It does not apply to the $25 trip fee, the $40 mail-in kit, shipping, or IT services.';
 
 function updateSimulator() {
     var verified = simVerifiedEl.checked;
@@ -179,7 +179,7 @@ function updateSimulator() {
         t1ResEl.className = 'text-lg font-extrabold text-amber-300 mt-1';
         t1ResEl.textContent = DISCOUNT_ON;
         t1DetEl.textContent = DISCOUNT_ON_DETAIL;
-        payloadEl.textContent = 'At checkout: 20% off parts and tools; sales tax charged';
+        payloadEl.textContent = 'At checkout: 20% off repairs and accessories; sales tax charged';
     } else {
         t1ResEl.className = 'text-lg font-extrabold text-slate-300 mt-1';
         t1ResEl.textContent = 'No member discount';
