@@ -1,17 +1,51 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createHash } from 'crypto'
-import { verifyPersonaSignature } from '../../../lib/webhooks/persona-signature'
-import { readRawBody } from '../../../lib/api/read-raw-body'
-import { updateShopifyCustomerTribalStatus } from '../../../lib/tribal/shopify-admin'
-import { isSlackConfigured, postReviewToSlack } from '../../../lib/tribal/manual-review'
-import { db } from '../../../lib/firebase'
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { verifyPersonaSignature } from '../../../lib/webhooks/persona-signature.ts'
+import { readRawBody } from '../../../lib/api/read-raw-body.ts'
+import {
+  claimKey,
+  releaseKey,
+  isReviewStoreAvailable,
+  isSlackConfigured,
+  isTribalVerifyEnabled,
+  newReviewRecord,
+  postReviewToSlack,
+  saveReview,
+} from '../../../lib/tribal/manual-review.ts'
+import { normalizeCustomerGid } from '../../../lib/tribal/tag-gate.ts'
 
+/**
+ * Persona webhook.
+ *
+ * A Persona result is NEVER an approval. A completed/approved inquiry only
+ * records a PENDING tribal review request (no Shopify tag, no tax exemption,
+ * no enrollment number or hash stored) and posts it to the existing Slack
+ * Approve/Deny flow. A human reviewer decides in Slack or the admin dashboard,
+ * and the tag is added only through the TRIBAL_SHOPIFY_TAG_MODE gate.
+ *
+ * Stage 1 skips Persona: unless PERSONA_ENABLED is exactly 'true' the webhook
+ * returns 410 and does nothing (no body read, nothing stored, nothing posted).
+ * Even when enabled, nothing is stored unless TRIBAL_VERIFY_ENABLED is 'true'
+ * (the review flow's master switch). Repeat deliveries of the same inquiry
+ * create one record.
+ */
 export const config = { api: { bodyParser: false } }
 
-const WEBHOOK_SECRET = process.env.PERSONA_WEBHOOK_SECRET
+const PENDING_EVENTS = new Set(['inquiry.completed', 'inquiry.approved', 'verification.passed'])
+const PERSONA_CLAIM_PREFIX = 'tribal:persona-inquiry:'
+const SAFE_ID_RE = /^[A-Za-z0-9_-]{1,100}$/
+
+export function isPersonaEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  return (env.PERSONA_ENABLED || '').trim().toLowerCase() === 'true'
+}
+
+function str(v: unknown, max = 120): string {
+  return typeof v === 'string' ? v.trim().slice(0, max) : ''
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (!isPersonaEnabled()) {
+    return res.status(410).json({ success: false, error: 'Persona verification is disabled.' })
+  }
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
     return res.status(405).json({ success: false, error: 'Method not allowed' })
@@ -22,7 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Constant-time HMAC check over `${t}.${rawBody}` with a 300s replay window. A missing or
   // non-numeric `t` is rejected (previously NaN slipped past the tolerance check).
   const check = verifyPersonaSignature({
-    secret: WEBHOOK_SECRET,
+    secret: process.env.PERSONA_WEBHOOK_SECRET,
     header: req.headers['persona-signature'],
     rawBody,
   })
@@ -31,108 +65,72 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(status).json({ success: false, error: 'Invalid or missing webhook signature' })
   }
 
+  let payload: any
   try {
-    const payload = JSON.parse(rawBody.toString('utf8'))
-    const eventType = payload.event || payload.type || ''
-    const inquiryData = payload.data || payload.payload?.inquiry || {}
-    const inquiryId = inquiryData.id || ''
+    payload = JSON.parse(rawBody.toString('utf8'))
+  } catch {
+    return res.status(400).json({ success: false, error: 'Invalid JSON payload' })
+  }
+
+  try {
+    const eventType = str(payload?.event || payload?.type, 80)
+    const inquiryData = payload?.data || payload?.payload?.inquiry || {}
+    const inquiryId = str(inquiryData.id, 100)
     const attributes = inquiryData.attributes || {}
     const fields = attributes.fields || {}
+    const isResult = PENDING_EVENTS.has(eventType) || attributes.status === 'approved' || attributes.status === 'completed'
 
-    // Process on inquiry.completed or inquiry.approved
-    if (
-      eventType === 'inquiry.completed' ||
-      eventType === 'inquiry.approved' ||
-      eventType === 'verification.passed' ||
-      attributes.status === 'approved' ||
-      attributes.status === 'completed'
-    ) {
-      const referenceId = attributes['reference-id'] || attributes.reference_id || ''
-      const tribalNation =
-        fields['tribal-nation']?.value ||
-        fields['tribal-affiliation']?.value ||
-        fields.tribalNation ||
-        'Federally Recognized Tribe'
-      const rawEnrollment =
-        fields['enrollment-number']?.value ||
-        fields['id-number']?.value ||
-        fields.enrollmentId ||
-        ''
-      const maskedEnrollment = rawEnrollment.length >= 4 ? `***${rawEnrollment.slice(-4)}` : '****'
+    if (!isResult) return res.status(200).json({ success: true, processed: false })
 
-      // Cryptographic hash of enrollment number (Rule 4.4: Never log or store raw ID)
-      const enrollmentHash = rawEnrollment
-        ? createHash('sha256').update(rawEnrollment.trim().toLowerCase(), 'utf8').digest('hex')
-        : createHash('sha256').update(`${referenceId}:${inquiryId}`, 'utf8').digest('hex')
-
-      // 1. Update Shopify Customer if customer ID was bound to the inquiry
-      if (referenceId && referenceId !== 'guest') {
-        try {
-          await updateShopifyCustomerTribalStatus({
-            customerId: referenceId,
-            tagsToAdd: ['tribal-member-verified'],
-            taxExempt: false, // Stays off until delivery address is confirmed on-reservation
-            audit: {
-              verificationHash: enrollmentHash,
-              verifiedAt: new Date().toISOString(),
-              tribalNation,
-              maskedEnrollmentId: maskedEnrollment,
-              certificateRef: `Persona Inquiry: ${inquiryId}`,
-            },
-          })
-        } catch (shopifyErr: any) {
-          console.warn('[Persona Webhook] Shopify customer update warning:', shopifyErr?.message)
-        }
-      }
-
-      // 2. Persist audit verification in Firestore if connected
-      if (db && referenceId) {
-        try {
-          const auditRef = doc(db, 'tribal_verifications', referenceId)
-          await setDoc(
-            auditRef,
-            {
-              inquiryId,
-              referenceId,
-              tribalNation,
-              maskedEnrollmentId: maskedEnrollment,
-              verificationHash: enrollmentHash,
-              verifiedAt: new Date().toISOString(),
-              status: 'verified',
-              updatedAt: serverTimestamp(),
-            },
-            { merge: true }
-          )
-        } catch (firestoreErr: any) {
-          console.warn('[Persona Webhook] Firestore audit log warning:', firestoreErr?.message)
-        }
-      }
-
-      // 3. Post to Slack if configured
-      if (isSlackConfigured()) {
-        try {
-          await postReviewToSlack({
-            id: inquiryId,
-            customerName: `${fields['name-first']?.value || ''} ${fields['name-last']?.value || ''}`.trim() || 'Verified Member',
-            customerEmail: fields['email-address']?.value || '',
-            customerId: referenceId,
-            tribalNation,
-            maskedEnrollmentId: maskedEnrollment,
-            status: 'approved',
-            createdAt: new Date().toISOString(),
-          } as any)
-        } catch (slackErr: any) {
-          console.warn('[Persona Webhook] Slack notification warning:', slackErr?.message)
-        }
-      }
+    if (!isTribalVerifyEnabled()) {
+      // Review flow is off: acknowledge, store nothing, tag nothing.
+      return res.status(200).json({ success: true, processed: false, reason: 'review_disabled' })
+    }
+    if (!isReviewStoreAvailable()) {
+      return res.status(503).json({ success: false, error: 'Review store unavailable' })
+    }
+    if (!SAFE_ID_RE.test(inquiryId)) {
+      return res.status(400).json({ success: false, error: 'Missing inquiry id' })
     }
 
-    return res.status(200).json({ success: true, processed: true })
+    // One pending record per Persona inquiry, however often Persona redelivers.
+    if (!(await claimKey(PERSONA_CLAIM_PREFIX + inquiryId))) {
+      return res.status(200).json({ success: true, processed: true, duplicate: true })
+    }
+
+    const referenceId = str(attributes['reference-id'] || attributes.reference_id, 100)
+    const tribalNation =
+      str(fields['tribal-nation']?.value) || str(fields['tribal-affiliation']?.value) || str(fields.tribalNation) || 'Not provided'
+
+    // Deliberately NOT read: enrollment / ID numbers. Nothing about the ID is stored.
+    const record = {
+      ...newReviewRecord(
+        {
+          firstName: str(fields['name-first']?.value) || 'Persona',
+          lastName: str(fields['name-last']?.value) || 'Applicant',
+          tribalNation,
+          customerId: normalizeCustomerGid(referenceId),
+          source: 'persona',
+        },
+        { version: 'persona-inquiry' }
+      ),
+      personaInquiryId: inquiryId,
+    }
+    try {
+      await saveReview(record)
+    } catch (err) {
+      await releaseKey(PERSONA_CLAIM_PREFIX + inquiryId).catch(() => undefined)
+      throw err
+    }
+
+    let notified = false
+    if (isSlackConfigured()) {
+      notified = await postReviewToSlack(record).catch(() => false)
+    }
+
+    return res.status(202).json({ success: true, processed: true, status: 'pending_review', reviewId: record.id, notified })
   } catch (err: any) {
-    console.error('[Persona Webhook] Processing error:', err?.message)
-    if (err instanceof SyntaxError) {
-      return res.status(400).json({ success: false, error: 'Invalid JSON payload' })
-    }
+    console.error('[Persona Webhook] Processing error:', err?.name || 'Error')
     return res.status(500).json({ success: false, error: 'Webhook processing failed' })
   }
 }

@@ -134,7 +134,7 @@ describe('pages/api routes moved from app/api', () => {
     expect(r.csv.headers['content-disposition']).toMatch(/^attachment; filename="tribal-tax-audit-report-\d{4}-\d{2}-\d{2}\.csv"$/)
     expect(r.csv.headers['cache-control']).toBe('no-store, max-age=0')
     expect(r.csv.body.charCodeAt(0)).toBe(0xfeff)
-    expect(r.all.body.total).toBe(4)
+    expect(r.all.body.total).toBe(0) // no fabricated audit rows
     expect(r.json.body.total).toBe(0)
   })
 

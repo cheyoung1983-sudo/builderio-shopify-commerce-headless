@@ -19,8 +19,9 @@ service cloud.firestore {
     }
     
     function isOwnerEmail() {
-      // Bootstrapped owner check based on runtime email
-      return isVerified() && request.auth.token.email == 'cheyoung1983@gmail.com';
+      // Hardcoded personal-email owner bootstrap removed (Nov 2026). Owner/admin access is
+      // granted only through the admins/{uid} collection (isAdminLevel).
+      return false;
     }
 
     // --- Validation Blueprints ---
