@@ -435,6 +435,20 @@ describe('Exemption Certificate Zod Schema Validation', () => {
       expect(result.nameShort).toBeTruthy()
       expect(result.nameValid).toBeNull()
     })
+
+    test('Enforces the 100-character reservation name limit in real-time validation', () => {
+      const result = runValidationScript(`
+        const { validateCertificateField } = validationModule
+        const context = { deliveryAddress: { state: 'CA' } }
+        console.log(JSON.stringify({
+          atLimit: validateCertificateField('reservationName', 'A'.repeat(100), context),
+          overLimit: validateCertificateField('reservationName', 'A'.repeat(101), context),
+        }))
+      `)
+
+      expect(result.atLimit).toBeNull()
+      expect(result.overLimit).toBeTruthy()
+    })
   })
 
   describe('API Route /api/tribal/certificate Zod Enforcement', () => {
