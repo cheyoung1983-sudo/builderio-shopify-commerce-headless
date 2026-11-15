@@ -123,7 +123,7 @@ export function ReservationMapOverlay({
             )}
             <span>
               {isOnReservation
-                ? 'Delivery location confirmed within sovereign reservation boundaries. State sales tax exemption applies.'
+                ? 'Delivery location confirmed within sovereign reservation boundaries. Tax is charged at checkout. If your order qualifies for the Washington tribal exemption, we\'ll confirm and refund the tax.'
                 : 'Delivery location is outside tribal reservation boundaries. Standard commercial discount applies.'}
             </span>
           </div>

@@ -431,12 +431,6 @@ export default function ServicesFaqPage() {
                 <span>Browse Product Catalog</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
-              <Link
-                href="/order-tracking"
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-neutral-800 text-white font-semibold text-xs border border-neutral-700 hover:bg-neutral-700 transition-colors text-center"
-              >
-                Track Active Order
-              </Link>
             </div>
           </section>
         </main>
