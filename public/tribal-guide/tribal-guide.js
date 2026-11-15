@@ -86,7 +86,6 @@
 
         const retentionLabels = [
             'Raw GovID & Tribal Images (Post-Review Purge)',
-            'CA On-Reservation Primary Use-Tax Window',
             'WA Tax Certificates & Carrier POD Audit Vault'
         ].map(l => wrapLabel(l, 16));
 
@@ -96,8 +95,8 @@
                 labels: retentionLabels,
                 datasets: [{
                     label: 'Retention Duration (Months)',
-                    data: [0.03, 12, 60],
-                    backgroundColor: ['#F43F5E', '#F59E0B', '#10B981'],
+                    data: [0.03, 60],
+                    backgroundColor: ['#F43F5E', '#10B981'],
                     borderRadius: 6,
                     minBarLength: 10
                 }]
@@ -157,19 +156,13 @@
                 labels: skuLabels,
                 datasets: [
                     {
-                        label: 'Scenario 1: Enrolled + On-Res (20% Goods Off, 0% Tax)',
-                        data: [80.00, 144.00, 64.00, 25.00, 40.00, 130.00],
-                        backgroundColor: '#10B981',
-                        borderRadius: 4
-                    },
-                    {
                         label: 'Scenario 2: Enrolled + Off-Res (20% Goods Off, 8.5% Tax)',
                         data: [86.80, 156.24, 69.44, 27.13, 43.40, 141.05],
                         backgroundColor: '#2563EB',
                         borderRadius: 4
                     },
                     {
-                        label: 'Scenario 4: Standard Retail (0% Discount, 8.5% Tax)',
+                        label: 'Scenario 4: Standard Retail (No Discount, 8.5% Tax)',
                         data: [108.50, 195.30, 86.80, 27.13, 43.40, 141.05],
                         backgroundColor: '#94A3B8',
                         borderRadius: 4
@@ -306,15 +299,15 @@
                 badge: 'STAGE 3 ARCHITECTURAL PATTERN',
                 title: 'PostGIS Spatial Boundary & State Statutory Rule Evaluation',
                 endpoint: 'ST_Contains(aiana.geom, point)',
-                problem: '5-digit ZIP codes straddle reservation borders, and Washington (same-tribe nexus), California (on-res residency + FOB clause), and Arizona (local intake situs) enforce incompatible exemption rules.',
+                problem: '5-digit ZIP codes straddle reservation borders, and Washington requires same-tribe nexus for exemptions.',
                 solution: 'Geocode the normalized shipping address, run PostGIS ST_Contains against U.S. Census AIANA polygons, and evaluate state statutory rules before initializing the checkout session.'
             },
             {
                 badge: 'STAGE 4 ARCHITECTURAL PATTERN',
                 title: 'Stripe Checkout Session Coupon Injection & Tax Gate',
                 endpoint: 'POST /v1/checkout/sessions',
-                problem: 'Native checkout tax customer exemptions operate at the state level, store zero certificates, and would wrongly exempt off-reservation orders in Scenario 2.',
-                solution: 'Keep customer tax status at Taxable; inject a 20% Coupon restricted via applies_to to eligible goods when citizenship is verified; disable automatic_tax solely when Scenario 1 passes all GIS and certificate checks.'
+                problem: 'Exempting a customer at the checkout level would wrongly exempt off-reservation orders in Scenario 2.',
+                solution: 'Keep customer tax status at Taxable; inject a 20% Coupon restricted via applies_to to eligible goods when citizenship is verified; always charge sales tax at checkout, and refund it only after eligibility is confirmed and the signed state form is on file.'
             }
         ];
 
@@ -381,29 +374,17 @@
             if (verified && onRes) {
                 if (jur === 'WA_SAME') {
                     tagEl.className = 'px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30';
-                    tagEl.textContent = 'SCENARIO 1: FULL PRIVILEGES';
+                    tagEl.textContent = 'SCENARIO 1: DISCOUNT + POSSIBLE TAX REFUND';
                     titleEl.textContent = 'Enrolled Member + WA Same-Tribe Reservation Delivery';
                     t1ResEl.className = 'text-lg font-extrabold text-amber-300 mt-1';
                     t1ResEl.textContent = 'ACTIVE (20% Off Eligible Goods)';
                     t1DetEl.textContent = 'Injects Stripe Coupon via discounts array; applies_to excludes dispatch, diagnostic, and shipping fees.';
                     t2ResEl.className = 'text-lg font-extrabold text-emerald-400 mt-1';
-                    t2ResEl.textContent = '0% TAX (Entity Code C)';
-                    t2DetEl.textContent = 'Same-tribe territory confirmed under WAC 458-20-192; automatic_tax disabled for this session.';
+                    t2ResEl.textContent = 'Tax charged; refund possible after we confirm eligibility';
+                    t2DetEl.textContent = 'Sales tax is charged at checkout. If the buyer is enrolled with the tribe whose reservation receives delivery (WAC 458-20-192), we confirm eligibility, collect the signed state form, and refund the tax.';
                     auditEl.textContent = 'Capture signed Washington Buyers\' Retail Sales Tax Exemption Certificate (Line 4a), record tribal affiliation & delivery reservation, and retain carrier POD for 5 years.';
-                    payloadEl.textContent = 'Stripe: { discounts: [{ coupon: "TRIBAL_20" }], automatic_tax: { enabled: false } }';
-                } else if (jur === 'CA_HOOPA') {
-                    tagEl.className = 'px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30';
-                    tagEl.textContent = 'SCENARIO 1: FULL PRIVILEGES';
-                    titleEl.textContent = 'DOI-Eligible Native American + Hoopa Valley Delivery';
-                    t1ResEl.className = 'text-lg font-extrabold text-amber-300 mt-1';
-                    t1ResEl.textContent = 'ACTIVE (20% Off Eligible Goods)';
-                    t1DetEl.textContent = 'Injects Stripe Coupon via discounts array; applies_to protects operational fees and labor.';
-                    t2ResEl.className = 'text-lg font-extrabold text-emerald-400 mt-1';
-                    t2ResEl.textContent = '0% TAX (Entity Code C)';
-                    t2DetEl.textContent = 'CA CDTFA Reg 1616 satisfied: on-reservation residency verified & title passes upon reservation delivery.';
-                    auditEl.textContent = 'Vault signed Form CDTFA-146-RES, print "FOB Hoopa Valley Indian Reservation" + 12-mo >50% use-tax notice on invoice, and retain common carrier POD.';
-                    payloadEl.textContent = 'Stripe: { discounts: [{ coupon: "TRIBAL_20" }], automatic_tax: { enabled: false } }';
-                } else if (jur === 'WA_CROSS') {
+                    payloadEl.textContent = 'Checkout: 20% member discount on eligible goods; sales tax charged';
+                } else {
                     tagEl.className = 'px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/30';
                     tagEl.textContent = 'SCENARIO 1 BLOCKED -> TAX COLLECTED';
                     titleEl.textContent = 'WA Cross-Tribe Delivery (Tribe A Member on Tribe B Land)';
@@ -412,21 +393,9 @@
                     t1DetEl.textContent = 'Track 1 commercial discount remains active regardless of which reservation receives shipment.';
                     t2ResEl.className = 'text-lg font-extrabold text-rose-400 mt-1';
                     t2ResEl.textContent = 'FULL WA SALES TAX COLLECTED';
-                    t2DetEl.textContent = 'WAC 458-20-192 requires enrollment with the tribe upon whose territory delivery occurs; auto_exempt blocked.';
-                    auditEl.textContent = 'Log cross-tribe territory mismatch in checkout compliance evaluations and collect standard Washington state/local sales tax via Stripe automatic_tax.';
-                    payloadEl.textContent = 'Stripe: { discounts: [{ coupon: "TRIBAL_20" }], automatic_tax: { enabled: true } }';
-                } else {
-                    tagEl.className = 'px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/30';
-                    tagEl.textContent = 'SCENARIO 1 HELD -> CPA SITUS GATE';
-                    titleEl.textContent = 'Arizona On-Reservation Delivery (Out-of-State Online Order)';
-                    t1ResEl.className = 'text-lg font-extrabold text-amber-300 mt-1';
-                    t1ResEl.textContent = 'ACTIVE (20% Off Eligible Goods)';
-                    t1DetEl.textContent = 'Track 1 commercial discount applies automatically via Stripe Coupon.';
-                    t2ResEl.className = 'text-lg font-extrabold text-rose-400 mt-1';
-                    t2ResEl.textContent = 'TAX COLLECTED (AZ Auto-Exempt FALSE)';
-                    t2DetEl.textContent = 'AZ TPT Ruling 95-11 requires order intake, payment, and delivery inside reservation; online checkout defaults to taxable.';
-                    auditEl.textContent = 'Keep AZ auto-exempt gate set to FALSE in jurisdiction rules pending CPA review of interstate nexus vs. Form 5000A.';
-                    payloadEl.textContent = 'Stripe: { discounts: [{ coupon: "TRIBAL_20" }], automatic_tax: { enabled: true } }';
+                    t2DetEl.textContent = 'WAC 458-20-192 requires enrollment with the tribe upon whose territory delivery occurs; no tax refund applies.';
+                    auditEl.textContent = 'Log cross-tribe territory mismatch in checkout compliance evaluations and collect standard Washington state/local sales tax at checkout.';
+                    payloadEl.textContent = 'Checkout: 20% member discount on eligible goods; sales tax charged';
                 }
             } else if (verified && !onRes) {
                 tagEl.className = 'px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-400/30';
@@ -439,31 +408,31 @@
                 t2ResEl.textContent = 'FULL STATE & LOCAL SALES TAX';
                 t2DetEl.textContent = 'PostGIS ST_Contains returned FALSE; federal preemption does not apply outside Indian Country.';
                 auditEl.textContent = 'Log negative PostGIS boundary evaluation proving statutory sales tax was properly assessed and collected.';
-                payloadEl.textContent = 'Stripe: { discounts: [{ coupon: "TRIBAL_20" }], automatic_tax: { enabled: true } }';
+                payloadEl.textContent = 'Checkout: 20% member discount on eligible goods; sales tax charged';
             } else if (!verified && onRes) {
                 tagEl.className = 'px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/30';
                 tagEl.textContent = 'SCENARIO 3: UNVERIFIED ON-RESERVATION';
                 titleEl.textContent = 'Non-Enrolled or Unverified Buyer + Reservation Delivery';
                 t1ResEl.className = 'text-lg font-extrabold text-slate-300 mt-1';
-                t1ResEl.textContent = 'NONE (0% Commercial Discount)';
+                t1ResEl.textContent = 'NONE (No Member Discount)';
                 t1DetEl.textContent = 'Customer lacks an approved KYC verification record.';
                 t2ResEl.className = 'text-lg font-extrabold text-rose-400 mt-1';
                 t2ResEl.textContent = 'FULL STATE & LOCAL SALES TAX';
                 t2DetEl.textContent = 'On-reservation delivery alone does not exempt non-tribal or unverified purchasers.';
                 auditEl.textContent = 'Display pre-payment KYC verification prompt if buyer claims tribal citizenship; otherwise collect full tax and log standard retail order.';
-                payloadEl.textContent = 'Stripe: { discounts: [], automatic_tax: { enabled: true } }';
+                payloadEl.textContent = 'Checkout: no member discount; sales tax charged';
             } else {
                 tagEl.className = 'px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-slate-600/40 text-slate-300 border border-slate-500/40';
                 tagEl.textContent = 'SCENARIO 4: STANDARD RETAIL';
                 titleEl.textContent = 'Standard Retail Customer + Off-Reservation Delivery';
                 t1ResEl.className = 'text-lg font-extrabold text-slate-300 mt-1';
-                t1ResEl.textContent = 'NONE (0% Commercial Discount)';
+                t1ResEl.textContent = 'NONE (No Member Discount)';
                 t1DetEl.textContent = 'Standard catalog pricing applies across all physical goods, fees, and services.';
                 t2ResEl.className = 'text-lg font-extrabold text-rose-400 mt-1';
                 t2ResEl.textContent = 'FULL STATE & LOCAL SALES TAX';
-                t2DetEl.textContent = 'Stripe Tax calculates destination sales tax automatically via automatic_tax: { enabled: true }.';
+                t2DetEl.textContent = 'Destination sales tax is charged at checkout.';
                 auditEl.textContent = 'Standard e-commerce transaction logging; zero tribal enrollment or tax exemption documentation collected.';
-                payloadEl.textContent = 'Stripe: { discounts: [], automatic_tax: { enabled: true } }';
+                payloadEl.textContent = 'Checkout: no member discount; sales tax charged';
             }
         }
 

@@ -45,7 +45,7 @@
                     Federally Enrolled Tribal Member Verification &amp; <span class="text-cyan-400">Checkout Tax Compliance</span>
                 </h1>
                 <p class="text-base sm:text-lg text-slate-300 leading-relaxed mb-8">
-                    Because no centralized federal API exists to query individual tribal citizenship rolls under Privacy Act (<span class="font-mono-code text-cyan-300">5 U.S.C. 552a</span>) protections, e-commerce merchants offering tribal member discounts and on-reservation tax exemptions require a two-track decision engine. This public reference architecture demonstrates how identity verification, spatial GIS boundaries, and checkout tax rules separate Track 1 commercial pricing discounts from Track 2 statutory sales tax preemption.
+                    Because no centralized federal API exists to query individual tribal citizenship rolls under Privacy Act (<span class="font-mono-code text-cyan-300">5 U.S.C. 552a</span>) protections, e-commerce merchants that offer tribal member discounts, and may need to handle on-reservation tax exemptions, can use a two-track approach. This public reference architecture demonstrates how identity verification, spatial GIS boundaries, and checkout tax rules separate Track 1 commercial pricing discounts from Track 2 statutory sales tax preemption.
                 </p>
             </div>
 
@@ -70,11 +70,10 @@
 
                 <div class="bg-white/10 backdrop-blur rounded-xl p-6 border border-white/15 shadow-lg">
                     <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-emerald-300">Track 2 Tax Preemption</span>
+                        <span class="text-base font-extrabold text-emerald-300">Tribal sales tax exemption (Washington).</span>
                         <span class="text-xl">&#128205;</span>
                     </div>
-                    <div class="text-4xl font-extrabold text-emerald-400 mb-1">0% TAX</div>
-                    <p class="text-xs text-slate-300">Statutory sales tax exemption strictly gated by Indian Country GIS polygons &amp; state forms.</p>
+                    <p class="text-xs text-slate-300">Enrolled tribal members may qualify for a sales tax exemption when an order is delivered within their own tribe's reservation. Tax is charged at checkout. Contact us before or after you order, and we'll confirm eligibility, collect the required state form, and refund the tax if your order qualifies.</p>
                 </div>
 
                 <div class="bg-white/10 backdrop-blur rounded-xl p-6 border border-white/15 shadow-lg">
@@ -158,7 +157,7 @@
                                     <span class="px-2 py-0.5 rounded text-xs font-mono-code font-semibold bg-cyan-200 text-cyan-950">WHTI ETC / GIS</span>
                                 </div>
                                 <p class="text-xs text-cyan-900 mt-1">
-                                    Includes CBP-approved ETC issuers such as <strong>Confederated Tribes of the Colville Reservation</strong> and <strong>Muscogee (Creek) Nation</strong>, alongside <strong>Hoopa Valley Tribe</strong> (<span class="font-mono-code">Hoopa, CA 95546</span> GIS benchmark).
+                                    Includes CBP-approved ETC issuers such as <strong>Confederated Tribes of the Colville Reservation</strong> and <strong>Muscogee (Creek) Nation</strong>.
                                 </p>
                             </div>
                         </div>
@@ -217,7 +216,7 @@
                             <span class="text-lg">&#128179;</span>
                         </div>
                         <h3 class="font-bold text-slate-900 text-base">Checkout Tax &amp; Coupon</h3>
-                        <p class="text-xs text-slate-600 mt-1">Applies 20% <span class="font-mono-code">Coupon</span> on eligible goods &amp; gates <span class="font-mono-code">automatic_tax</span> per Scenario 1&ndash;4.</p>
+                        <p class="text-xs text-slate-600 mt-1">Applies 20% <span class="font-mono-code">Coupon</span> on eligible goods; sales tax is charged at checkout.</p>
                         <div class="mt-3 text-xs font-semibold text-blue-700">Inspect Architecture &rarr;</div>
                     </button>
                 </div>
@@ -300,7 +299,7 @@
                             <span class="font-mono-code text-slate-500">State Statutes</span>
                         </div>
                         <h3 class="text-base font-bold text-slate-900">Jurisdiction Tax Rules</h3>
-                        <p class="text-xs text-slate-600 mt-2">Encodes same-tribe nexus, on-reservation residency, <span class="font-mono-code">FOB</span> title-passage clauses, form codes, and auto-exempt boolean gates.</p>
+                        <p class="text-xs text-slate-600 mt-2">Encodes same-tribe nexus, on-reservation delivery, and required form codes.</p>
                     </div>
                     <div class="mt-4 pt-3 border-t border-slate-100 text-xs font-mono-code text-slate-500">
                         Key: State Code (2-Char)<br>Rule: 5-Yr Retention Floor
@@ -356,7 +355,7 @@
                             <span class="font-mono-code text-emerald-700">&ge; 5-Yr Lock</span>
                         </div>
                         <h3 class="text-base font-bold text-slate-900">Tax Exemption Certificates</h3>
-                        <p class="text-xs text-slate-600 mt-2">Vaults signed WA Line 4a, <span class="font-mono-code">CDTFA-146-RES</span>, or <span class="font-mono-code">Form 5000A</span> URIs, delivery boundary link, and address-change invalidation logs.</p>
+                        <p class="text-xs text-slate-600 mt-2">Vaults signed WA Line 4a certificate URIs, delivery boundary link, and address-change invalidation logs.</p>
                     </div>
                     <div class="mt-4 pt-3 border-t border-slate-100 text-xs font-mono-code text-slate-500">
                         Key: Certificate UUID<br>Policy: Immutable Retention
@@ -370,7 +369,7 @@
                             <span class="font-mono-code text-emerald-700">Immutable</span>
                         </div>
                         <h3 class="text-base font-bold text-slate-900">Checkout Compliance Log</h3>
-                        <p class="text-xs text-slate-600 mt-2">Records Scenarios 1&ndash;4 outcomes, discount/tax API payloads, Entity Code C, <span class="font-mono-code">FOB</span> title-passage clauses, and carrier POD URIs.</p>
+                        <p class="text-xs text-slate-600 mt-2">Records Scenarios 1&ndash;4 outcomes, discount and tax amounts, tax refund decisions, and carrier POD URIs.</p>
                     </div>
                     <div class="mt-4 pt-3 border-t border-slate-100 text-xs font-mono-code text-slate-500">
                         Key: Evaluation UUID<br>Policy: 5-Yr Audit Archive
@@ -388,7 +387,6 @@
                     <ul class="mt-4 space-y-2 text-xs text-slate-700">
                         <li>&#128465;&#65039; <strong>Raw GovID &amp; Tribal Card Images:</strong> Purged immediately post-review (&le; 1 day).</li>
                         <li>&#128260; <strong>Address Exemption Cache:</strong> Invalidated immediately on any address change.</li>
-                        <li>&#128203; <strong>CA Primary Use Window:</strong> 12 months (&gt;50% on-reservation use rule).</li>
                         <li>&#128274; <strong>Tax Certificates &amp; Carrier PODs:</strong> Locked 60 months (<span class="font-mono-code">WAC 458-20-192</span>).</li>
                     </ul>
                 </div>
@@ -441,8 +439,6 @@
                             <select id="simJurisdiction" class="w-full mt-1 rounded-lg border-slate-300 bg-white text-sm font-medium text-slate-800 p-2.5 border focus:border-blue-600 focus:ring-blue-600">
                                 <option value="WA_SAME">Washington &mdash; Same-Tribe Reservation (WAC 458-20-192)</option>
                                 <option value="WA_CROSS">Washington &mdash; Cross-Tribe Reservation (Tribe A on Tribe B Land)</option>
-                                <option value="CA_HOOPA">California &mdash; Hoopa Valley Reservation (CDTFA Reg 1616)</option>
-                                <option value="AZ_ONLINE">Arizona &mdash; Online Order from Out-of-State Merchant (TPT 95-11)</option>
                             </select>
                         </div>
                     </div>
@@ -451,8 +447,8 @@
                         <div>
                             <div class="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-slate-700">
                                 <div>
-                                    <span id="simScenarioTag" class="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">SCENARIO 1: FULL PRIVILEGES</span>
-                                    <h4 id="simScenarioTitle" class="text-xl font-bold text-white mt-2">Enrolled Member + Compliant On-Reservation Delivery</h4>
+                                    <span id="simScenarioTag" class="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">SCENARIO 1: DISCOUNT + POSSIBLE TAX REFUND</span>
+                                    <h4 id="simScenarioTitle" class="text-xl font-bold text-white mt-2">Enrolled Member + WA Same-Tribe Reservation Delivery</h4>
                                 </div>
                             </div>
 
@@ -465,8 +461,8 @@
 
                                 <div class="p-4 rounded-lg bg-slate-800/90 border border-slate-700">
                                     <div class="text-xs uppercase tracking-wider text-cyan-300 font-semibold">Track 2: Statutory Sales Tax</div>
-                                    <div id="simTrack2Result" class="text-lg font-extrabold text-emerald-400 mt-1">0% TAX (Entity Code C)</div>
-                                    <p id="simTrack2Detail" class="text-xs text-slate-300 mt-1">Disables Stripe <span class="font-mono-code">automatic_tax</span> for this session after validating certificate &amp; PostGIS polygon.</p>
+                                    <div id="simTrack2Result" class="text-lg font-extrabold text-emerald-400 mt-1">Tax charged; refund possible after we confirm eligibility</div>
+                                    <p id="simTrack2Detail" class="text-xs text-slate-300 mt-1">Sales tax is charged at checkout. If the buyer is enrolled with the tribe whose reservation receives delivery (WAC 458-20-192), we confirm eligibility, collect the signed state form, and refund the tax.</p>
                                 </div>
                             </div>
 
@@ -479,7 +475,7 @@
                         </div>
 
                         <div class="mt-5 pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-mono-code text-slate-400">
-                            <span id="simStripePayload">Stripe: { discounts: [{ coupon: "TRIBAL_20" }], automatic_tax: { enabled: false } }</span>
+                            <span id="simStripePayload">Checkout: 20% member discount on eligible goods; sales tax charged</span>
                         </div>
                     </div>
                 </div>
@@ -488,7 +484,7 @@
             <div class="bg-white rounded-xl shadow-md border border-slate-200 p-6">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4">
                     <div>
-                        <h3 class="text-lg font-bold text-slate-900">Illustrative Product &amp; Service Pricing Across Scenarios 1, 2 &amp; 4</h3>
+                        <h3 class="text-lg font-bold text-slate-900">Illustrative Product &amp; Service Pricing Across Scenarios 2 &amp; 4</h3>
                         <p class="text-sm text-slate-600">
                             Illustrates how Stripe <span class="font-mono-code text-xs">applies_to</span> restricts a 20% discount to eligible hardware parts and toolkits while excluding flat operational fees ($25 mobile dispatch fee, $40 diagnostic fee) and standalone IT services ($130 software repair), modeled with an illustrative 8.5% destination sales tax in Scenarios 2 and 4.
                         </p>
@@ -508,7 +504,7 @@
                 <span class="text-xs font-bold uppercase tracking-wider text-blue-600">05 &bull; Multi-State Revenue Compliance</span>
                 <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">State Statutory Tax Rules &amp; 2026 Fraud Guardrails</h2>
                 <p class="text-slate-600 mt-2 max-w-4xl leading-relaxed">
-                    Because state revenue departments enforce distinct territorial, residency, and title-passage conditions for on-reservation sales, a rules engine must gate Scenario 1 automation state by state.
+                    Because state revenue departments enforce distinct territorial, residency, and title-passage conditions for on-reservation sales, exemption rules must be checked state by state. This guide covers Washington only.
                 </p>
             </div>
 
@@ -521,7 +517,7 @@
                                 <th class="px-5 py-3.5 text-left font-bold uppercase text-xs tracking-wider">Required Form</th>
                                 <th class="px-5 py-3.5 text-left font-bold uppercase text-xs tracking-wider">Territorial &amp; Residency Rule</th>
                                 <th class="px-5 py-3.5 text-left font-bold uppercase text-xs tracking-wider">Invoice &amp; Delivery Requirement</th>
-                                <th class="px-5 py-3.5 text-left font-bold uppercase text-xs tracking-wider">Auto-Exempt Gate</th>
+                                <th class="px-5 py-3.5 text-left font-bold uppercase text-xs tracking-wider">At Checkout</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-200 bg-white">
@@ -538,39 +534,7 @@
                                     Delivery inside Indian Country; must re-verify upon any address change; 5-year audit retention.
                                 </td>
                                 <td class="px-5 py-4">
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">TRUE (Same-Tribe)</span>
-                                </td>
-                            </tr>
-                            <tr class="hover:bg-slate-50">
-                                <td class="px-5 py-4 font-bold text-slate-900">
-                                    California (CA)<br>
-                                    <span class="font-mono-code text-xs font-normal text-blue-600">CDTFA Reg 1616 / Pub 146</span>
-                                </td>
-                                <td class="px-5 py-4 font-mono-code text-xs text-slate-700">Form CDTFA-146-RES</td>
-                                <td class="px-5 py-4 text-xs text-slate-700">
-                                    <strong>Any Indian Country Residence:</strong> Buyer must be DOI-eligible Native American residing in Indian Country (same-tribe not required).
-                                </td>
-                                <td class="px-5 py-4 text-xs text-slate-700">
-                                    Invoice must state <span class="font-mono-code">FOB [Reservation]</span> title passage + 12-mo &gt;50% use-tax notice; retain carrier POD (no notary needed for common carrier).
-                                </td>
-                                <td class="px-5 py-4">
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">TRUE (With FOB/POD)</span>
-                                </td>
-                            </tr>
-                            <tr class="hover:bg-slate-50">
-                                <td class="px-5 py-4 font-bold text-slate-900">
-                                    Arizona (AZ)<br>
-                                    <span class="font-mono-code text-xs font-normal text-blue-600">TPT Ruling 95-11</span>
-                                </td>
-                                <td class="px-5 py-4 font-mono-code text-xs text-slate-700">ADOR Form 5000A</td>
-                                <td class="px-5 py-4 text-xs text-slate-700">
-                                    <strong>Strict Situs Rule:</strong> Order intake, payment processing, AND physical delivery must occur inside reservation boundaries.
-                                </td>
-                                <td class="px-5 py-4 text-xs text-slate-700">
-                                    Online checkout initiated with an out-of-state merchant occurs off-reservation; requires CPA nexus review before automation.
-                                </td>
-                                <td class="px-5 py-4">
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800">FALSE (CPA Hold)</span>
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">Tax charged; refund possible after we confirm eligibility</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -616,7 +580,7 @@
                     <canvas id="roadmapGanttChart"></canvas>
                 </div>
                 <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500">
-                    <strong class="text-slate-700">Critical Path Gate:</strong> Phase 5 compliance audits (Weeks 9&ndash;11) validate WA same-tribe vs. cross-tribe routing, CA <span class="font-mono-code">FOB</span> invoicing, Scenario 2 off-reservation tax collection, and immediate KYC PII redaction prior to launch.
+                    <strong class="text-slate-700">Critical Path Gate:</strong> Phase 5 compliance audits (Weeks 9&ndash;11) validate WA same-tribe vs. cross-tribe routing, WA tax refund handling, Scenario 2 off-reservation tax collection, and immediate KYC PII redaction prior to launch.
                 </div>
             </div>
 
@@ -634,7 +598,7 @@
                 <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
                     <span class="text-xs font-bold text-amber-600">WEEKS 5&ndash;7</span>
                     <h4 class="font-bold text-slate-900 text-sm mt-1">3. Catalog &amp; Tax Rules</h4>
-                    <p class="text-xs text-slate-600 mt-1">Configure 20% <span class="font-mono-code">Coupon</span> with <span class="font-mono-code">applies_to</span> exclusions, unbundle labor vs. goods, lock AZ auto-exempt to <span class="font-mono-code">FALSE</span>.</p>
+                    <p class="text-xs text-slate-600 mt-1">Configure 20% <span class="font-mono-code">Coupon</span> with <span class="font-mono-code">applies_to</span> exclusions and unbundle labor vs. goods.</p>
                 </div>
                 <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
                     <span class="text-xs font-bold text-indigo-600">WEEKS 7&ndash;9</span>
@@ -644,7 +608,7 @@
                 <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
                     <span class="text-xs font-bold text-emerald-600">WEEKS 9&ndash;11</span>
                     <h4 class="font-bold text-slate-900 text-sm mt-1">5. Scenario 1&ndash;4 QA</h4>
-                    <p class="text-xs text-slate-600 mt-1">Execute WA same/cross-tribe tests, CA <span class="font-mono-code">FOB</span> test, Scenario 2 tax collection test, and verify 5-year audit archive.</p>
+                    <p class="text-xs text-slate-600 mt-1">Execute WA same/cross-tribe tests, WA tax refund test, Scenario 2 tax collection test, and verify 5-year audit archive.</p>
                 </div>
             </div>
         </section>
@@ -657,7 +621,7 @@
                 <span class="font-bold text-white">Public Compliance Reference Architecture</span> &bull; Tribal Member Verification &amp; Checkout Tax Engine
             </div>
             <div>
-                Public Sources: Federal Register <span class="font-mono-code">91 FR 4102</span> (Jan 30, 2026) &bull; U.S. Census AIANA &bull; <span class="font-mono-code">WAC 458-20-192</span> &bull; <span class="font-mono-code">CDTFA Reg 1616</span> &bull; IRS <span class="font-mono-code">IR-2026-112</span>
+                Public Sources: Federal Register <span class="font-mono-code">91 FR 4102</span> (Jan 30, 2026) &bull; U.S. Census AIANA &bull; <span class="font-mono-code">WAC 458-20-192</span> &bull; IRS <span class="font-mono-code">IR-2026-112</span>
             </div>
         </div>
     </footer>
