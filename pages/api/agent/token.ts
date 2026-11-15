@@ -11,6 +11,7 @@ import {
   readBoundedString,
   DEFAULT_AGENT_CORS_OPTIONS,
 } from '../../../lib/api-security/index.ts'
+import { checkRateLimit } from '../../../lib/tribal/ratelimit.ts'
 
 interface TokenResponse {
   token?: string
@@ -44,9 +45,18 @@ export default async function handler(
     return
   }
 
-  if (!rateLimiter.check(getClientKey(req)).allowed) {
-    const result = rateLimiter.check(getClientKey(req))
-    res.setHeader('Retry-After', String(result.retryAfterSeconds))
+  // Per-instance burst limit, then a limit shared across all serverless instances
+  // (Upstash when configured), so scripts can't spend ElevenLabs minutes by
+  // spreading requests over cold starts.
+  const clientKey = getClientKey(req)
+  const burst = rateLimiter.check(clientKey)
+  if (!burst.allowed) {
+    res.setHeader('Retry-After', String(burst.retryAfterSeconds))
+    return res.status(429).json({ error: 'Too many requests' })
+  }
+  const shared = await checkRateLimit(`agent-token:${clientKey}`, 20, 600)
+  if (!shared.success) {
+    res.setHeader('Retry-After', String(Math.max(1, shared.reset - Math.floor(Date.now() / 1000))))
     return res.status(429).json({ error: 'Too many requests' })
   }
 
