@@ -52,7 +52,7 @@ describe('API Security Utility', () => {
 
   describe('createRateLimiter', () => {
     test('allows requests within limit and rejects when exceeded', () => {
-      const limiter = createRateLimiter({ windowMs: 1000, maxRequests: 2 });
+      const limiter = createRateLimiter({ windowMs: 1000, limit: 2 });
       const key = 'test-client';
       expect(limiter.check(key).allowed).toBe(true);
       expect(limiter.check(key).allowed).toBe(true);
