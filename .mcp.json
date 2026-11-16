@@ -42,7 +42,8 @@
       "args": [
         "-y",
         "@auth0/auth0-mcp-server",
-        "run"
+        "run",
+        "--read-only"
       ]
     },
     "builder-io": {
