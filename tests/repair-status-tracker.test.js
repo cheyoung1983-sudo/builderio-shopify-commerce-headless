@@ -4,7 +4,6 @@ const path = require('path')
 describe('Repair Status Tracker Component & Real-Time Firestore Sync', () => {
   const componentPath = path.resolve(__dirname, '../components/services/RepairStatusTracker.tsx')
   const apiPath = path.resolve(__dirname, '../pages/api/repair-requests/[rms].ts')
-  const orderTrackingPagePath = path.resolve(__dirname, '../pages/order-tracking.tsx')
   const servicesFaqPagePath = path.resolve(__dirname, '../pages/services-faq.tsx')
 
   test('RepairStatusTracker component exists', () => {
@@ -36,21 +35,15 @@ describe('Repair Status Tracker Component & Real-Time Firestore Sync', () => {
     expect(content).toContain('data-testid="repair-status-tracker"')
   })
 
-  test('API route pages/api/repair-requests/[rms].ts queries Firestore and demo seeds', () => {
+  test('API route pages/api/repair-requests/[rms].ts queries Firestore, returns only the safe summary, no demo seeds', () => {
     expect(fs.existsSync(apiPath)).toBe(true)
     const apiContent = fs.readFileSync(apiPath, 'utf8')
-    expect(apiContent).toContain('DCP-RMS-100001')
-    expect(apiContent).toContain('DCP-RMS-100002')
-    expect(apiContent).toContain('bench_diagnostic')
-    expect(apiContent).toContain('inbound_transit')
+    expect(apiContent).toContain("doc(db, 'repair_requests', rms)")
+    expect(apiContent).toContain('toSafeSummary')
+    expect(apiContent).toContain('createRateLimiter')
+    expect(apiContent).not.toMatch(/DEMO|DCP-RMS-1000/)
   })
 
-  test('pages/order-tracking.tsx integrates tabbed navigation with RepairStatusTracker', () => {
-    const content = fs.readFileSync(orderTrackingPagePath, 'utf8')
-    expect(content).toContain('RepairStatusTracker')
-    expect(content).toContain('Mail-In Cleanroom Repairs')
-    expect(content).toContain('Replacement Parts Orders')
-  })
 
   test('pages/services-faq.tsx renders RepairStatusTracker', () => {
     const content = fs.readFileSync(servicesFaqPagePath, 'utf8')

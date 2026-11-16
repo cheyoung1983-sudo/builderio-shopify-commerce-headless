@@ -93,6 +93,39 @@ export const STATE_ZIP_RANGES: Record<
   },
 }
 
+function getDeliveryZipErrorMessage(state: string, zip: string): string | null {
+  const zipDigits = zip.split('-')[0]
+  const zipNum = parseInt(zipDigits, 10)
+  const stateConfig = STATE_ZIP_RANGES[state]
+
+  if (!stateConfig) return null
+
+  const isPrefixMatch = stateConfig.prefixRegex.test(zipDigits)
+  const isRangeMatch = zipNum >= stateConfig.min && zipNum <= stateConfig.max
+  if (isPrefixMatch && isRangeMatch) return null
+
+  const formDesc = stateConfig.formCode ? ` (${stateConfig.formCode})` : ''
+  return `Delivery state is ${stateConfig.name}${formDesc}, but ZIP code ${zip} is not located in ${stateConfig.name}.`
+}
+
+function getReservationNameErrorMessage(state: string, reservationName: string): string | null {
+  if (state === 'CA' && !reservationName) {
+    return 'Reservation or Rancheria name is required for California exemption (CDTFA-146-RES).'
+  }
+  if (state === 'WA' && !reservationName) {
+    return 'Reservation or Indian Country name is required for Washington exemption (WAC 458-20-192).'
+  }
+  if (reservationName) {
+    if (/[<>;*%"'#&()=!]/.test(reservationName)) {
+      return 'Reservation name contains invalid or prohibited characters.'
+    }
+    if (reservationName.length > 100) {
+      return 'Reservation name cannot exceed 100 characters.'
+    }
+  }
+  return null
+}
+
 // Disallowed dummy or placeholder values for Tribal IDs
 const DUMMY_TRIBAL_IDS = new Set([
   '0000',
@@ -239,66 +272,26 @@ export const exemptionCertificateSchema = z
   })
   .superRefine((data, ctx) => {
     const state = data.deliveryAddress.state.toUpperCase()
-    const zipDigits = data.deliveryAddress.zip.split('-')[0]
-    const zipNum = parseInt(zipDigits, 10)
-
-    const stateConfig = STATE_ZIP_RANGES[state]
 
     // 1. Cross-validate delivery ZIP against state postal range
-    if (stateConfig) {
-      const isPrefixMatch = stateConfig.prefixRegex.test(zipDigits)
-      const isRangeMatch = zipNum >= stateConfig.min && zipNum <= stateConfig.max
-
-      if (!isPrefixMatch || !isRangeMatch) {
-        const formDesc = stateConfig.formCode ? ` (${stateConfig.formCode})` : ''
-        ctx.addIssue({
-          code: 'custom',
-          message: `Delivery state is ${stateConfig.name}${formDesc}, but ZIP code ${data.deliveryAddress.zip} is not located in ${stateConfig.name}.`,
-          path: ['deliveryAddress', 'zip'],
-        })
-      }
+    const zipErrorMessage = getDeliveryZipErrorMessage(state, data.deliveryAddress.zip)
+    if (zipErrorMessage) {
+      ctx.addIssue({
+        code: 'custom',
+        message: zipErrorMessage,
+        path: ['deliveryAddress', 'zip'],
+      })
     }
 
     // 2. State-required statutory document fields
     const resName = (data.reservationName || '').trim()
-
-    // California CDTFA-146-RES requires specific Reservation or Rancheria identification
-    if (state === 'CA') {
-      if (!resName) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Reservation or Rancheria name is required for California exemption (CDTFA-146-RES).',
-          path: ['reservationName'],
-        })
-      }
-    }
-
-    // Washington WAC 458-20-192 requires Indian Country / Reservation tract designation
-    if (state === 'WA') {
-      if (!resName) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Reservation or Indian Country name is required for Washington exemption (WAC 458-20-192).',
-          path: ['reservationName'],
-        })
-      }
-    }
-
-    // Check reservation name for safety and length if provided
-    if (resName) {
-      if (/[<>;*%"'#&()=!]/.test(resName)) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Reservation name contains invalid or prohibited characters.',
-          path: ['reservationName'],
-        })
-      } else if (resName.length > 100) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Reservation name cannot exceed 100 characters.',
-          path: ['reservationName'],
-        })
-      }
+    const reservationNameError = getReservationNameErrorMessage(state, resName)
+    if (reservationNameError) {
+      ctx.addIssue({
+        code: 'custom',
+        message: reservationNameError,
+        path: ['reservationName'],
+      })
     }
 
     // 3. Delivery confirmation / Bill of Lading format check when provided
@@ -424,21 +417,7 @@ export function validateCertificateField(
 
     case 'reservationName': {
       const trimmed = typeof value === 'string' ? value.trim() : ''
-      if (state === 'CA' && !trimmed) {
-        return 'Reservation or Rancheria name is required for California exemption (CDTFA-146-RES).'
-      }
-      if (state === 'WA' && !trimmed) {
-        return 'Reservation or Indian Country name is required for Washington exemption (WAC 458-20-192).'
-      }
-      if (trimmed) {
-        if (/[<>;*%"'#&()=!]/.test(trimmed)) {
-          return 'Reservation name contains invalid or prohibited characters.'
-        }
-        if (trimmed.length > 100) {
-          return 'Reservation name cannot exceed 100 characters.'
-        }
-      }
-      return null
+      return getReservationNameErrorMessage(state, trimmed)
     }
 
     case 'deliveryAddress.address1': {
@@ -476,18 +455,7 @@ export function validateCertificateField(
       if (!/^\d{5}(-\d{4})?$/.test(trimmed)) {
         return 'ZIP Code must be a valid 5-digit (or 5+4) postal code.'
       }
-      const zipDigits = trimmed.split('-')[0]
-      const zipNum = parseInt(zipDigits, 10)
-      const stateConfig = STATE_ZIP_RANGES[state]
-      if (stateConfig) {
-        const isPrefixMatch = stateConfig.prefixRegex.test(zipDigits)
-        const isRangeMatch = zipNum >= stateConfig.min && zipNum <= stateConfig.max
-        if (!isPrefixMatch || !isRangeMatch) {
-          const formDesc = stateConfig.formCode ? ` (${stateConfig.formCode})` : ''
-          return `Delivery state is ${stateConfig.name}${formDesc}, but ZIP code ${trimmed} is not located in ${stateConfig.name}.`
-        }
-      }
-      return null
+      return getDeliveryZipErrorMessage(state, trimmed)
     }
 
     case 'carrierDeliveryMethod': {

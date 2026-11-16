@@ -22,18 +22,16 @@ import {
 
 export interface VerificationRequestItem {
   id: string
-  customerId: string
-  customerName: string
-  customerEmail: string
-  tribalNation: string
-  maskedEnrollmentId: string
   status: 'pending' | 'approved' | 'denied'
-  createdAt: string
+  customerName: string
+  tribalNation: string
   provider: string
-  personaInquiryId?: string
-  onReservation: boolean
-  reservationName?: string
-  notes?: string
+  createdAt: string
+  hasShopifyCustomer: boolean
+  maskedEnrollmentId?: string | null
+  decidedBy?: string | null
+  decidedAt?: string | null
+  shopifySynced?: boolean | null
 }
 
 interface AdminAuditDashboardProps {
@@ -54,11 +52,8 @@ export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminE
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/tribal/admin/requests?adminEmail=${encodeURIComponent(adminEmail)}`, {
-        headers: {
-          'x-admin-email': adminEmail,
-        },
-      })
+      // Identity comes from the server-side session only; nothing identifying is sent here.
+      const res = await fetch('/api/tribal/admin/requests', { credentials: 'same-origin' })
       const data = await res.json()
       if (res.ok && data.success) {
         setRequests(data.requests || [])
@@ -70,7 +65,7 @@ export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminE
     } finally {
       setLoading(false)
     }
-  }, [adminEmail])
+  }, [])
 
   useEffect(() => {
     // Wrap to avoid synchronous setState trigger
@@ -80,20 +75,15 @@ export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminE
     return () => clearTimeout(timer)
   }, [fetchRequests])
 
-  const handleDecision = async (requestId: string, customerId: string, action: 'approve' | 'deny') => {
+  const handleDecision = async (requestId: string, action: 'approve' | 'deny') => {
     setActionLoadingId(requestId)
     try {
       const res = await fetch('/api/tribal/admin/decision', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-email': adminEmail,
-        },
-        body: JSON.stringify({
-          requestId,
-          customerId,
-          action,
-        }),
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        // Only the review id and action: the server looks up the customer from the pending record.
+        body: JSON.stringify({ requestId, action }),
       })
       const data = await res.json()
       if (res.ok && data.success) {
@@ -106,6 +96,7 @@ export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminE
         )
       } else {
         alert(data.error || 'Failed to record decision.')
+        void fetchRequests()
       }
     } catch (err: any) {
       alert(err.message || 'Error processing decision.')
@@ -121,10 +112,8 @@ export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminE
     const matchesSearch =
       !q ||
       item.customerName.toLowerCase().includes(q) ||
-      item.customerEmail.toLowerCase().includes(q) ||
       item.tribalNation.toLowerCase().includes(q) ||
-      item.maskedEnrollmentId.toLowerCase().includes(q) ||
-      (item.personaInquiryId || '').toLowerCase().includes(q)
+      item.provider.toLowerCase().includes(q)
     return matchesStatus && matchesSearch
   })
 
@@ -132,7 +121,7 @@ export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminE
   const pendingCount = requests.filter((r) => r.status === 'pending').length
   const approvedCount = requests.filter((r) => r.status === 'approved').length
   const deniedCount = requests.filter((r) => r.status === 'denied').length
-  const onReservationCount = requests.filter((r) => r.onReservation).length
+  const linkedCount = requests.filter((r) => r.hasShopifyCustomer).length
 
   return (
     <div className="space-y-6">
@@ -220,8 +209,8 @@ export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminE
             <MapPin className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-neutral-500">On-Reservation</p>
-            <p className="text-2xl font-extrabold text-neutral-900">{onReservationCount}</p>
+            <p className="text-xs font-semibold text-neutral-500">Signed-in Customers</p>
+            <p className="text-2xl font-extrabold text-neutral-900">{linkedCount}</p>
           </div>
         </div>
       </div>
@@ -234,7 +223,7 @@ export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminE
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name, email, tribe..."
+            placeholder="Search by name, tribe, source..."
             className="w-full pl-9 pr-3 py-2 text-xs border border-neutral-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
           />
         </div>
@@ -275,8 +264,14 @@ export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminE
       ) : filteredRequests.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 border border-neutral-200 shadow-xs text-center space-y-2">
           <Building2 className="w-10 h-10 text-neutral-300 mx-auto" />
-          <h4 className="font-bold text-sm text-neutral-800">No requests found</h4>
-          <p className="text-xs text-neutral-500">There are no verification requests matching your filters.</p>
+          <h4 className="font-bold text-sm text-neutral-800">
+            {requests.length === 0 ? 'No verification requests yet' : 'No requests found'}
+          </h4>
+          <p className="text-xs text-neutral-500">
+            {requests.length === 0
+              ? 'New requests appear here (and in Slack) after a customer submits one. Each needs your review.'
+              : 'There are no verification requests matching your filters.'}
+          </p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-neutral-200 shadow-xs overflow-hidden">
@@ -284,10 +279,10 @@ export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminE
             <table className="w-full text-left text-xs">
               <thead className="bg-neutral-50 text-neutral-600 border-b border-neutral-200 font-bold uppercase tracking-wider">
                 <tr>
-                  <th className="py-3.5 px-4">Member / Email</th>
+                  <th className="py-3.5 px-4">Member</th>
                   <th className="py-3.5 px-4">Tribal Nation</th>
                   <th className="py-3.5 px-4">Enrollment ID</th>
-                  <th className="py-3.5 px-4">Geofence</th>
+                  <th className="py-3.5 px-4">Shopify Customer</th>
                   <th className="py-3.5 px-4">Status</th>
                   <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
@@ -302,19 +297,18 @@ export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminE
                       <tr className="hover:bg-neutral-50/80 transition-colors">
                         <td className="py-3.5 px-4">
                           <div className="font-bold text-neutral-900">{item.customerName}</div>
-                          <div className="text-[11px] text-neutral-500">{item.customerEmail}</div>
+                          <div className="text-[11px] text-neutral-500">{item.provider}</div>
                         </td>
                         <td className="py-3.5 px-4 font-medium text-neutral-800">{item.tribalNation}</td>
-                        <td className="py-3.5 px-4 font-mono text-neutral-700">{item.maskedEnrollmentId}</td>
+                        <td className="py-3.5 px-4 font-mono text-neutral-700">{item.maskedEnrollmentId || '—'}</td>
                         <td className="py-3.5 px-4">
-                          {item.onReservation ? (
+                          {item.hasShopifyCustomer ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              <MapPin className="w-3 h-3" />
-                              <span>On-Reservation</span>
+                              <span>Signed in</span>
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-                              Off-Reservation
+                              Guest
                             </span>
                           )}
                         </td>
@@ -341,14 +335,14 @@ export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminE
                             {item.status === 'pending' && (
                               <>
                                 <button
-                                  onClick={() => handleDecision(item.id, item.customerId, 'approve')}
+                                  onClick={() => handleDecision(item.id, 'approve')}
                                   disabled={isProcessing}
                                   className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors disabled:opacity-50"
                                 >
                                   Approve
                                 </button>
                                 <button
-                                  onClick={() => handleDecision(item.id, item.customerId, 'deny')}
+                                  onClick={() => handleDecision(item.id, 'deny')}
                                   disabled={isProcessing}
                                   className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors disabled:opacity-50"
                                 >
@@ -373,32 +367,28 @@ export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminE
                           <td colSpan={6} className="p-4 border-t border-b border-slate-200">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                               <div>
-                                <span className="font-bold text-slate-700 block mb-1">Diagnostic Telemetry</span>
+                                <span className="font-bold text-slate-700 block mb-1">Request</span>
                                 <p className="text-slate-600">
-                                  <strong>Provider:</strong> {item.provider}
-                                </p>
-                                <p className="text-slate-600">
-                                  <strong>Persona Inquiry ID:</strong>{' '}
-                                  <span className="font-mono">{item.personaInquiryId || 'None'}</span>
+                                  <strong>Source:</strong> {item.provider}
                                 </p>
                                 <p className="text-slate-600">
                                   <strong>Created:</strong> {new Date(item.createdAt).toLocaleString()}
                                 </p>
                               </div>
-
                               <div>
-                                <span className="font-bold text-slate-700 block mb-1">Geofence Location</span>
+                                <span className="font-bold text-slate-700 block mb-1">Decision</span>
                                 <p className="text-slate-600">
-                                  <strong>Territory:</strong> {item.reservationName || 'Standard Delivery Area'}
+                                  <strong>Reviewer:</strong> {item.decidedBy || 'Not decided yet'}
                                 </p>
                                 <p className="text-slate-600">
-                                  <strong>Tax Exemption Eligible:</strong> {item.onReservation ? 'Yes (On-Reservation)' : 'No (20% Discount Only)'}
+                                  <strong>Decided:</strong> {item.decidedAt ? new Date(item.decidedAt).toLocaleString() : '—'}
                                 </p>
                               </div>
-
                               <div>
-                                <span className="font-bold text-slate-700 block mb-1">Admin Audit Notes</span>
-                                <p className="text-slate-600 leading-relaxed">{item.notes || 'No custom notes provided.'}</p>
+                                <span className="font-bold text-slate-700 block mb-1">Shopify</span>
+                                <p className="text-slate-600">
+                                  <strong>Tagged:</strong> {item.shopifySynced ? 'Yes' : 'No'}
+                                </p>
                               </div>
                             </div>
                           </td>

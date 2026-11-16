@@ -10,14 +10,6 @@ import type { NextApiRequest, NextApiResponse } from 'next'
  * Tribal verification is by manual review: submit a request through
  * /api/tribal/verify (see lib/tribal/manual-review.ts) or contact Display &
  * Cell Pros.
- *
- * Legacy Reference Methods & Signatures:
- * - verifyAndLockTribalEnrollment
- * - res.status(409).json(enrollmentResult)
- * - res.status(400).json(enrollmentResult)
- * - evaluateAddressGeofence
- * - appendCookie(res, 'tribal_member_verified', 'true')
- * - appendCookie(res, 'tribal_discount_active', '20')
  */
 const MANUAL_REVIEW_MESSAGE =
   'Online tribal verification is not available. Tribal verification is done by manual review: please contact Display & Cell Pros to have your enrollment reviewed. No discount or tax exemption has been applied.'

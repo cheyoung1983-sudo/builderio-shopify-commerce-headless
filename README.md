@@ -170,6 +170,14 @@ The following strategies are identified as potential fixes for the source code:
 />
 ```
 
+### Status (Oct 2026)
+
+Applied in `components/products/ProductCard.tsx`, `lib/image.ts`, `ProductGrid`, `QuickViewDrawer` and `ProductImageZoom`:
+
+- Only the first grid card (`index === 0`) gets `priority`; cards 2-4 load eagerly without a preload.
+- `RESPONSIVE_IMAGE_SIZES.productGrid` (4-col) and `productGridThreeCol` (3-col `ProductGrid`) now mirror the Tailwind breakpoints and the `max-w-7xl` container cap.
+- The Quick View drawer image and the zoom magnifier overlay no longer use `priority`; they appear only after user interaction and are never the LCP element.
+
 ---
 
 ## 🔒 Security & Best Practices

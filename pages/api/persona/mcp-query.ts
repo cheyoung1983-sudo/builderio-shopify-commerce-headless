@@ -8,9 +8,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ success: false, error: 'Method Not Allowed' })
   }
 
-  // Ensure caller is authorized admin or authenticated session
-  const authorized = isAdminSession(req) || req.headers['x-internal-service'] === 'display-cell-pros-backend'
-  if (!authorized) {
+  res.setHeader('Cache-Control', 'no-store')
+
+  // proxy.ts puts this route behind ADMIN_USERNAME/ADMIN_PASSWORD Basic Auth. The old
+  // static `x-internal-service: display-cell-pros-backend` header bypass was removed:
+  // it is a public constant in this repo, so anyone could send it.
+  if (!isAdminSession(req)) {
     return res.status(403).json({
       success: false,
       error: 'Access Denied: Unauthorized request to Persona MCP proxy.',
@@ -31,6 +34,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json(mcpRes)
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err?.message || 'Internal server error during Persona MCP query.' })
+    return res.status(500).json({ success: false, error: 'Internal server error during Persona MCP query.' })
   }
 }

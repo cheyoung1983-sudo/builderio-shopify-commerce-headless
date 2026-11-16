@@ -23,4 +23,4 @@
 
 ## The Test Runner (Plan)
 - `firestore.rules.test.ts` will verify these 12 cases return `PERMISSION_DENIED`.
-- It will also verify that `cheyoung1983@gmail.com` is granted `owner` access during first-time registration.
+- It will also verify that no hardcoded email is granted `owner` access; owner/admin access comes only from the `admins/{uid}` collection.

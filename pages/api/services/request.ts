@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { validateEmail } from '@lib/validate-email'
+import { checkRateLimit } from '../../../lib/tribal/ratelimit.ts'
 
 export interface ServiceRequestPayload {
   serviceQuery: string
@@ -82,6 +83,17 @@ export default async function handler(
     })
   }
 
+  // Shared (Upstash when configured) per-IP limit so this public form can't be scripted.
+  {
+    const fwd = req.headers?.['x-forwarded-for']
+    const ip = (Array.isArray(fwd) ? fwd[0] : fwd)?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+    const limit = await checkRateLimit(`service-request:${ip}`, 5, 3600)
+    if (!limit.success) {
+      res.setHeader('Retry-After', String(Math.max(1, limit.reset - Math.floor(Date.now() / 1000))))
+      return res.status(429).json({ success: false, message: 'Too many requests. Please try again later.' })
+    }
+  }
+
   try {
     const {
       serviceQuery,
@@ -94,6 +106,9 @@ export default async function handler(
     }: ServiceRequestPayload = req.body || {}
 
     const trimmedQuery = (serviceQuery || '').trim()
+    if (trimmedQuery.length > 2000 || String(notes || '').length > 4000) {
+      return res.status(413).json({ success: false, message: 'Request is too long.' })
+    }
     if (!trimmedQuery) {
       return res.status(400).json({
         success: false,

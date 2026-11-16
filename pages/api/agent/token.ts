@@ -11,6 +11,7 @@ import {
   readBoundedString,
   DEFAULT_AGENT_CORS_OPTIONS,
 } from '../../../lib/api-security/index.ts'
+import { checkRateLimit } from '../../../lib/tribal/ratelimit.ts'
 
 interface TokenResponse {
   token?: string
@@ -44,9 +45,18 @@ export default async function handler(
     return
   }
 
-  if (!rateLimiter.check(getClientKey(req)).allowed) {
-    const result = rateLimiter.check(getClientKey(req))
-    res.setHeader('Retry-After', String(result.retryAfterSeconds))
+  // Per-instance burst limit, then a limit shared across all serverless instances
+  // (Upstash when configured), so scripts can't spend ElevenLabs minutes by
+  // spreading requests over cold starts.
+  const clientKey = getClientKey(req)
+  const burst = rateLimiter.check(clientKey)
+  if (!burst.allowed) {
+    res.setHeader('Retry-After', String(burst.retryAfterSeconds))
+    return res.status(429).json({ error: 'Too many requests' })
+  }
+  const shared = await checkRateLimit(`agent-token:${clientKey}`, 20, 600)
+  if (!shared.success) {
+    res.setHeader('Retry-After', String(Math.max(1, shared.reset - Math.floor(Date.now() / 1000))))
     return res.status(429).json({ error: 'Too many requests' })
   }
 
@@ -76,12 +86,12 @@ export default async function handler(
     req.query.agentId ||
     process.env.ELEVENLABS_AGENT_ID ||
     process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID ||
-    'agent_3101m30qaxc1f3981zq05pp86ax1'
+    'agent_6301kqxr35beedj8n91eq7gz73d7'
 
   const agentId =
     typeof requestedAgentId === 'string'
-      ? readBoundedString(requestedAgentId.trim(), { maxLength: 100 }) || 'agent_3101m30qaxc1f3981zq05pp86ax1'
-      : 'agent_3101m30qaxc1f3981zq05pp86ax1'
+      ? readBoundedString(requestedAgentId.trim(), { maxLength: 100 }) || 'agent_6301kqxr35beedj8n91eq7gz73d7'
+      : 'agent_6301kqxr35beedj8n91eq7gz73d7'
 
   const FALLBACK_AGENT_ID = 'agent_6301kqxr35beedj8n91eq7gz73d7'
 

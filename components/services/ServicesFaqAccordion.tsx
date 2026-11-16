@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { TRIBAL_ELIGIBILITY_LINE, TRIBAL_PAGE_PATH } from '../../lib/tribal/verification-copy'
+import { MAIL_IN_OVERNIGHT_NOTE, MAIL_IN_SHIPPING_POLICY, MAIL_IN_TERMS } from '../../lib/pricing/mail-in-policy'
 
 export interface FaqItem {
   id: string
@@ -173,31 +174,29 @@ const FAQ_DATABASE: FaqItem[] = [
       'Our white-glove repair system takes the hassle out of device repairs through a seamless 5-stage lifecycle:',
     bulletPoints: [
       '1. Digital Intake: Select your replacement screen or battery bundle on our storefront and describe the hardware symptoms.',
-      '2. Express Packaging Kit Dispatch: We rush-ship a custom mailer box with pre-cut high-density foam, ESD sleeve, and pre-printed UN3481 hazmat markings via UPS Next Day or FedEx Overnight.',
-      '3. Inbound Reverse Transit: Place your device in the kit and hand it to the courier. The return label is Pay-On-Use, so shipping is completely free for you.',
+      '2. Packaging Kit: We send a custom mailer box with pre-cut high-density foam, ESD sleeve, and pre-printed UN3481 hazmat markings by two-day USPS Priority. ' + MAIL_IN_TERMS,
+      '3. Inbound Reverse Transit: Place your device in the kit and hand it to the courier. You pay the label for sending your device to us.',
       '4. Bench Triage & Precision Repair: Technicians scan the barcode, photograph the device, perform diagnostic bus testing, replace components at grounded ESD benches, and execute quality assurance checks.',
-      '5. Insured Return Delivery: Your fully tested device is packaged securely and shipped back to your door via insured transit at $0 extra charge.',
+      '5. Insured Return Delivery: Your fully tested device is packaged securely and returned to your door via insured two-day USPS Priority. We pay return shipping.',
     ],
   },
   {
-    id: 'repair-free-shipping',
+    id: 'repair-shipping-costs',
     category: 'mail-in-repair',
     categoryLabel: 'White-Glove Mail-In Repair',
     badgeTone: 'emerald',
-    statuteTag: 'Pay-On-Use API Infrastructure',
-    question: 'Is return shipping really 100% free?',
-    answer:
-      'Yes! Return shipping is 100% free with zero hidden fees. DisplayCellPros utilizes scan-based Pay-On-Use (POU) return logistics. You never have to pay for shipping labels, packaging boxes, or return postage. All outbound packaging and return shipments include declared-value carrier insurance.',
+    statuteTag: 'Shipping Responsibility',
+    question: 'Who pays for shipping on a mail-in repair?',
+    answer: MAIL_IN_SHIPPING_POLICY + ' ' + MAIL_IN_OVERNIGHT_NOTE,
   },
   {
-    id: 'repair-pre-auth-hold',
+    id: 'repair-diagnostic-fee',
     category: 'mail-in-repair',
     categoryLabel: 'White-Glove Mail-In Repair',
     badgeTone: 'emerald',
-    statuteTag: 'Risk Management',
-    question: 'Why is there a temporary $25 pre-authorization hold during checkout?',
-    answer:
-      'Because we dispatch high-quality custom packaging kits with expedited overnight air freight at our expense, a temporary $25 pre-authorization hold is placed on your card at checkout to prevent kit abandonment. This hold is NOT a charge and is automatically released the moment our central repair depot scans your returning package barcode upon arrival.',
+    statuteTag: 'Diagnostic Fee',
+    question: 'What is the $40 diagnostic fee for mail-in repairs?',
+    answer: MAIL_IN_TERMS,
   },
   {
     id: 'repair-out-of-scope-damage',
@@ -227,7 +226,7 @@ const FAQ_DATABASE: FaqItem[] = [
       'Lithium-ion batteries contained inside mobile devices are classified as Class 9 Miscellaneous Dangerous Goods under Department of Transportation (DOT) 49 CFR 173.185 and International Air Transport Association (IATA) Packing Instruction 967 regulations. Damaged electronic devices transported via air freight must maintain a State of Charge (SoC) below 30% to prevent thermal runaway risks.',
     bulletPoints: [
       'Customer Responsibility: Please use your device until the battery indicator reads under 30% before powering down.',
-      'UN3481 Packaging Markings: Our express mailer boxes are pre-printed with official UN3481 red-hatched dangerous goods warning borders and a 24/7 emergency response hotline.',
+      'UN3481 Packaging Markings: Our mailer boxes are pre-printed with official UN3481 red-hatched dangerous goods warning borders and a 24/7 emergency response hotline.',
     ],
   },
   {

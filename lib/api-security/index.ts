@@ -47,7 +47,7 @@ export function isAllowedOrigin(
   origin: string | undefined,
   options: AllowedOriginsOptions = { allowedOrigins: [] }
 ): boolean {
-  if (origin === undefined || origin === null || origin === '') return true
+  if (origin === undefined || origin === null || origin === '') return false
 
   // 1. Localhost and Loopback development origins
   if (options.allowLocalhost !== false) {
@@ -156,7 +156,8 @@ interface RateLimitResult {
   retryAfterSeconds: number
 }
 
-export function createRateLimiter(options: { windowMs: number; maxRequests: number }) {
+export function createRateLimiter(options: { windowMs: number; maxRequests?: number; limit?: number }) {
+  const maxRequests = options.maxRequests ?? options.limit ?? 100
   const hits = new Map<string, { count: number; resetAt: number }>()
 
   function pruneStale(now: number) {
@@ -180,7 +181,7 @@ export function createRateLimiter(options: { windowMs: number; maxRequests: numb
         return { allowed: true, retryAfterSeconds: 0 }
       }
 
-      if (record.count >= options.maxRequests) {
+      if (record.count >= maxRequests) {
         return {
           allowed: false,
           retryAfterSeconds: Math.ceil((record.resetAt - now) / 1000),
@@ -188,6 +189,7 @@ export function createRateLimiter(options: { windowMs: number; maxRequests: numb
       }
 
       record.count++
+      hits.set(key, { count: record.count, resetAt: record.resetAt })
       return { allowed: true, retryAfterSeconds: 0 }
     },
   }

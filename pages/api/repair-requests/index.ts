@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../../lib/firebase'
+import { buildTermsAcceptance, type MailInTermsAcceptance } from '../../../lib/pricing/mail-in-policy'
+import { checkRateLimit } from '../../../lib/tribal/ratelimit.ts'
 
 export interface MailInRepairPayload {
   rmsNumber?: string
@@ -35,6 +37,8 @@ export interface MailInRepairPayload {
     batteryUnder30: boolean
     accessoriesRemoved: boolean
   }
+  /** Required: customer agreed to the $40 diagnostic fee and cancellation terms. */
+  termsAcceptance: { accepted: boolean }
   estimatedCost?: {
     part: number
     labor: number
@@ -50,6 +54,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       success: false,
       error: 'Method Not Allowed. Use POST.',
     })
+  }
+
+  // Shared (Upstash when configured) per-IP limit so this public form can't be scripted.
+  {
+    const fwd = req.headers?.['x-forwarded-for']
+    const ip = (Array.isArray(fwd) ? fwd[0] : fwd)?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+    const limit = await checkRateLimit(`repair-request:${ip}`, 5, 3600)
+    if (!limit.success) {
+      res.setHeader('Retry-After', String(Math.max(1, limit.reset - Math.floor(Date.now() / 1000))))
+      return res.status(429).json({ success: false, error: 'Too many requests. Please try again later.' })
+    }
   }
 
   try {
@@ -75,6 +90,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({
         success: false,
         error: 'Complete shipping address (Name, Email, Street, ZIP) is required for shipping kit dispatch.',
+      })
+    }
+
+    // Require explicit acceptance of the diagnostic fee and cancellation terms.
+    // Only a literal `true` counts; the timestamp is set here, never trusted from the client.
+    const termsAcceptance: MailInTermsAcceptance | null = buildTermsAcceptance(payload.termsAcceptance)
+    if (!termsAcceptance) {
+      return res.status(400).json({
+        success: false,
+        error: 'You must agree to the diagnostic fee and cancellation terms to request a mail-in kit.',
       })
     }
 
@@ -106,7 +131,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           state: shippingKit.address.state.trim().toUpperCase(),
           zip: shippingKit.address.zip.trim(),
         },
-        courierPreference: shippingKit.courierPreference || 'UPS_OVERNIGHT',
+        courierPreference: shippingKit.courierPreference || 'USPS_PRIORITY',
         kitType: shippingKit.kitType || 'electrostatic_foam_mailer',
         dispatchedAt: new Date().toISOString(),
       },
@@ -116,6 +141,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         batteryUnder30: Boolean(sopChecklist?.batteryUnder30),
         accessoriesRemoved: Boolean(sopChecklist?.accessoriesRemoved),
       },
+      termsAcceptance,
       estimatedCost: estimatedCost || {
         part: 129.99,
         labor: 35.0,
@@ -125,6 +151,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
+
+    // Durable proof of acceptance for disputes: Firestore writes below are best-effort (and are
+    // currently denied by firestore.rules), so also emit a structured log line. No PII.
+    console.info(
+      '[RepairRequests API] terms accepted',
+      JSON.stringify({ rmsNumber, accepted: termsAcceptance.accepted, acceptedAt: termsAcceptance.acceptedAt, termsVersion: termsAcceptance.termsVersion })
+    )
 
     // Write to Firestore if connected
     if (db) {
@@ -144,7 +177,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       success: true,
       rmsNumber,
       status: 'kit_requested',
-      message: `Mail-in repair request created. Prepaid shipping kit will be dispatched to ${shippingKit.recipientName}.`,
+      message: `Mail-in repair request created. Your shipping kit will be sent to ${shippingKit.recipientName}.`,
       record: repairRecord,
     })
   } catch (err: any) {

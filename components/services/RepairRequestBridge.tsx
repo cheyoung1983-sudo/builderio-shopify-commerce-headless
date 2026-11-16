@@ -20,6 +20,7 @@ import {
   buildRepairServiceUrl,
   PREPAID_SHIPPING_SPECS,
 } from '../../lib/repair-bridge'
+import { MAIL_IN_TERMS } from '../../lib/pricing/mail-in-policy'
 
 export interface RepairRequestBridgeProps {
   className?: string
@@ -114,7 +115,7 @@ export const RepairRequestBridge: React.FC<RepairRequestBridgeProps> = ({
           </h3>
           <p className="text-xs sm:text-sm text-neutral-600">
             Send it to our certified Spokane repair lab. We provide a custom electrostatic mailer with{' '}
-            <strong className="text-neutral-900">Prepaid Return Postage (rated up to {PREPAID_SHIPPING_SPECS.maxPackageWeightLbs.toFixed(1)} lbs / {PREPAID_SHIPPING_SPECS.maxPackageWeightOz} oz)</strong>, fast 24–48h turnaround, and OEM-spec testing.
+            <strong className="text-neutral-900">Prepaid Return Postage (rated up to {PREPAID_SHIPPING_SPECS.maxPackageWeightLbs.toFixed(1)} lbs / {PREPAID_SHIPPING_SPECS.maxPackageWeightOz} oz)</strong>, fast 24–48h turnaround, and OEM-spec testing. {MAIL_IN_TERMS}
           </p>
 
           {/* Trust Highlights Row */}
@@ -122,7 +123,7 @@ export const RepairRequestBridge: React.FC<RepairRequestBridgeProps> = ({
             <div className="flex items-center gap-1.5 bg-neutral-50 px-2.5 py-1.5 rounded-lg border border-neutral-100">
               <Truck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span>
-                <strong>Prepaid Postage Box</strong> ($0 Due)
+                <strong>Shipping Box Included</strong>
               </span>
             </div>
             <div className="flex items-center gap-1.5 bg-neutral-50 px-2.5 py-1.5 rounded-lg border border-neutral-100">
@@ -154,7 +155,7 @@ export const RepairRequestBridge: React.FC<RepairRequestBridgeProps> = ({
           </Link>
           <span className="text-[10px] text-neutral-500 text-center lg:text-right flex items-center justify-center lg:justify-end gap-1">
             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-            Pre-fills device &amp; includes prepaid shipping box
+            Pre-fills device &amp; includes shipping box
           </span>
         </div>
       </div>

@@ -16,6 +16,10 @@
         "@playwright/mcp@latest"
       ]
     },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
+    },
     "shopify": {
       "type": "http",
       "url": "https://api.shopify.com/mcp"
@@ -27,6 +31,10 @@
     "stripe": {
       "type": "http",
       "url": "https://mcp.stripe.com"
+    },
+    "vercel": {
+      "type": "http",
+      "url": "https://mcp.vercel.com"
     },
     "auth0": {
       "type": "stdio",

@@ -7,6 +7,7 @@ import {
   readBoundedString,
   DEFAULT_AGENT_CORS_OPTIONS,
 } from '../../../lib/api-security'
+import { checkRateLimit } from '../../../lib/tribal/ratelimit.ts'
 
 interface SignedUrlResponse {
   signedUrl?: string
@@ -18,7 +19,7 @@ interface SignedUrlResponse {
   message?: string
 }
 
-export const PRIMARY_AGENT_ID = 'agent_3101m30qaxc1f3981zq05pp86ax1'
+export const PRIMARY_AGENT_ID = 'agent_6301kqxr35beedj8n91eq7gz73d7'
 export const FALLBACK_AGENT_ID = 'agent_6301kqxr35beedj8n91eq7gz73d7'
 const AGENT_ID_PATTERN = /^agent_[a-zA-Z0-9]{20,64}$/
 const rateLimiter = createRateLimiter({ maxRequests: 30, windowMs: 60_000 })
@@ -73,8 +74,9 @@ export default async function handler(
 
   if (handleOptions(req, securityRes, corsOptions)) return
 
+  // Origin is required (no site page calls this without one), matching /api/agent/token.
   const origin = typeof req.headers.origin === 'string' ? req.headers.origin : undefined
-  if (req.headers.origin && !isAllowedOrigin(origin, corsOptions)) {
+  if (!isAllowedOrigin(origin, corsOptions)) {
     return res.status(403).json({ error: 'Origin not allowed' })
   }
 
@@ -85,6 +87,11 @@ export default async function handler(
   const rateLimit = rateLimiter.check(getClientKey(req))
   if (!rateLimit.allowed) {
     res.setHeader('Retry-After', String(rateLimit.retryAfterSeconds))
+    return res.status(429).json({ error: 'Too many requests' })
+  }
+  const shared = await checkRateLimit(`agent-signed-url:${getClientKey(req)}`, 20, 600)
+  if (!shared.success) {
+    res.setHeader('Retry-After', String(Math.max(1, shared.reset - Math.floor(Date.now() / 1000))))
     return res.status(429).json({ error: 'Too many requests' })
   }
 

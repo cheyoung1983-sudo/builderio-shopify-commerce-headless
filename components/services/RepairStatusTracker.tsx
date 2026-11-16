@@ -45,7 +45,7 @@ export const REPAIR_STAGES: RepairStageInfo[] = [
     stage: 1,
     key: 'kit_dispatched',
     label: 'Kit Dispatched',
-    description: 'Prepaid ESD foam mailer & overnight label dispatched to your address',
+    description: 'ESD foam mailer dispatched to your address',
     icon: Package,
   },
   {
@@ -73,7 +73,7 @@ export const REPAIR_STAGES: RepairStageInfo[] = [
     stage: 5,
     key: 'outbound_return',
     label: 'Outbound Delivery',
-    description: 'Device sanitized, packaged, and returned via insured Priority Overnight',
+    description: 'Device sanitized, packaged, and returned via insured two-day USPS Priority',
     icon: CheckCircle2,
   },
 ]
@@ -519,7 +519,7 @@ export const RepairStatusTracker: React.FC<RepairStatusTrackerProps> = ({
                       {record.createdAt ? new Date(record.createdAt).toLocaleDateString() : 'Active'}
                     </span>
                     <p className="font-semibold text-neutral-900 mt-0.5">
-                      Shipping kit dispatched via {record.shippingKit?.courierPreference || 'Priority Overnight'}.
+                      Shipping kit dispatched via {record.shippingKit?.courierPreference || 'USPS Priority'}.
                     </p>
                     <span className="text-neutral-500 text-[11px]">
                       Destination: {record.shippingKit?.address?.city}, {record.shippingKit?.address?.state}{' '}

@@ -1,35 +1,41 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { MOCK_SUPPLIER_CATALOG } from '../../../lib/wholesale/supplier-simulator'
-import { transformSupplierProduct, DEFAULT_TARGET_MARGIN, DEFAULT_SHIPPING_FEE, DEFAULT_SAFETY_BUFFER } from '../../../lib/wholesale/middleware'
-import { TransformedShopifyVariant } from '../../../lib/wholesale/types'
+import { withWholesaleAuth } from '@lib/wholesale/middleware';
+import { IngestionService } from '@lib/wholesale/services/ingestion-service';
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST' && req.method !== 'GET') {
-    res.setHeader('Allow', 'GET, POST')
+export default withWholesaleAuth(async (req: any, res: NextApiResponse) => {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST')
     return res.status(405).json({ success: false, error: 'Method Not Allowed' })
   }
 
   try {
-    const targetMargin = req.body?.targetMargin ? parseFloat(req.body.targetMargin) : DEFAULT_TARGET_MARGIN
-    const shippingFee = req.body?.shippingFee ? parseFloat(req.body.shippingFee) : DEFAULT_SHIPPING_FEE
-    const safetyBuffer = req.body?.safetyBuffer ? parseInt(req.body.safetyBuffer, 10) : DEFAULT_SAFETY_BUFFER
+    const { supplierId } = req.body;
 
-    const transformedVariants: TransformedShopifyVariant[] = MOCK_SUPPLIER_CATALOG.map((item) =>
-      transformSupplierProduct(item, targetMargin, shippingFee, safetyBuffer)
-    )
+    if (!supplierId) {
+      return res.status(400).json({ success: false, error: 'Bad Request', message: 'supplierId is required' });
+    }
+
+    // In a production app, we would fetch the SupplierConfig from a DB based on supplierId
+    const config = {
+      supplierName: 'Global Parts Inc',
+      sftp: {
+        host: process.env.SUPPLIER_SFTP_HOST || 'localhost',
+        port: 22,
+        username: process.env.SUPPLIER_SFTP_USER || 'user',
+        password: process.env.SUPPLIER_SFTP_PASSWORD || 'pass',
+        remotePath: '/inventory/current_stock.csv',
+      },
+      safetyBuffer: 5,
+    };
+
+    const result = await IngestionService.processSupplierFeed(config);
 
     return res.status(200).json({
       success: true,
-      syncedAt: new Date().toISOString(),
-      totalProducts: transformedVariants.length,
-      variants: transformedVariants,
-      governance: {
-        mapFloorEnforced: true,
-        safetyBufferApplied: safetyBuffer,
-        targetMarginPercentage: targetMargin * 100,
-      },
-    })
+      message: 'Supplier sync completed',
+      data: result,
+    });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err?.message || 'Failed to sync supplier catalog.' })
   }
-}
+});

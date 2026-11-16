@@ -19,7 +19,26 @@ import { createHash, timingSafeEqual } from 'node:crypto'
  * HTML/JS and the admin APIs were reachable without it), hence this file.
  */
 
-const ADMIN_PREFIXES = ['/admin', '/api/tribal/admin', '/api/config', '/api/health']
+// /api/mcp and /api/persona/mcp-query expose integration config and proxy Persona
+// MCP queries with server credentials, so they sit behind the same admin guard.
+// /api/admin/* (Slack alert settings + queue control), /api/tribal/certificate
+// (tax-exemption certificate PDFs), /api/wholesale/* (mock supplier tools used by
+// the admin Wholesale Hub) and the unused Persona/Firestore helpers
+// (/api/persona/inquiry, /api/auth/sync-persona) are internal-only too: no
+// customer page calls them, so they fail closed behind the admin password.
+const ADMIN_PREFIXES = [
+  '/admin',
+  '/api/admin',
+  '/api/tribal/admin',
+  '/api/tribal/certificate',
+  '/api/config',
+  '/api/health',
+  '/api/mcp',
+  '/api/persona/mcp-query',
+  '/api/persona/inquiry',
+  '/api/auth/sync-persona',
+  '/api/wholesale',
+]
 
 const DEMO_PREFIXES = [
   '/transcript-demo',
@@ -121,11 +140,22 @@ export const config = {
   matcher: [
     '/admin',
     '/admin/:path*',
+    '/api/admin',
+    '/api/admin/:path*',
     '/api/tribal/admin/:path*',
+    '/api/tribal/certificate',
+    '/api/tribal/certificate/:path*',
+    '/api/persona/inquiry',
+    '/api/auth/sync-persona',
+    '/api/wholesale',
+    '/api/wholesale/:path*',
     '/api/config',
     '/api/config/:path*',
     '/api/health',
     '/api/health/:path*',
+    '/api/mcp',
+    '/api/mcp/:path*',
+    '/api/persona/mcp-query',
     '/transcript-demo',
     '/tts',
     '/speech-to-text',

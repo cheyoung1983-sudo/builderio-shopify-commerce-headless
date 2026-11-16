@@ -13,6 +13,42 @@ import { evaluateAddressGeofence } from './tribal/geofencing.ts'
 /** Avalara Entity Use Code 'C' for Native American Tribal Exemption */
 export const AVATAX_ENTITY_USE_CODE_TRIBAL = 'C'
 
+/**
+ * Commercial discount for enrolled tribal members, as a fraction of subtotal.
+ * Business policy, not tax law. NOTE: store copy limits this discount to repair
+ * services (not accessories); this engine currently applies it to every line.
+ * Change the policy here, not inline.
+ */
+export const TRIBAL_MEMBER_DISCOUNT_RATE = 0.2
+
+/**
+ * LOCAL FALLBACK RATES ONLY. Used when AvaTax credentials are absent or the
+ * AvaTax call fails, so quotes still render. These are flat placeholders, not a
+ * real jurisdiction lookup, and must not be treated as authoritative for
+ * filing/remittance. Real rates come from AvaTax.
+ */
+export const FALLBACK_SALES_TAX_RATES = Object.freeze({
+  /** State sales tax */
+  state: 0.06,
+  /** County sales tax */
+  county: 0.015,
+  /** City sales tax */
+  city: 0.0075,
+})
+
+/**
+ * Environment variables the AvaTax client reads. Credentials come only from
+ * server-side env (or an explicit AvaTaxConfig passed by server code); never
+ * hardcode them and never expose them with a NEXT_PUBLIC_ prefix.
+ */
+export const AVATAX_ENV_VARS = Object.freeze({
+  accountId: 'AVALARA_ACCOUNT_ID',
+  licenseKey: 'AVALARA_LICENSE_KEY',
+  bearerToken: 'AVALARA_BEARER_TOKEN',
+  companyCode: 'AVALARA_COMPANY_CODE',
+  environment: 'AVALARA_ENVIRONMENT',
+})
+
 /** Address specification for tax jurisdiction lookup and geofencing */
 export interface TaxAddress {
   line1: string
@@ -179,7 +215,7 @@ export function buildAvaTaxTransactionPayload(
   qualification: ReturnType<typeof isQualifiedOnReservationTribalTransaction>,
   config?: AvaTaxConfig
 ) {
-  const companyCode = config?.companyCode || process.env.AVALARA_COMPANY_CODE || 'DEFAULT'
+  const companyCode = config?.companyCode || process.env[AVATAX_ENV_VARS.companyCode] || 'DEFAULT'
   const entityUseCode = qualification.qualified ? AVATAX_ENTITY_USE_CODE_TRIBAL : undefined
 
   return {
@@ -222,10 +258,10 @@ export async function createAvaTaxTransaction(
   payload: any,
   config?: AvaTaxConfig
 ): Promise<any> {
-  const accountId = config?.accountId || process.env.AVALARA_ACCOUNT_ID
-  const licenseKey = config?.licenseKey || process.env.AVALARA_LICENSE_KEY
-  const bearerToken = config?.bearerToken || process.env.AVALARA_BEARER_TOKEN
-  const env = config?.environment || process.env.AVALARA_ENVIRONMENT || 'sandbox'
+  const accountId = config?.accountId || process.env[AVATAX_ENV_VARS.accountId]
+  const licenseKey = config?.licenseKey || process.env[AVATAX_ENV_VARS.licenseKey]
+  const bearerToken = config?.bearerToken || process.env[AVATAX_ENV_VARS.bearerToken]
+  const env = config?.environment || process.env[AVATAX_ENV_VARS.environment] || 'sandbox'
 
   const baseUrl =
     env === 'production'
@@ -275,8 +311,10 @@ export async function calculateTribalTransactionTax(
     0
   )
 
-  // 20% commercial discount for enrolled tribal members
-  const totalDiscount = request.isTribalMember ? Number((subtotal * 0.2).toFixed(2)) : 0
+  // Commercial discount for enrolled tribal members (see TRIBAL_MEMBER_DISCOUNT_RATE)
+  const totalDiscount = request.isTribalMember
+    ? Number((subtotal * TRIBAL_MEMBER_DISCOUNT_RATE).toFixed(2))
+    : 0
   const taxableBase = Math.max(0, subtotal - totalDiscount)
 
   // Evaluate on-reservation statutory qualification
@@ -292,14 +330,16 @@ export async function calculateTribalTransactionTax(
   try {
     rawAvaTaxResponse = await createAvaTaxTransaction(avaTaxPayload, config)
   } catch (err) {
-    console.warn('AvaTax API call failed or credentials not present; using local statutory tax rules:', err)
+    // Log the message only; the full error object can carry request details.
+    console.warn(
+      'AvaTax API call failed; using local fallback tax rules:',
+      err instanceof Error ? err.message : String(err)
+    )
   }
 
-  const standardRates = {
-    state: 0.06,
-    county: 0.015,
-    city: 0.0075,
-  }
+  // NOTE: a live AvaTax response is attached as rawAvaTaxResponse but the
+  // figures below are still computed from the local rules/fallback rates.
+  const standardRates = FALLBACK_SALES_TAX_RATES
 
   // When transaction qualifies for Entity Use Code 'C'
   if (qualification.qualified) {

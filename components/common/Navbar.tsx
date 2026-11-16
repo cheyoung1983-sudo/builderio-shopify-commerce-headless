@@ -143,18 +143,7 @@ const Navbar: FC = () => {
                   >
                     Styles &amp; Trends
                   </Link>
-                  <Link
-                    href="/admin/tribal-audit"
-                    className="ml-1 inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors"
-                  >
-                    Tribal Audit
-                  </Link>
-                  <Link
-                    href="/admin/wholesale-integration"
-                    className="ml-1 inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors"
-                  >
-                    Wholesale Hub
-                  </Link>
+                  {/* Admin tools (/admin/*) are password-protected and intentionally not linked from the public menu. */}
 
 
 
@@ -185,16 +174,6 @@ const Navbar: FC = () => {
           <div className="flex items-center justify-end gap-1 sm:gap-2 flex-shrink-0">
             {/* Search Trigger Button */}
             <Searchbar id="navbar-search-toggle-btn" />
-
-            {/* Track Repair Link */}
-            <Link
-              id="navbar-track-repair-link"
-              href="/track-repair"
-              aria-label="Track Repair Status"
-              className="hidden md:inline-flex items-center px-2.5 py-1.5 text-sm font-medium text-neutral-700 hover:text-emerald-700 transition-colors rounded-md whitespace-nowrap"
-            >
-              Track Repair
-            </Link>
 
             {/* Account Link - hidden on narrow screens to prevent crowding, fully available in mobile drawer */}
             <Link
@@ -307,14 +286,6 @@ const Navbar: FC = () => {
                 Get a diagnosis
               </Link>
               <Link
-                id="mobile-drawer-track-repair-link"
-                href="/track-repair"
-                onClick={() => setMobileMenuOpen(false)}
-                className="py-2.5 px-3 text-base font-semibold text-neutral-900 hover:bg-neutral-50 rounded-lg border-b border-neutral-100 transition-colors"
-              >
-                Track Repair Status
-              </Link>
-              <Link
                 href="/trends"
                 onClick={() => setMobileMenuOpen(false)}
                 className="mt-1 py-2.5 px-3 text-sm font-semibold rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-center flex items-center justify-center hover:bg-emerald-100 transition-colors"
@@ -344,14 +315,6 @@ const Navbar: FC = () => {
                 className="py-2.5 px-3 text-base font-semibold text-neutral-900 hover:bg-neutral-50 rounded-lg border-b border-neutral-100 transition-colors"
               >
                 My Account
-              </Link>
-              <Link
-                id="mobile-drawer-track-link"
-                href="/order-tracking"
-                onClick={() => setMobileMenuOpen(false)}
-                className="py-2.5 px-3 text-base font-semibold text-neutral-900 hover:bg-neutral-50 rounded-lg transition-colors"
-              >
-                Track Order
               </Link>
             </div>
           </div>

@@ -33,6 +33,7 @@ import { ProductComparisonModal } from './ProductComparisonModal'
 import { ComparisonDock } from './ComparisonDock'
 import { ProductGridSkeleton } from './ProductGridSkeleton'
 import { ProductCard } from './ProductCard'
+import { RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
 import { ProductCardSkeleton } from './ProductCardSkeleton'
 import { SearchBar } from './SearchBar'
 import { ProductFilterSidebar, FilterState } from './ProductFilterSidebar'
@@ -1011,6 +1012,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                   }}
                   product={product}
                   index={index}
+                  imageSizes={RESPONSIVE_IMAGE_SIZES.productGridThreeCol}
                   tabIndex={safeFocusedIndex === index ? 0 : -1}
                   isFocused={keyboardActive && safeFocusedIndex === index}
                   onCardFocus={(idx) => {

@@ -15,7 +15,7 @@ if (sendgridApiKey) {
 /**
  * Trigger path: repair_requests/{requestId} or repair_requests/{rmsNumber}
  * Status mapping for repair notification emails:
- * - kit_requested: Free shipping kit dispatched
+ * - kit_requested: Shipping kit requested
  * - inbound_transit: Device in transit to facility
  * - bench_triage: ISO Cleanroom bench triage
  * - qc_calibration: Post-repair QC calibration

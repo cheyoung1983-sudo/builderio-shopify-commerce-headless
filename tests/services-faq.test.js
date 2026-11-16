@@ -28,16 +28,17 @@ describe('Services & Discounts FAQ Education Hub', () => {
     expect(content).toContain('Scenario 2: Commercial Identity Privileges (20% Off Parts)')
   })
 
-  test('MailInRepairEstimator implements 5-stage lifecycle, battery safety, and $0 return freight', () => {
+  test('MailInRepairEstimator implements 5-stage lifecycle, battery safety, and the $40 diagnostic fee policy', () => {
     const content = fs.readFileSync(repairEstPath, 'utf8')
-    expect(content).toContain('FREE ($0.00)')
-    expect(content).toContain('outboundOvernightFreight = 0.0')
-    expect(content).toContain('returnGroundFreight = 0.0')
+    expect(content).toContain('MAIL_IN_TERMS')
+    expect(content).toContain('MAIL_IN_SHIPPING_POLICY')
+    expect(content).not.toContain('FREE ($0.00)')
+    expect(content).not.toContain('outboundOvernightFreight')
     expect(content).toContain('Pre-Shipment SOP')
     expect(content).toContain('IATA PI 967')
     expect(content).toContain('49 CFR 173.185')
-    expect(content).toContain('Pre-Auth Hold')
-    expect(content).toContain('$25')
+    expect(content).not.toContain('Pre-Auth Hold')
+    expect(content).not.toContain('$25')
   })
 
   test('ServicesFaqAccordion contains comprehensive Q&As for both documents', () => {
@@ -50,7 +51,10 @@ describe('Services & Discounts FAQ Education Hub', () => {
     expect(content).toContain('Form CDTFA-146-RES')
     expect(content).toContain('WAC 458-20-192')
     expect(content).toContain('UN3481')
-    expect(content).toContain('Pay-On-Use')
+    expect(content).toContain('repair-shipping-costs')
+    expect(content).toContain('repair-diagnostic-fee')
+    expect(content).not.toContain('repair-pre-auth-hold')
+    expect(content).not.toContain('Pay-On-Use')
   })
 
   test('Navbar and Footer include links to the Services & FAQ hub', () => {

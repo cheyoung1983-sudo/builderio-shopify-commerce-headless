@@ -71,8 +71,14 @@ export function getBlurDataURL(
  * to prevent oversized image payloads and improve LCP / Cumulative Layout Shift (CLS)
  */
 export const RESPONSIVE_IMAGE_SIZES = {
-  /** Responsive product catalog grid (1 col mobile, 2 col sm, 3 col md, 3-4 col lg/xl) */
-  productGrid: '(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw',
+  /**
+   * 4-column catalog grid: grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 inside max-w-7xl.
+   * Breakpoints mirror Tailwind (sm=640, lg=1024, xl=1280) so the srcset candidate the browser
+   * preloads matches the one it actually renders (avoids "preloaded but not used" warnings).
+   */
+  productGrid: '(max-width: 639px) 100vw, (max-width: 1023px) 50vw, (max-width: 1279px) 33vw, 300px',
+  /** 3-column catalog grid used by components/products/ProductGrid (1 / sm:2 / md:3, max-w-7xl) */
+  productGridThreeCol: '(max-width: 639px) 100vw, (max-width: 767px) 50vw, (max-width: 1279px) 33vw, 400px',
   /** Main product detail page gallery hero */
   productDetail: '(max-width: 768px) 100vw, (max-width: 1024px) 60vw, 50vw',
   /** Product gallery thumbnail buttons */

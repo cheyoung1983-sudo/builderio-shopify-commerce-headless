@@ -361,7 +361,7 @@ export const ProductImageZoom: React.FC<ProductImageZoomProps> = ({
                 fill
                 sizes="1600px"
                 quality={100}
-                priority
+                loading="lazy"
                 className={`object-contain p-4 select-none ${imageClassName}`}
                 referrerPolicy="no-referrer"
               />

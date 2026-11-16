@@ -252,16 +252,6 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
               </li>
               <li>
                 <Link
-                  href="/order-tracking"
-                  id="footer-track-order-link"
-                  className="text-neutral-600 hover:text-neutral-950 transition-colors inline-flex items-center gap-1 font-medium"
-                >
-                  <ChevronRight className="w-3 h-3 text-neutral-400" />
-                  <span>Track Order</span>
-                </Link>
-              </li>
-              <li>
-                <Link
                   href="/cart"
                   className="text-neutral-600 hover:text-neutral-950 transition-colors inline-flex items-center gap-1"
                 >

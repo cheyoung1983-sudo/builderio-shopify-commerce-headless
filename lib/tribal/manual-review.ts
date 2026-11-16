@@ -23,7 +23,7 @@ export function isTribalVerifyEnabled(env: Env = process.env): boolean {
 export type ReviewStatus = 'pending' | 'approved' | 'denied'
 
 export type StripeSessionStatus = 'created' | 'processing' | 'requires_input' | 'verified' | 'canceled'
-export type ReviewSource = 'manual' | 'stripe_identity'
+export type ReviewSource = 'manual' | 'stripe_identity' | 'persona'
 
 /**
  * Stored in Redis (tribal:review:<id>, 30-day TTL). Deliberately holds NO raw
@@ -52,6 +52,8 @@ export interface TribalReviewRecord {
   stripeReasonCode?: string
   stripeLivemode?: boolean
   redaction?: 'requested' | 'failed' | 'skipped'
+  /** Persona inquiry id (persona source only). Persona results are PENDING until a human decides. */
+  personaInquiryId?: string
   decidedBy?: string
   decidedAt?: string
   shopifySynced?: boolean
@@ -128,6 +130,70 @@ export async function acquireDecisionLock(id: string): Promise<boolean> {
   if (memoryLocks.has(id)) return false
   memoryLocks.add(id)
   return true
+}
+
+/**
+ * Lists stored review records (newest first, capped). Used by the admin dashboard so it
+ * shows the same records the Slack flow decides on. Never returns fabricated records.
+ */
+export async function listReviews(max = 200): Promise<TribalReviewRecord[]> {
+  const out: TribalReviewRecord[] = []
+  const redis = getRedis()
+  if (redis) {
+    let cursor: string | number = 0
+    const keys: string[] = []
+    do {
+      const [next, batch] = (await redis.scan(cursor, { match: KEY_PREFIX + '*', count: 100 })) as [string | number, string[]]
+      keys.push(...batch)
+      cursor = next
+    } while (String(cursor) !== '0' && keys.length < max)
+    for (const key of keys.slice(0, max)) {
+      const raw = await redis.get<string | TribalReviewRecord>(key)
+      if (raw) out.push(typeof raw === 'string' ? (JSON.parse(raw) as TribalReviewRecord) : raw)
+    }
+  } else {
+    out.push(...[...memoryStore.values()].slice(0, max))
+  }
+  return out.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+}
+
+/** One audit entry per decided review record. Holds no customer PII. */
+export interface TribalDecisionAuditEntry {
+  recordId: string
+  decision: 'approved' | 'denied'
+  reviewer: string
+  decidedAt: string
+  channel: 'admin_dashboard' | 'slack'
+  source: ReviewSource
+  shopifyTagged: boolean
+  tagMode: string
+}
+
+const AUDIT_PREFIX = 'tribal:audit:'
+/** Decision audit entries are kept 5 years (no customer PII in them). */
+const AUDIT_TTL_SECONDS = 60 * 60 * 24 * 365 * 5
+const memoryAudit = new Map<string, TribalDecisionAuditEntry>()
+
+/** Writes the audit entry once (SET NX). Returns false if an entry already exists for the record. */
+export async function writeDecisionAudit(entry: TribalDecisionAuditEntry): Promise<boolean> {
+  const redis = getRedis()
+  if (redis) {
+    const result = await redis.set(AUDIT_PREFIX + entry.recordId, JSON.stringify(entry), { nx: true, ex: AUDIT_TTL_SECONDS })
+    return result === 'OK'
+  }
+  if (memoryAudit.has(entry.recordId)) return false
+  memoryAudit.set(entry.recordId, entry)
+  return true
+}
+
+export async function getDecisionAudit(recordId: string): Promise<TribalDecisionAuditEntry | null> {
+  const redis = getRedis()
+  if (redis) {
+    const raw = await redis.get<string | TribalDecisionAuditEntry>(AUDIT_PREFIX + recordId)
+    if (!raw) return null
+    return typeof raw === 'string' ? (JSON.parse(raw) as TribalDecisionAuditEntry) : raw
+  }
+  return memoryAudit.get(recordId) || null
 }
 
 const DUP_PREFIX = 'tribal:dup:'
@@ -392,7 +458,7 @@ function stripeLine(o: StripeOutcome): string {
 
 export function buildReviewBlocks(r: TribalReviewRecord, outcome?: StripeOutcome) {
   const lines = [
-    `*Tribal verification request* (${outcome ? 'Stripe Identity' : 'manual review'})`,
+    `*Tribal verification request* (${outcome ? 'Stripe Identity' : r.source === 'persona' ? 'Persona result, pending your review' : 'manual review'})`,
     `*Name:* ${displayName(r)}`,
     `*Nation:* ${escapeSlack(r.tribalNation)}`,
   ]

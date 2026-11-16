@@ -1,0 +1,63 @@
+@import "tailwindcss" source(none);
+
+/* Only scan the standalone tribal verification guide and its script (it swaps utility classes at runtime). */
+@source "../content/tribal-verification-guide.html";
+@source "../public/tribal-guide/tribal-guide.js";
+
+/* System fonts only (font-src is 'self'), same stacks as the maintenance homepage. */
+@theme {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* The source page was written for Tailwind v3 (CDN). Keep v3 defaults that v4 changed. */
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+  button:not(:disabled), [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* Page styles moved out of the page's inline <style>. */
+body {
+  font-family: var(--font-sans);
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+.font-mono-code {
+  font-family: var(--font-mono);
+}
+.chart-container {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  height: 310px;
+  max-height: 400px;
+}
+@media (min-width: 768px) {
+  .chart-container {
+    height: 350px;
+  }
+}
+.chart-container-wide {
+  position: relative;
+  width: 100%;
+  max-width: 920px;
+  margin-left: auto;
+  margin-right: auto;
+  height: 330px;
+  max-height: 420px;
+}
+@media (min-width: 768px) {
+  .chart-container-wide {
+    height: 380px;
+  }
+}
+.nav-link.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}

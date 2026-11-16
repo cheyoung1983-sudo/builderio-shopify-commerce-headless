@@ -17,6 +17,9 @@ import {
   addStorefrontCartLines,
   updateStorefrontCartLines,
   removeStorefrontCartLines,
+  ShopifyProductNode,
+  ShopifyVariantNode,
+  ShopifyImageNode,
 } from '../services/shopify'
 import { useToast } from './ToastContext'
 import { reconcileCart, remoteLinesFromCart } from '../lib/cart-reconcile'
@@ -69,6 +72,24 @@ export interface CartItem {
   sku?: string
   /** Custom line attributes */
   customAttributes?: Array<{ key: string; value: string }>
+}
+
+interface StoredCartItem {
+  id?: string | null
+  lineId?: string | null
+  variantId?: string | null
+  productId?: string | null
+  title?: string | null
+  handle?: string | null
+  variantTitle?: string | null
+  quantity?: number | null
+  price?: { amount: string; currencyCode: string } | null
+  compareAtPrice?: { amount: string; currencyCode: string } | null
+  image?: { url: string; src?: string | null; altText?: string | null; width?: number | null; height?: number | null } | null
+  options?: Array<{ name: string; value: string }> | null
+  vendor?: string | null
+  sku?: string | null
+  customAttributes?: Array<{ key: string; value: string }> | null
 }
 
 export interface AddToCartInput {
@@ -224,7 +245,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({
 
   const isLoadedRef = useRef<boolean>(false)
   const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const syncQueueRef = useRef<Promise<any>>(Promise.resolve())
+  const syncQueueRef = useRef<Promise<string | null>>(Promise.resolve(null))
   // Authoritative, synchronously updated copies so queued Shopify syncs never
   // read a stale cart id or item list from a render closure.
   const itemsRef = useRef<CartItem[]>([])
@@ -341,39 +362,39 @@ export const CartProvider: React.FC<CartProviderProps> = ({
         checkoutUrl: storedCheckout,
       } = loadStoredCartItems()
 
-      const toCartItem = (item: any) => ({
-        id: item.id,
-        lineId: item.lineId,
-        variantId: item.variantId,
-        productId: item.productId,
-        title: item.title,
-        handle: item.handle,
-        variantTitle: item.variantTitle,
-        quantity: item.quantity,
-        price: {
-          amount: item.price?.amount ?? '0.00',
-          currencyCode: item.price?.currencyCode ?? 'USD',
-        },
-        compareAtPrice: item.compareAtPrice
-          ? {
-              amount: item.compareAtPrice.amount,
-              currencyCode: item.compareAtPrice.currencyCode,
-            }
-          : null,
-        image: item.image
-          ? {
-              url: item.image.url,
-              src: item.image.src,
-              altText: item.image.altText,
-              width: item.image.width,
-              height: item.image.height,
-            }
-          : null,
-        options: item.options,
-        vendor: item.vendor,
-        sku: item.sku,
-        customAttributes: item.customAttributes,
-      })
+  const toCartItem = (item: StoredCartItem) => ({
+    id: item.id ?? `temp-${Math.random().toString(36).slice(2, 9)}`,
+    lineId: item.lineId ?? undefined,
+    variantId: item.variantId ?? `temp-variant-${Math.random().toString(36).slice(2, 9)}`,
+    productId: item.productId ?? undefined,
+    title: item.title ?? 'Product',
+    handle: item.handle ?? undefined,
+    variantTitle: item.variantTitle ?? undefined,
+    quantity: item.quantity ?? 1,
+    price: {
+      amount: item.price?.amount ?? '0.00',
+      currencyCode: item.price?.currencyCode ?? 'USD',
+    },
+    compareAtPrice: item.compareAtPrice
+      ? {
+          amount: item.compareAtPrice.amount,
+          currencyCode: item.compareAtPrice.currencyCode,
+        }
+      : null,
+    image: item.image
+      ? {
+          url: item.image.url,
+          src: item.image.src ?? undefined,
+          altText: item.image.altText ?? undefined,
+          width: item.image.width ?? undefined,
+          height: item.image.height ?? undefined,
+        }
+      : null,
+    options: item.options ?? [],
+    vendor: item.vendor ?? undefined,
+    sku: item.sku ?? undefined,
+    customAttributes: item.customAttributes ?? [],
+  })
 
       startTransition(() => {
         const loaded =
@@ -415,15 +436,15 @@ export const CartProvider: React.FC<CartProviderProps> = ({
       ) {
         try {
           const { items: freshItems } = loadStoredCartItems()
-          const toCartItem = (item: any) => ({
-            id: item.id,
-            lineId: item.lineId,
-            variantId: item.variantId,
-            productId: item.productId,
-            title: item.title,
-            handle: item.handle,
-            variantTitle: item.variantTitle,
-            quantity: item.quantity,
+          const toCartItem = (item: StoredCartItem) => ({
+            id: item.id ?? `temp-${Math.random().toString(36).slice(2, 9)}`,
+            lineId: item.lineId ?? undefined,
+            variantId: item.variantId ?? `temp-variant-${Math.random().toString(36).slice(2, 9)}`,
+            productId: item.productId ?? undefined,
+            title: item.title ?? 'Product',
+            handle: item.handle ?? undefined,
+            variantTitle: item.variantTitle ?? undefined,
+            quantity: item.quantity ?? 1,
             price: {
               amount: item.price?.amount ?? '0.00',
               currencyCode: item.price?.currencyCode ?? 'USD',
@@ -437,16 +458,16 @@ export const CartProvider: React.FC<CartProviderProps> = ({
             image: item.image
               ? {
                   url: item.image.url,
-                  src: item.image.src,
-                  altText: item.image.altText,
-                  width: item.image.width,
-                  height: item.image.height,
+                  src: item.image.src ?? undefined,
+                  altText: item.image.altText ?? undefined,
+                  width: item.image.width ?? undefined,
+                  height: item.image.height ?? undefined,
                 }
               : null,
-            options: item.options,
-            vendor: item.vendor,
-            sku: item.sku,
-            customAttributes: item.customAttributes,
+            options: item.options ?? [],
+            vendor: item.vendor ?? undefined,
+            sku: item.sku ?? undefined,
+            customAttributes: item.customAttributes ?? [],
           })
           const fresh = freshItems.map(toCartItem)
           itemsRef.current = fresh
@@ -634,7 +655,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({
    * Convenience method to add directly from a raw Shopify product object
    */
   const addProduct = useCallback(
-    async (product: any, selectedVariantId?: string, quantity = 1) => {
+    async (product: ShopifyProductNode, selectedVariantId?: string, quantity = 1) => {
       if (!product) return
 
       // Find variant
@@ -643,7 +664,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({
 
       if (selectedVariantId) {
         const found = variants.find(
-          (edge: any) => edge.node?.id === selectedVariantId
+          (edge: { node: ShopifyVariantNode }) => edge.node?.id === selectedVariantId
         )
         if (found) targetVariant = found.node
       }

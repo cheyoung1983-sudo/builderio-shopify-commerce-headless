@@ -36,6 +36,14 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 import { useAuth } from '../../hooks/useAuth'
 import { compressImageFile } from '../../lib/utils/image-compression'
+import {
+  MAIL_IN_ACCEPT_LABEL,
+  MAIL_IN_FORM_ONLY_SENTENCE,
+  MAIL_IN_KIT_SENTENCE,
+  MAIL_IN_OVERNIGHT_NOTE,
+  MAIL_IN_SHIPPING_POLICY,
+  MAIL_IN_TERMS,
+} from '../../lib/pricing/mail-in-policy'
 
 export interface MailInRepairRequestFormProps {
   initialEmail?: string
@@ -98,7 +106,7 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
   const [city, setCity] = useState<string>('')
   const [state, setState] = useState<string>('AZ')
   const [zip, setZip] = useState<string>('')
-  const [courierPreference, setCourierPreference] = useState<'UPS_OVERNIGHT' | 'FEDEX_OVERNIGHT' | 'USPS_PRIORITY'>('UPS_OVERNIGHT')
+  const [courierPreference, setCourierPreference] = useState<'UPS_OVERNIGHT' | 'FEDEX_OVERNIGHT' | 'USPS_PRIORITY'>('USPS_PRIORITY')
   const [kitType, setKitType] = useState<'electrostatic_foam_mailer' | 'prepaid_label_only'>('electrostatic_foam_mailer')
 
   // Step 3: Safety SOP Checklist
@@ -106,6 +114,9 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
   const [locksDisabled, setLocksDisabled] = useState<boolean>(true)
   const [batteryUnder30, setBatteryUnder30] = useState<boolean>(true)
   const [accessoriesRemoved, setAccessoriesRemoved] = useState<boolean>(true)
+
+  // Required agreement to the diagnostic fee and cancellation terms (never pre-checked)
+  const [termsAccepted, setTermsAccepted] = useState<boolean>(false)
 
   // Async submission states
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
@@ -233,6 +244,11 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
       return
     }
 
+    if (!termsAccepted) {
+      alert('Please check the box to agree to the diagnostic fee and cancellation terms.')
+      return
+    }
+
     setIsSubmitting(true)
     const generatedRms = `DCP-RMS-${Math.floor(100000 + Math.random() * 900000)}`
 
@@ -269,6 +285,7 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
         batteryUnder30,
         accessoriesRemoved,
       },
+      termsAcceptance: { accepted: true },
       estimatedCost: {
         part: deviceBrand === 'Apple' ? 149.99 : 129.99,
         labor: 35.0,
@@ -293,16 +310,24 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
       }
 
       // 2. Call API route for backup server persistence & email queue
-      await fetch('/api/repair-requests', {
+      const apiResponse = await fetch('/api/repair-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
 
+      // The server rejects a request that does not record acceptance of the fee terms
+      // (and other invalid requests). Do not show a success screen for a rejected request.
+      if (apiResponse.status === 400) {
+        const rejection = await apiResponse.json().catch(() => null)
+        alert(rejection?.error || 'We could not accept this request. Please check the form and the agreement box.')
+        return
+      }
+
       setSubmissionResult({
         success: true,
         rmsNumber: generatedRms,
-        message: `Your prepaid shipping kit order has been placed under RMS Tracking #${generatedRms}.`,
+        message: `Your shipping kit request has been placed under RMS Tracking #${generatedRms}.`,
         record: payload,
       })
 
@@ -315,7 +340,7 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
       setSubmissionResult({
         success: true,
         rmsNumber: generatedRms,
-        message: `Your prepaid shipping kit order has been recorded locally under RMS Tracking #${generatedRms}.`,
+        message: `Your shipping kit request has been recorded locally under RMS Tracking #${generatedRms}.`,
         record: payload,
       })
     } finally {
@@ -340,13 +365,13 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
         <div>
           <div className="flex items-center gap-2 text-emerald-800 text-xs font-semibold tracking-wider uppercase mb-1">
             <Truck className="w-4 h-4 text-emerald-700" />
-            <span>Overnight Nationwide Lab Repair</span>
+            <span>Nationwide Mail-In Lab Repair</span>
           </div>
           <h3 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">
             Mail-In Repair Request &amp; Shipping Kit Intake
           </h3>
           <p className="text-xs sm:text-sm text-neutral-600 mt-1 max-w-xl">
-            Provide device diagnostics and order your complimentary electrostatic cushioned shipping kit with prepaid Priority Overnight freight.
+            Provide device diagnostics and request your electrostatic cushioned shipping kit. {MAIL_IN_TERMS}
           </p>
         </div>
 
@@ -733,9 +758,9 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
           <div className="rounded-xl bg-emerald-50/80 border border-emerald-200 p-4 text-xs text-emerald-950 flex items-start gap-3">
             <Package className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
             <div>
-              <strong className="font-bold text-emerald-900">Complimentary Priority Overnight Shipping Kit</strong>
+              <strong className="font-bold text-emerald-900">ESD-Safe Shipping Kit</strong>
               <p className="text-emerald-800 mt-0.5">
-                We will dispatch an ESD-safe foam protective mailer, tamper-evident hazmat security sleeve, and prepaid shipping label to your doorstep at zero cost.
+                {MAIL_IN_KIT_SENTENCE} It includes an ESD-safe foam protective mailer and a tamper-evident hazmat security sleeve. {MAIL_IN_SHIPPING_POLICY}
               </p>
             </div>
           </div>
@@ -874,17 +899,20 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-neutral-800 uppercase tracking-wider mb-1.5">
-                Prepaid Courier Service
+                Shipping Service
               </label>
               <select
                 value={courierPreference}
                 onChange={(e: any) => setCourierPreference(e.target.value)}
                 className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-xs text-neutral-900 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
               >
-                <option value="UPS_OVERNIGHT">UPS Next Day Air Early AM (Prepaid $0.00)</option>
-                <option value="FEDEX_OVERNIGHT">FedEx Priority Overnight (Prepaid $0.00)</option>
-                <option value="USPS_PRIORITY">USPS Priority Express (Prepaid $0.00)</option>
+                <option value="USPS_PRIORITY">USPS Priority (two-day, we pay)</option>
+                <option value="UPS_OVERNIGHT">UPS Next Day Air Early AM (overnight upgrade, $45)</option>
+                <option value="FEDEX_OVERNIGHT">FedEx Priority Overnight (overnight upgrade, $45)</option>
               </select>
+              {courierPreference !== 'USPS_PRIORITY' && (
+                <p className="text-[11px] text-neutral-600 mt-1.5">{MAIL_IN_OVERNIGHT_NOTE}</p>
+              )}
             </div>
 
             <div>
@@ -896,8 +924,8 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
                 onChange={(e: any) => setKitType(e.target.value)}
                 className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-xs text-neutral-900 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
               >
-                <option value="electrostatic_foam_mailer">Physical Box Kit (Prepaid Postage Included • Rated up to 2.0 lbs / 32 oz)</option>
-                <option value="prepaid_label_only">Instant Prepaid Label (Rated up to 2.0 lbs / 32 oz • Use Own Box)</option>
+                <option value="electrostatic_foam_mailer">Physical Box Kit (Rated up to 2.0 lbs / 32 oz)</option>
+                <option value="prepaid_label_only">Label Only (Rated up to 2.0 lbs / 32 oz • Use Own Box)</option>
               </select>
             </div>
           </div>
@@ -908,7 +936,7 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
               <Package className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
               <div>
                 <span className="font-bold block text-neutral-900">
-                  Prepaid Shipping Box Included ($0.00 Postage Due)
+                  Shipping Box Included
                 </span>
                 <p className="text-[11px] text-neutral-600 mt-0.5">
                   Certified for cell phone hardware up to <strong className="text-neutral-900">2.0 lbs (32 oz)</strong>. Heavy-duty corrugated exterior with high-density anti-static conductive foam and UN3481 Lithium-Ion Battery Ground Transport compliance.
@@ -917,7 +945,7 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
             </div>
             <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-emerald-600 text-white px-2.5 py-1 rounded-lg shrink-0 shadow-2xs">
               <ShieldCheck className="w-3.5 h-3.5" />
-              Prepaid 2.0 lbs
+              Rated 2.0 lbs
             </span>
           </div>
 
@@ -1019,7 +1047,7 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
               </div>
               <div>
                 <span className="text-neutral-400 block text-[10px]">Courier Freight</span>
-                <strong className="text-emerald-700">{courierPreference.replace('_', ' ')} (Free)</strong>
+                <strong className="text-emerald-700">{courierPreference.replace('_', ' ')}</strong>
               </div>
               <div>
                 <span className="text-neutral-400 block text-[10px]">Recipient</span>
@@ -1030,6 +1058,27 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
                 <strong>{city}, {state} {zip}</strong>
               </div>
             </div>
+          </div>
+
+          {/* Diagnostic fee & cancellation terms: bold, directly above the final submit button */}
+          <div
+            className="rounded-xl border border-amber-300 bg-amber-50/70 p-4 text-xs text-amber-950 space-y-3"
+            data-testid="mail-in-fee-terms"
+          >
+            <p className="font-bold leading-relaxed" data-testid="mail-in-fee-terms-text">
+              {MAIL_IN_TERMS} {MAIL_IN_FORM_ONLY_SENTENCE}
+            </p>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                required
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+                data-testid="mail-in-terms-checkbox"
+              />
+              <span className="font-semibold text-neutral-900">{MAIL_IN_ACCEPT_LABEL}</span>
+            </label>
           </div>
 
           <div className="flex items-center justify-between pt-2">
@@ -1044,19 +1093,20 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
 
             <button
               type="submit"
-              disabled={isSubmitting || !isSopReady}
+              disabled={isSubmitting || !isSopReady || !termsAccepted}
+              data-testid="mail-in-final-submit"
               className={`py-3 px-8 rounded-xl font-bold text-xs text-white inline-flex items-center gap-2 shadow-sm transition-all ${
-                isSubmitting || !isSopReady
+                isSubmitting || !isSopReady || !termsAccepted
                   ? 'bg-neutral-400 cursor-not-allowed'
                   : 'bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 cursor-pointer'
               }`}
             >
               {isSubmitting ? (
-                <span>Dispatching Shipping Kit...</span>
+                <span>Submitting Request...</span>
               ) : (
                 <>
                   <Truck className="w-4 h-4" />
-                  <span>Confirm &amp; Dispatch Free Shipping Kit</span>
+                  <span>Submit Mail-In Kit Request</span>
                 </>
               )}
             </button>
@@ -1073,14 +1123,15 @@ export const MailInRepairRequestForm: React.FC<MailInRepairRequestFormProps> = (
 
           <div>
             <span className="rounded-md bg-emerald-100 px-3 py-1 text-xs font-extrabold text-emerald-900 uppercase tracking-wider">
-              Shipping Kit Dispatched
+              Request Received
             </span>
             <h3 className="text-2xl font-bold text-neutral-900 tracking-tight mt-2">
               Mail-In Repair Request Confirmed
             </h3>
             <p className="text-xs sm:text-sm text-neutral-600 mt-1 max-w-md mx-auto">
-              Your prepaid electrostatic shipping kit is scheduled for overnight delivery to{' '}
-              <strong>{submissionResult.record?.shippingKit?.recipientName}</strong>.
+              Your electrostatic shipping kit request for{' '}
+              <strong>{submissionResult.record?.shippingKit?.recipientName}</strong>{' '}
+              is received. We send your kit once the $40 diagnostic fee is paid.
             </p>
           </div>
 

@@ -61,6 +61,8 @@ export interface ProductCardProps {
   ) => void
   /** Optional DOM ref callback */
   cardRef?: (node: HTMLDivElement | null) => void
+  /** `sizes` for the card image; must match the parent grid's column layout */
+  imageSizes?: string
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -82,6 +84,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onCardFocus,
   onCardKeyDown,
   cardRef,
+  imageSizes = RESPONSIVE_IMAGE_SIZES.productGrid,
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false)
   const [internalAdding, setInternalAdding] = useState(false)
@@ -93,8 +96,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const isSaved = product ? isInWishlist(product.id) : false
   const isDeviceCompatible = product ? isCompatible(product) : false
 
-  // Determine if card is initially above the fold (e.g. top 4 products get eager/priority loading)
+  // The first row (up to 4 cards) loads eagerly, but only the very first card is a realistic LCP
+  // candidate on every viewport, so only it gets `priority` (i.e. a <link rel="preload">). Marking
+  // the whole first row as priority produced unused-preload warnings (see README image audit).
   const isAboveTheFold = index < 4
+  const isLcpCandidate = index === 0
 
   // Intersection observer lazily mounts off-screen product images when approaching viewport (250px margin)
   const { ref: imageObserverRef, isIntersecting: isImageVisible } = useIntersectionObserver<HTMLDivElement>({
@@ -304,9 +310,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   fill
                   placeholder="blur"
                   blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
-                  sizes={RESPONSIVE_IMAGE_SIZES.productGrid}
-                  priority={isAboveTheFold}
-                  loading={isAboveTheFold ? 'eager' : 'lazy'}
+                  sizes={imageSizes}
+                  priority={isLcpCandidate}
+                  loading={isLcpCandidate ? undefined : isAboveTheFold ? 'eager' : 'lazy'}
                   quality={85}
                   className={`object-cover object-center transition-all duration-500 ease-out group-hover:scale-105 ${
                     secondaryImage ? 'group-hover:opacity-0' : ''
@@ -321,7 +327,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     fill
                     placeholder="blur"
                     blurDataURL={PRODUCT_IMAGE_BLUR_DATA_URL}
-                    sizes={RESPONSIVE_IMAGE_SIZES.productGrid}
+                    sizes={imageSizes}
                     loading="lazy"
                     quality={85}
                     className="object-cover object-center transition-all duration-500 ease-out opacity-0 group-hover:opacity-100 group-hover:scale-105"

@@ -16,7 +16,9 @@ import { Breadcrumbs } from '../components/common/Breadcrumbs'
 import { MailInRepairRequestForm } from '../components/services/MailInRepairRequestForm'
 import { RepairStatusTracker } from '../components/services/RepairStatusTracker'
 import { MailInRepairEstimator } from '../components/services/MailInRepairEstimator'
+import { HowYourRepairWorks } from '../components/services/HowYourRepairWorks'
 import { PREPAID_SHIPPING_SPECS } from '../lib/repair-bridge'
+import { MAIL_IN_TERMS } from '../lib/pricing/mail-in-policy'
 
 export default function ServicesPage() {
   return (
@@ -25,12 +27,12 @@ export default function ServicesPage() {
         <title>Mail-In Repair Services | Certified Smartphone &amp; Screen Repair | DisplayCellPros</title>
         <meta
           name="description"
-          content="Nationwide mail-in smartphone and tablet repair service. Complimentary prepaid 2.0 lb shipping box, certified technicians, 24-48h turnaround, and lifetime workmanship warranty."
+          content="Nationwide mail-in smartphone and tablet repair service. Shipping kit with a 2.0 lb box, certified technicians, 24-48h turnaround, and lifetime workmanship warranty."
         />
         <meta property="og:title" content="Mail-In Repair Services | DisplayCellPros" />
         <meta
           property="og:description"
-          content="Ship your device for professional screen replacement, battery health service, and board repairs. Includes prepaid shipping box and real-time repair tracking."
+          content="Ship your device for professional screen replacement, battery health service, and board repairs. Includes a shipping kit and real-time repair tracking. $40 diagnostic fee credited toward an approved repair."
         />
       </Head>
 
@@ -58,7 +60,7 @@ export default function ServicesPage() {
               </h1>
 
               <p className="text-base text-neutral-600 leading-relaxed">
-                Prefer professional installation over DIY? Send your device to our specialized Spokane repair facility. Every intake includes a complimentary electrostatic foam shipping box with{' '}
+                Prefer professional installation over DIY? Send your device to our specialized Spokane repair facility. Every intake includes an electrostatic foam shipping box with{' '}
                 <strong className="text-neutral-900">Prepaid Return Postage (rated up to {PREPAID_SHIPPING_SPECS.maxPackageWeightLbs.toFixed(1)} lbs / {PREPAID_SHIPPING_SPECS.maxPackageWeightOz} oz)</strong>, full transit insurance, and rapid 24–48h turnaround.
               </p>
 
@@ -66,7 +68,7 @@ export default function ServicesPage() {
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 text-xs font-medium text-neutral-800">
                   <Truck className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Prepaid Postage Included ($0 Due)</span>
+                  <span>We Pay Return Shipping</span>
                 </div>
                 <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 text-xs font-medium text-neutral-800">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
@@ -88,7 +90,7 @@ export default function ServicesPage() {
 
               <ol className="text-xs text-neutral-700 space-y-2 list-decimal list-inside font-medium">
                 <li>Submit your device details and symptom below.</li>
-                <li>We dispatch a custom ESD mailer with prepaid postage.</li>
+                <li>We send a custom ESD mailer. {MAIL_IN_TERMS}</li>
                 <li>Pack your phone and hand it to USPS or UPS.</li>
                 <li>We complete repairs, test, and ship it back via Priority Air.</li>
               </ol>
@@ -109,6 +111,9 @@ export default function ServicesPage() {
 
         {/* Main Form Intake Section */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 space-y-12">
+          {/* How Your Repair Works (on-site + mail-in steps) */}
+          <HowYourRepairWorks />
+
           {/* Intake Form */}
           <section id="intake-form-section" className="scroll-mt-20">
             <MailInRepairRequestForm />
