@@ -58,7 +58,7 @@ Customer sign-in uses Shopify's Customer Account API OAuth 2.0 flow with PKCE. T
 
 Other substantial integrations include the ElevenLabs voice flow (`components/ElevenLabsAgent.jsx` and `pages/api/agent/`), tribal exemption/tax handling (`lib/tax-calculator.ts` and `lib/geofencing.ts`), and the Tribal Discount Shopify Function under `extensions/tribal-discount/`.
 
-## Conventions specific to this repository
+### 4. Builder + app shell + security
 
 - Use configured aliases from `tsconfig.json` for cross-root imports: `@lib/*`, `@assets/*`, `@blocks/*`, `@config/*`, `@components/*`, `@services/*`, and `@utils/*`.
 - Keep environment-variable lookup in the existing config/service layer; do not read Shopify credentials directly in unrelated components or API routes.
