@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { updateShopifyCustomerTribalStatus } from '../../../lib/tribal/shopify-admin.ts'
+import { tagTribalCustomerIfAllowed } from '../../../lib/tribal/tag-gate.ts'
 import { isTribalTaxExemptEnabled } from '../../../lib/tribal/tax-flags.ts'
 import {
   acquireDecisionLock,
@@ -124,20 +124,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   let shopifySynced = false
   let note = 'Guest request: tag the Shopify customer manually.'
   if (record.customerId) {
-    const result = await updateShopifyCustomerTribalStatus({
+    // Every tribal tag goes through the single TRIBAL_SHOPIFY_TAG_MODE gate (default off).
+    const result = await tagTribalCustomerIfAllowed({
       customerId: record.customerId,
-      tagsToAdd: ['tribal-member-verified'],
+      reviewer: who,
+      decidedAt,
+      recordId: record.id,
+      tribalNation: record.tribalNation,
+      maskedEnrollmentId: record.maskedEnrollmentId || 'n/a',
       // Tag only. Tax exemption is set only when TRIBAL_TAX_EXEMPT_ENABLED is on.
       taxExempt: isTribalTaxExemptEnabled(),
-      audit: {
-        verificationHash: record.id,
-        verifiedAt: decidedAt,
-        tribalNation: record.tribalNation,
-        maskedEnrollmentId: record.maskedEnrollmentId || 'n/a',
-      },
     })
-    shopifySynced = Boolean(result?.success)
-    note = shopifySynced ? 'Shopify customer tagged tribal-member-verified.' : 'Shopify update FAILED: tag the customer manually.'
+    shopifySynced = result.tagged && result.success
+    note = !result.tagged
+      ? result.note
+      : shopifySynced
+        ? 'Shopify customer tagged tribal-member-verified.'
+        : 'Shopify update FAILED: tag the customer manually.'
   }
   const approved = { ...record, status: 'approved' as const, decidedBy: who, decidedAt, shopifySynced }
   await saveReview(approved)

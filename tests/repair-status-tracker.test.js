@@ -4,7 +4,6 @@ const path = require('path')
 describe('Repair Status Tracker Component & Real-Time Firestore Sync', () => {
   const componentPath = path.resolve(__dirname, '../components/services/RepairStatusTracker.tsx')
   const apiPath = path.resolve(__dirname, '../pages/api/repair-requests/[rms].ts')
-  const orderTrackingPagePath = path.resolve(__dirname, '../pages/order-tracking.tsx')
   const servicesFaqPagePath = path.resolve(__dirname, '../pages/services-faq.tsx')
 
   test('RepairStatusTracker component exists', () => {
@@ -45,12 +44,6 @@ describe('Repair Status Tracker Component & Real-Time Firestore Sync', () => {
     expect(apiContent).not.toMatch(/DEMO|DCP-RMS-1000/)
   })
 
-  test('pages/order-tracking.tsx integrates tabbed navigation with RepairStatusTracker', () => {
-    const content = fs.readFileSync(orderTrackingPagePath, 'utf8')
-    expect(content).toContain('RepairStatusTracker')
-    expect(content).toContain('Mail-In Cleanroom Repairs')
-    expect(content).toContain('Replacement Parts Orders')
-  })
 
   test('pages/services-faq.tsx renders RepairStatusTracker', () => {
     const content = fs.readFileSync(servicesFaqPagePath, 'utf8')

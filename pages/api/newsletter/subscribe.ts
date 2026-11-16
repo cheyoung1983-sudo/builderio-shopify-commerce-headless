@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { validateEmail } from '@lib/validate-email'
+import { checkRateLimit } from '../../../lib/tribal/ratelimit.ts'
 
 export interface NewsletterSubscribeResponse {
   success: boolean
@@ -17,6 +18,17 @@ export default async function handler(
       success: false,
       message: `Method ${req.method} not allowed. Please use POST.`,
     })
+  }
+
+  // Shared (Upstash when configured) per-IP limit so this public form can't be scripted.
+  {
+    const fwd = req.headers?.['x-forwarded-for']
+    const ip = (Array.isArray(fwd) ? fwd[0] : fwd)?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+    const limit = await checkRateLimit(`newsletter:${ip}`, 5, 3600)
+    if (!limit.success) {
+      res.setHeader('Retry-After', String(Math.max(1, limit.reset - Math.floor(Date.now() / 1000))))
+      return res.status(429).json({ success: false, message: 'Too many requests. Please try again later.' })
+    }
   }
 
   try {

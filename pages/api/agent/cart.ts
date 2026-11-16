@@ -10,6 +10,7 @@ import {
   isAllowedOrigin,
   DEFAULT_AGENT_CORS_OPTIONS,
 } from '@lib/api-security'
+import { checkRateLimit } from '../../../lib/tribal/ratelimit.ts'
 
 export interface CartActionRequest {
   action: 'check_inventory' | 'get_pricing' | 'create_cart' | 'add_lines' | 'refresh_checkout'
@@ -83,6 +84,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST'])
     return res.status(405).json({ success: false, error: `Method ${req.method} not allowed` })
+  }
+
+  // Shared (Upstash when configured) per-IP limit so this public form can't be scripted.
+  {
+    const fwd = req.headers?.['x-forwarded-for']
+    const ip = (Array.isArray(fwd) ? fwd[0] : fwd)?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+    const limit = await checkRateLimit(`agent-cart:${ip}`, 30, 600)
+    if (!limit.success) {
+      res.setHeader('Retry-After', String(Math.max(1, limit.reset - Math.floor(Date.now() / 1000))))
+      return res.status(429).json({ success: false, error: 'Too many requests' })
+    }
   }
 
   try {

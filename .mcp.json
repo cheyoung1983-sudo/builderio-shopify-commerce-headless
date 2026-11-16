@@ -8,6 +8,18 @@
         "chrome-devtools-mcp"
       ]
     },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest"
+      ]
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
+    },
     "shopify": {
       "type": "http",
       "url": "https://api.shopify.com/mcp"
@@ -20,13 +32,18 @@
       "type": "http",
       "url": "https://mcp.stripe.com"
     },
+    "vercel": {
+      "type": "http",
+      "url": "https://mcp.vercel.com"
+    },
     "auth0": {
       "type": "stdio",
       "command": "npx",
       "args": [
         "-y",
         "@auth0/auth0-mcp-server",
-        "run"
+        "run",
+        "--read-only"
       ]
     },
     "builder-io": {
