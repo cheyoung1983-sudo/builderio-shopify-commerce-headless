@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: '24'
       - name: Check lockfile / repo hygiene (fix with `npm run fix:repo` or the "Repair lockfile" workflow)
-        run: node scripts/check-repo-hygiene.cjs
+        run: npm run check:repo
       - name: Install dependencies
         run: npm ci
       - name: Audit production dependencies
