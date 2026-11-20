@@ -17,11 +17,9 @@ import {
   DollarSign,
   Activity,
 } from 'lucide-react'
-import { useAuth0Token } from '../../hooks/useAuth0Token'
 import { TransformedShopifyVariant, PurchaseOrderRecord } from '../../lib/wholesale/types'
 
 export const WholesaleDashboard: React.FC = () => {
-  const { token, loading: tokenLoading } = useAuth0Token()
   const [loading, setLoading] = useState(false)
   const [variants, setVariants] = useState<TransformedShopifyVariant[]>([])
   const [governance, setGovernance] = useState<any>(null)
@@ -40,10 +38,7 @@ export const WholesaleDashboard: React.FC = () => {
     try {
       const res = await fetch('/api/wholesale/sync', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           targetMargin: targetMargin / 100,
           shippingFee,
@@ -76,10 +71,7 @@ export const WholesaleDashboard: React.FC = () => {
       // 1. Trigger Webhook Order Routing
       const webhookRes = await fetch('/api/wholesale/webhook', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId: `DCP-ORD-${Math.floor(100000 + Math.random() * 900000)}`,
           lineItems: [

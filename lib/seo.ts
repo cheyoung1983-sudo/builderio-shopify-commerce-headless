@@ -249,15 +249,10 @@ export function generateProductSeo(product: any, siteUrl?: string) {
           url,
           priceCurrency: currency,
           price: price,
-          priceValidUntil: `${new Date().getFullYear() + 1}-12-31`,
           itemCondition: 'https://schema.org/NewCondition',
           availability: available
             ? 'https://schema.org/InStock'
             : 'https://schema.org/OutOfStock',
-          seller: {
-            '@type': 'Organization',
-            name: DEFAULT_SITE_NAME,
-          },
         },
       },
       generateBreadcrumbJsonLd(breadcrumbItems, siteUrl),
@@ -358,44 +353,6 @@ export function generateCollectionSeo(collection: any, siteUrl?: string) {
     { label: collection.title || 'Collection', href: `/collection/${collection.handle || ''}` },
   ]
 
-  const rawProducts = collection.products?.edges || collection.products || []
-  const itemListElements = rawProducts.slice(0, 16).map((item: any, index: number) => {
-    const pNode = item.node || item
-    const pUrl = `${baseUrl}/product/${pNode.handle || ''}`
-    return {
-      '@type': 'ListItem',
-      position: index + 1,
-      url: pUrl,
-      name: pNode.title || 'Replacement Part',
-    }
-  })
-
-  const collectionPageJsonLd: Record<string, any> = {
-    '@context': 'https://schema.org/',
-    '@type': 'CollectionPage',
-    name: collection.title || 'Collection',
-    description: description,
-    url: url,
-    image: image,
-    publisher: {
-      '@type': 'Organization',
-      name: DEFAULT_SITE_NAME,
-      url: baseUrl,
-    },
-    brand: {
-      '@type': 'Brand',
-      name: DEFAULT_SITE_NAME,
-    },
-  }
-
-  if (itemListElements.length > 0) {
-    collectionPageJsonLd.mainEntity = {
-      '@type': 'ItemList',
-      numberOfItems: itemListElements.length,
-      itemListElement: itemListElements,
-    }
-  }
-
   return {
     title,
     description,
@@ -422,7 +379,14 @@ export function generateCollectionSeo(collection: any, siteUrl?: string) {
       image,
     },
     jsonLd: [
-      collectionPageJsonLd,
+      {
+        '@context': 'https://schema.org/',
+        '@type': 'CollectionPage',
+        name: collection.title,
+        description: description,
+        url: url,
+        image: image,
+      },
       generateBreadcrumbJsonLd(breadcrumbItems, siteUrl),
     ],
   }

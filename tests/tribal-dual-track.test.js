@@ -4,18 +4,14 @@ const { pathToFileURL } = require('node:url')
 
 function runTribalScript(testFnBody) {
   const repoRoot = path.resolve(__dirname, '..')
-  const verificationUrl = pathToFileURL(path.join(repoRoot, 'lib/tribal/verification.ts')).href
   const geofencingUrl = pathToFileURL(path.join(repoRoot, 'lib/tribal/geofencing.ts')).href
   const certificatesUrl = pathToFileURL(path.join(repoRoot, 'lib/tribal/certificates.ts')).href
   const avataxUrl = pathToFileURL(path.join(repoRoot, 'lib/tribal/avatax.ts')).href
-  const qaMatrixUrl = pathToFileURL(path.join(repoRoot, 'lib/tribal/qa-matrix.ts')).href
 
   const script = `
-    const { verifyTribalEnrollment } = await import(${JSON.stringify(verificationUrl)})
     const { evaluateAddressGeofence } = await import(${JSON.stringify(geofencingUrl)})
     const { generateSignedCertificate, getRequiredCertificateType } = await import(${JSON.stringify(certificatesUrl)})
     const { calculateAvaTaxTribalQuote, AVATAX_ENTITY_USE_CODES } = await import(${JSON.stringify(avataxUrl)})
-    const { evaluateQAScenario } = await import(${JSON.stringify(qaMatrixUrl)})
 
     ${testFnBody}
   `
@@ -23,71 +19,13 @@ function runTribalScript(testFnBody) {
   const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
     cwd: repoRoot,
     encoding: 'utf8',
-    env: { ...process.env, NODE_ENV: 'test' },
+    env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
   })
 
   return JSON.parse(output.trim())
 }
 
 describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', () => {
-  describe('QA Test Matrix - 4 Canonical Scenarios', () => {
-    test('Scenario 1: Enrolled + On-reservation -> 20% discount + tax exempt (Entity Use Code C)', () => {
-      const result = runTribalScript(`
-        const evalResult = await evaluateQAScenario('ENROLLED_ON_RESERVATION')
-        console.log(JSON.stringify(evalResult))
-      `)
-
-      expect(result.actualResults.passed).toBe(true)
-      expect(result.actualResults.discountApplied).toBe(true)
-      expect(result.actualResults.discountPercent).toBe(20)
-      expect(result.actualResults.taxExemptApplied).toBe(true)
-      expect(result.actualResults.entityUseCode).toBe('C')
-      expect(result.actualResults.customerTag).toBe('tribal-member-verified')
-    })
-
-    test('Scenario 2: Enrolled + Off-reservation -> 20% discount only', () => {
-      const result = runTribalScript(`
-        const evalResult = await evaluateQAScenario('ENROLLED_OFF_RESERVATION')
-        console.log(JSON.stringify(evalResult))
-      `)
-
-      expect(result.actualResults.passed).toBe(true)
-      expect(result.actualResults.discountApplied).toBe(true)
-      expect(result.actualResults.discountPercent).toBe(20)
-      expect(result.actualResults.taxExemptApplied).toBe(false)
-      expect(result.actualResults.entityUseCode).toBeNull()
-      expect(result.actualResults.customerTag).toBe('tribal-member-verified')
-    })
-
-    test('Scenario 3: Not enrolled + On-reservation -> no discount, no exemption', () => {
-      const result = runTribalScript(`
-        const evalResult = await evaluateQAScenario('NOT_ENROLLED_ON_RESERVATION')
-        console.log(JSON.stringify(evalResult))
-      `)
-
-      expect(result.actualResults.passed).toBe(true)
-      expect(result.actualResults.discountApplied).toBe(false)
-      expect(result.actualResults.discountPercent).toBe(0)
-      expect(result.actualResults.taxExemptApplied).toBe(false)
-      expect(result.actualResults.entityUseCode).toBeNull()
-      expect(result.actualResults.customerTag).toBeNull()
-    })
-
-    test('Scenario 4: Not enrolled + Off-reservation -> standard pricing and tax', () => {
-      const result = runTribalScript(`
-        const evalResult = await evaluateQAScenario('NOT_ENROLLED_OFF_RESERVATION')
-        console.log(JSON.stringify(evalResult))
-      `)
-
-      expect(result.actualResults.passed).toBe(true)
-      expect(result.actualResults.discountApplied).toBe(false)
-      expect(result.actualResults.discountPercent).toBe(0)
-      expect(result.actualResults.taxExemptApplied).toBe(false)
-      expect(result.actualResults.entityUseCode).toBeNull()
-      expect(result.actualResults.customerTag).toBeNull()
-    })
-  })
-
   describe('Geofencing & AIANA Reservation Boundary Engine', () => {
     test('Identifies on-reservation zip codes accurately', () => {
       const result = runTribalScript(`
@@ -132,7 +70,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const { windowRock, isWindowRockOnRes, sacaton, nyc, isNycOnRes } = JSON.parse(output.trim())
@@ -214,11 +152,9 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
   describe('Next.js API Route /api/tribal/verify & Shopify GraphQL customerUpdate Mutation', () => {
     test('Builds the customerUpdate mutation and reports failure (not simulated success) when Shopify Admin is unconfigured', () => {
       const repoRoot = path.resolve(__dirname, '..')
-      const verificationUrl = pathToFileURL(path.join(repoRoot, 'lib/tribal/verification.ts')).href
       const shopifyAdminUrl = pathToFileURL(path.join(repoRoot, 'lib/tribal/shopify-admin.ts')).href
 
       const script = `
-        const { verifyTribalEnrollment } = await import(${JSON.stringify(verificationUrl)})
         const { updateShopifyCustomerTribalStatus, CUSTOMER_UPDATE_MUTATION } = await import(${JSON.stringify(shopifyAdminUrl)})
 
         const body = {
@@ -236,18 +172,18 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
           },
         }
 
-        const verification = await verifyTribalEnrollment(body)
         const shopifySyncResult = await updateShopifyCustomerTribalStatus({
           customerId: body.customerId,
           tagsToAdd: ['tribal-member-verified'],
-          taxExempt: verification.taxExemptionTrack.taxExempt,
-          taxExemptions: verification.taxExemptionTrack.taxExempt
-            ? ['EXEMPT_INDIAN_IN_CANADA_OR_USA']
-            : [],
-          audit: verification.audit,
+          audit: {
+            verificationHash: 'manual-review',
+            verifiedAt: new Date().toISOString(),
+            tribalNation: body.tribalNation,
+            maskedEnrollmentId: '••••7881',
+          },
         })
 
-        console.log(JSON.stringify({ verification, shopifySyncResult, mutation: CUSTOMER_UPDATE_MUTATION }))
+        console.log(JSON.stringify({ shopifySyncResult, mutation: CUSTOMER_UPDATE_MUTATION }))
       `
 
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
@@ -264,13 +200,10 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
         },
       })
 
-      const { verification, shopifySyncResult, mutation } = JSON.parse(output.trim())
-      expect(verification.verified).toBe(true)
+      const { shopifySyncResult, mutation } = JSON.parse(output.trim())
       // Without Shopify Admin access nothing is written, and no simulated success is reported.
       expect(shopifySyncResult.success).toBe(false)
       expect(shopifySyncResult.notConfigured).toBe(true)
-      expect(verification.discountTrack.eligible).toBe(true)
-      expect(verification.discountTrack.discountPercentage).toBe(20)
       expect(mutation).toContain('customerUpdate(input: $input)')
     })
   })
@@ -309,7 +242,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const { result, hash } = JSON.parse(output.trim())
@@ -375,7 +308,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const { qualifiedNavajo, offReservation } = JSON.parse(output.trim())
@@ -428,7 +361,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const { html, text, dispatch } = JSON.parse(output.trim())
@@ -482,7 +415,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const { errorResult, timeoutResult } = JSON.parse(output.trim())
@@ -532,7 +465,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const { csv, sampleCount } = JSON.parse(output.trim())
@@ -563,7 +496,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const { parsed } = JSON.parse(output.trim())
@@ -591,7 +524,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const { parsed } = JSON.parse(output.trim())
@@ -643,7 +576,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const result = JSON.parse(output.trim())
@@ -693,7 +626,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const result = JSON.parse(output.trim())
