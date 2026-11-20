@@ -21,6 +21,7 @@ import { getRequiredCertificateType, getCertificateStatutoryNotice } from '../..
 import { TribalIdQrScannerModal } from './TribalIdQrScannerModal'
 import type { ScannedTribalIdData } from '../../lib/tribal/qr-scanner'
 import { CONSENT_CHECKBOX_LABEL, CONSENT_TEXT_VERSION } from '../../lib/tribal/consent'
+import { PersonaEmbeddedFlow } from '../persona/PersonaEmbeddedFlow'
 
 export interface TribalVerificationModalProps {
   isOpen: boolean
@@ -46,7 +47,7 @@ export function TribalVerificationModal({
   customerId = 'guest',
   customerEmail = '',
 }: TribalVerificationModalProps) {
-  const [step, setStep] = useState<'form' | 'certificate' | 'pending'>('form')
+  const [step, setStep] = useState<'form' | 'certificate' | 'pending' | 'persona'>('form')
   const [consent, setConsent] = useState(false)
   const [pendingMessage, setPendingMessage] = useState('')
   const [loading, setLoading] = useState(false)

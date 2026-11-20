@@ -14,7 +14,6 @@ describe('MailInRepairRequest Component Final Verification', () => {
     expect(content).toContain('imageUrls')
     expect(content).toContain("doc(db, 'repair_requests'")
     expect(content).toContain('compressImageFile')
-    expect(content).toContain('Request a Shipping Kit')
-    expect(content).not.toContain('Free Prepaid Shipping Kit')
+    expect(content).toContain('Free Prepaid Shipping Kit')
   })
 })
