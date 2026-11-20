@@ -2,56 +2,241 @@
   "entities": {
     "User": {
       "title": "User Profile",
-      "description": "Store user roles and basic profile information for RBAC.",
+      "description": "Verified customer and strict two-email owner RBAC user profiles.",
       "type": "object",
       "properties": {
-        "uid": { "type": "string", "description": "Firebase Auth UID" },
-        "email": { "type": "string", "format": "email", "description": "Verified user email" },
-        "role": { 
-          "type": "string", 
-          "enum": ["owner", "admin", "technician"], 
-          "description": "Access level" 
+        "uid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$", "description": "Firebase or normalized Auth0 User ID" },
+        "auth0Sub": { "type": "string", "maxLength": 128, "description": "Optional Auth0 subject claim" },
+        "email": { "type": "string", "format": "email", "maxLength": 255, "description": "Verified user email" },
+        "role": {
+          "type": "string",
+          "enum": ["owner", "User"],
+          "description": "Strict two-tier RBAC role (owner reserved strictly for cheyoung1983@gmail.com and ryan@displaycellpros.com)"
         },
+        "tribalVerified": { "type": "boolean", "description": "Verified tribal sovereign exemption flag" },
+        "tribalNation": { "type": "string", "maxLength": 128, "description": "Federally recognized tribal nation name" },
+        "tribalMaskedId": { "type": "string", "maxLength": 32, "description": "Last-4 masked tribal enrollment identifier" },
+        "tribalVerifiedAt": { "type": "string", "format": "date-time", "maxLength": 64 },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "email", "role", "createdAt", "updatedAt"]
     },
     "AdminRef": {
-      "title": "Admin Reference",
-      "description": "Simple document presence indicating admin status for fast security rule checks.",
+      "title": "Owner Clearance Reference",
+      "description": "O(1) security index restricted exclusively to verified sessions for the two owner emails.",
       "type": "object",
       "properties": {
-        "uid": { "type": "string" }
+        "uid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "format": "email", "maxLength": 255 },
+        "syncedAt": { "type": "string", "format": "date-time" },
+        "bootstrappedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid"]
     },
-    "RepairRequest": {
-      "title": "Repair Request",
-      "description": "Definition of a repair request record.",
+    "TribalRegistryEntry": {
+      "title": "Tribal Master Registry Entry",
+      "description": "Owner-audited index of hashed tribal enrollment identifiers.",
       "type": "object",
       "properties": {
-        "rmsNumber": { "type": "string" },
-        "status": { "type": "string" },
-        "deviceModel": { "type": "string" },
+        "enrollmentHash": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "tribalNation": { "type": "string", "maxLength": 128 },
+        "status": { "type": "string", "enum": ["pending", "approved", "denied", "revoked"] },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["enrollmentHash", "tribalNation", "status", "updatedAt"]
+    },
+    "TribalEnrollment": {
+      "title": "Tribal Enrollment Claim",
+      "description": "Customer-scoped enrollment uniqueness lock.",
+      "type": "object",
+      "properties": {
+        "enrollmentHash": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "claimedByEmail": { "type": "string", "format": "email", "maxLength": 255 },
+        "tribalNation": { "type": "string", "maxLength": 128 },
+        "status": { "type": "string", "enum": ["active", "revoked"] },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["rmsNumber", "status", "deviceModel", "createdAt", "updatedAt"]
+      "required": ["claimedByEmail", "status", "createdAt", "updatedAt"]
+    },
+    "RepairRequest": {
+      "title": "Mail-In Repair Request",
+      "description": "Mail-in repair tracking record scoped to record owner or verified store owners.",
+      "type": "object",
+      "properties": {
+        "rmsNumber": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "status": { "type": "string", "enum": ["kit_requested", "in_transit", "received", "diagnosing", "repairing", "shipped", "completed", "cancelled"] },
+        "claimedByUid": { "type": "string", "maxLength": 128 },
+        "deviceModel": { "type": "string", "maxLength": 256 },
+        "serialNumber": { "type": "string", "maxLength": 128 },
+        "issueDescription": { "type": "string", "maxLength": 2000 },
+        "passcode": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["rmsNumber", "status", "shippingKit", "createdAt", "updatedAt"]
+    },
+    "WholesaleCatalogItem": {
+      "title": "Wholesale Gadget Parts Catalog Item",
+      "description": "Owner-only supplier SKU, cost, MAP price, and safety stock record.",
+      "type": "object",
+      "properties": {
+        "sku": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "maxLength": 256 },
+        "supplier": { "type": "string", "enum": ["MobileSentrix", "InjuredGadgets"] },
+        "wholesaleCost": { "type": "number" },
+        "mapPrice": { "type": "number" },
+        "retailPrice": { "type": "number" },
+        "shopifyAvailableQuantity": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["sku", "title", "supplier", "wholesaleCost", "retailPrice", "updatedAt"]
+    },
+    "WholesaleOrder": {
+      "title": "Wholesale Purchase Order",
+      "description": "Owner-only blind-dropship purchase order record.",
+      "type": "object",
+      "properties": {
+        "poId": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "supplier": { "type": "string", "enum": ["MobileSentrix", "InjuredGadgets"] },
+        "status": { "type": "string", "enum": ["pending", "transmitted", "fulfilled", "cancelled"] },
+        "createdByEmail": { "type": "string", "format": "email", "maxLength": 255 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["poId", "supplier", "status", "createdByEmail", "createdAt", "updatedAt"]
+    },
+    "AdminSetting": {
+      "title": "Owner Admin Setting",
+      "description": "Owner-only operational settings (e.g. Slack notification threshold configuration).",
+      "type": "object",
+      "properties": {
+        "slackAlertOnTaskFailureLimitExceeded": { "type": "boolean" },
+        "taskFailureRetryThreshold": { "type": "number" },
+        "slackWebhookUrl": { "type": "string", "maxLength": 512 },
+        "slackChannel": { "type": "string", "maxLength": 128 },
+        "queueAutoRetry": { "type": "boolean" },
+        "updatedBy": { "type": "string", "maxLength": 255 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["updatedAt"]
+    },
+    "Auth0UserRecord": {
+      "title": "Auth0 Persona Sync User Record",
+      "description": "Synchronized Auth0 identity profile restricted to owners.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "format": "email", "maxLength": 255 },
+        "emailVerified": { "type": "boolean" },
+        "verificationStatus": { "type": "string", "maxLength": 64 },
+        "lastSyncedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "email", "emailVerified", "lastSyncedAt"]
+    },
+    "AuditLog": {
+      "title": "Immutable Compliance Audit Log",
+      "description": "Owner-auditable append-only compliance event record.",
+      "type": "object",
+      "properties": {
+        "eventType": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "format": "email", "maxLength": 255 },
+        "timestamp": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["eventType", "createdAt"]
+    },
+    "WebhookEvent": {
+      "title": "Webhook Idempotency Record",
+      "description": "Deduplication record for incoming signed webhooks.",
+      "type": "object",
+      "properties": {
+        "source": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "processedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["source", "processedAt"]
+    },
+    "SecurityEvent": {
+      "title": "Security Event Log",
+      "description": "Owner-only security telemetry log (CORS violations, rate limits, unauthorized attempts).",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["RATE_LIMIT_EXCEEDED", "CORS_VIOLATION", "UNAUTHORIZED_ACCESS"] },
+        "timestamp": { "type": "string", "maxLength": 64 },
+        "clientIp": { "type": "string", "maxLength": 64 },
+        "path": { "type": "string", "maxLength": 256 },
+        "userAgent": { "type": "string", "maxLength": 512 },
+        "severity": { "type": "string", "enum": ["low", "medium", "high"] }
+      },
+      "required": ["type", "timestamp", "path", "severity"]
+    },
+    "SystemStatus": {
+      "title": "System Health Document",
+      "description": "Owner-only system health check document.",
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["status", "updatedAt"]
     }
   },
   "firestore": {
     "/users/{uid}": {
       "schema": "User",
-      "description": "User profiles with role-based access control."
+      "description": "User profiles with strict two-email owner vs customer RBAC."
     },
     "/admins/{uid}": {
       "schema": "AdminRef",
-      "description": "Helper collection for O(1) exists() checks in security rules."
+      "description": "O(1) owner clearance index restricted to cheyoung1983@gmail.com and ryan@displaycellpros.com."
+    },
+    "/tribal_registry/{enrollmentHash}": {
+      "schema": "TribalRegistryEntry",
+      "description": "Owner-only tribal verification registry index."
+    },
+    "/tribal_enrollments/{enrollmentHash}": {
+      "schema": "TribalEnrollment",
+      "description": "Customer-scoped tribal enrollment uniqueness lock."
     },
     "/repair_requests/{rmsNumber}": {
       "schema": "RepairRequest",
-      "description": "Repair request tracking records."
+      "description": "Mail-in repair tracking records scoped to owner or submitting verified email."
+    },
+    "/wholesale_catalog/{sku}": {
+      "schema": "WholesaleCatalogItem",
+      "description": "Owner-only WGP wholesale SKU catalog and pricing governance store."
+    },
+    "/wholesale_orders/{poId}": {
+      "schema": "WholesaleOrder",
+      "description": "Owner-only WGP blind-dropship purchase orders."
+    },
+    "/admin_settings/{settingId}": {
+      "schema": "AdminSetting",
+      "description": "Owner-only administrative operational settings."
+    },
+    "/auth0_users/{userId}": {
+      "schema": "Auth0UserRecord",
+      "description": "Owner-only synchronized Auth0 identity profiles."
+    },
+    "/audit_logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Append-only owner-auditable compliance event logs."
+    },
+    "/webhook_events/{eventId}": {
+      "schema": "WebhookEvent",
+      "description": "Owner-only webhook idempotency records."
+    },
+    "/security_events/{eventId}": {
+      "schema": "SecurityEvent",
+      "description": "Owner-only security violation and access denial logs."
+    },
+    "/system/{docId}": {
+      "schema": "SystemStatus",
+      "description": "Owner-only system health probe records."
     }
   }
 }

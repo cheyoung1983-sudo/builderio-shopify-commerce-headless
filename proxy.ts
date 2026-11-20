@@ -28,6 +28,8 @@ import { createHash, timingSafeEqual } from 'node:crypto'
 // customer page calls them, so they fail closed behind the admin password.
 const ADMIN_PREFIXES = [
   '/admin',
+  '/wholesale',
+  '/compliance',
   '/api/admin',
   '/api/tribal/admin',
   '/api/tribal/certificate',
@@ -36,8 +38,12 @@ const ADMIN_PREFIXES = [
   '/api/mcp',
   '/api/persona/mcp-query',
   '/api/persona/inquiry',
+  '/api/persona/audit-logs',
+  '/api/persona/simulate',
+  '/api/persona/transaction',
   '/api/auth/sync-persona',
   '/api/wholesale',
+  '/api/v1/wholesale',
 ]
 
 const DEMO_PREFIXES = [
@@ -140,15 +146,24 @@ export const config = {
   matcher: [
     '/admin',
     '/admin/:path*',
+    '/wholesale',
+    '/wholesale/:path*',
+    '/compliance',
+    '/compliance/:path*',
     '/api/admin',
     '/api/admin/:path*',
     '/api/tribal/admin/:path*',
     '/api/tribal/certificate',
     '/api/tribal/certificate/:path*',
     '/api/persona/inquiry',
+    '/api/persona/audit-logs',
+    '/api/persona/simulate',
+    '/api/persona/transaction',
     '/api/auth/sync-persona',
     '/api/wholesale',
     '/api/wholesale/:path*',
+    '/api/v1/wholesale',
+    '/api/v1/wholesale/:path*',
     '/api/config',
     '/api/config/:path*',
     '/api/health',

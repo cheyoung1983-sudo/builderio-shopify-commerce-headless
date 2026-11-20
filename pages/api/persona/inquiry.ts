@@ -1,12 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { personaRequest } from '../../../services/persona'
 import crypto from 'node:crypto'
+import { isAdminSession } from '../../../lib/tribal/admin-auth'
 
-// This endpoint should be called server-side from the frontend form submission
-// to ensure inquiries are pre-created securely.
+// Internal inquiry helper: guarded by proxy.ts and verified owner session.
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  res.setHeader('Cache-Control', 'no-store')
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed' })
+  }
+
+  if (!(await isAdminSession(req))) {
+    return res.status(403).json({ success: false, error: 'Forbidden: verified owner access required.' })
   }
 
   const { inquiryTemplateId, referenceId, fields } = req.body

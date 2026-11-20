@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { auth0SessionResolver, getAdminEmailFromRequest, type AdminSessionResolver } from './admin-auth.ts'
+import { unifiedAdminSessionResolver, getAdminEmailFromRequest, type AdminSessionResolver } from './admin-auth.ts'
 import {
   acquireDecisionLock,
   getReview,
@@ -30,12 +30,13 @@ export async function handleAdminDecision(
   res: NextApiResponse,
   deps: { resolveSession?: AdminSessionResolver } = {}
 ) {
+  res.setHeader('Cache-Control', 'no-store')
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
     return res.status(405).json({ success: false, error: 'Method Not Allowed' })
   }
 
-  const reviewer = await getAdminEmailFromRequest(req, deps.resolveSession || auth0SessionResolver)
+  const reviewer = await getAdminEmailFromRequest(req, deps.resolveSession || unifiedAdminSessionResolver)
   if (!reviewer) {
     return res.status(403).json({ success: false, error: 'Access denied: sign in with an authorized administrator account.' })
   }

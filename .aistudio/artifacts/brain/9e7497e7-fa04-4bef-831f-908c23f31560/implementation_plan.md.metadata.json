@@ -1,6 +1,0 @@
-{
-  "summary":  "Implementation plan for Auth0 integration within the existing Pages Router structure, specifically refactoring the Admin Dashboard and Wholesale Dashboard to replace Firebase 'useAuth' with Auth0.",
-  "updatedAt":  "2026-10-28T02:40:12.683096118Z",
-  "requestFeedback":  true,
-  "userFacing":  true
-}

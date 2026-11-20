@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
+import { withWholesaleAuth } from '../../../lib/wholesale/middleware'
 import { PurchaseOrderRecord, SupplierName } from '../../../lib/wholesale/types'
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withWholesaleAuth(async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
     return res.status(405).json({ success: false, error: 'Method Not Allowed' })
@@ -21,7 +22,6 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       country: 'US',
     }
 
-    // Group line items by supplier
     const supplierGroups: Record<SupplierName, Array<{ sku: string; quantity: number; wholesaleCost: number }>> = {
       MobileSentrix: [],
       InjuredGadgets: [],
@@ -42,7 +42,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
           supplier: supplierName as SupplierName,
           status: 'transmitted',
           createdAt: new Date().toISOString(),
-          blindDropship: true, // Suppresses wholesale invoices, prints Display & Cell Pros branding
+          blindDropship: true,
           items: items.map((i) => ({ sku: i.sku, quantity: i.quantity })),
         })
       }
@@ -59,4 +59,4 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err?.message || 'Failed to process wholesale webhook.' })
   }
-}
+})

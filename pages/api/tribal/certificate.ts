@@ -6,8 +6,14 @@ import {
   buildCertificatePdf,
 } from '../../../lib/tribal/certificates.ts'
 import { validateExemptionCertificate } from '../../../lib/tribal/validation.ts'
+import { isAdminSession } from '../../../lib/tribal/admin-auth.ts'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  res.setHeader('Cache-Control', 'no-store')
+  if (!(await isAdminSession(req))) {
+    return res.status(403).json({ success: false, error: 'Forbidden: verified owner access required.' })
+  }
+
   if (req.method === 'GET') {
     const {
       state,

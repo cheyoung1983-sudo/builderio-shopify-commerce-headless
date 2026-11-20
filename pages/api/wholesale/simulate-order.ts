@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
+import { withWholesaleAuth } from '../../../lib/wholesale/middleware'
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withWholesaleAuth(async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
     return res.status(405).json({ success: false, error: 'Method Not Allowed' })
@@ -30,4 +31,4 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err?.message || 'Failed to simulate order fulfillment.' })
   }
-}
+})

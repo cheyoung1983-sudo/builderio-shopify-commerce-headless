@@ -9,9 +9,14 @@ interface HealthStatus {
 }
 
 interface HealthData {
-  elevenLabs: HealthStatus;
-  webhooks: HealthStatus;
-  apiKeys: HealthStatus;
+  timestamp?: string;
+  shopify?: HealthStatus;
+  firestore?: HealthStatus;
+  auth0?: HealthStatus;
+  overall?: string;
+  elevenLabs?: HealthStatus;
+  webhooks?: HealthStatus;
+  apiKeys?: HealthStatus;
 }
 
 const StatusIcon = ({ status }: { status: string }) =>
@@ -47,6 +52,8 @@ const CommandBlock = ({ cmd, desc }: { cmd: string, desc: string }) => (
 );
 
 import { useAuth } from '../hooks/useAuth';
+import { useUserRole } from '../hooks/useUserRole';
+import { isAdminEmail } from '../lib/tribal/owner-allowlist';
 import { db } from '../lib/firebase';
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import SlackNotificationDashboard from './mcp/SlackNotificationDashboard';
@@ -54,42 +61,67 @@ import SlackNotificationDashboard from './mcp/SlackNotificationDashboard';
 interface UserProfile {
   uid: string;
   email: string;
-  role: 'owner' | 'admin' | 'technician';
+  role: 'owner' | 'admin' | 'technician' | 'User';
   createdAt: any;
 }
 
 export default function AdminDashboard() {
-  const { user, role, logout } = useAuth();
+  const { user: fbUser, role: fbRole, logout: fbLogout, getIdToken } = useAuth();
+  const { user: auth0User, isVerifiedOwner: auth0VerifiedOwner, logout: auth0Logout } = useUserRole();
+  const activeEmail = fbUser?.email || auth0User?.email || '';
+  const activeUid = fbUser?.uid || auth0User?.sub || '';
+  const activeRole = fbRole || (auth0VerifiedOwner ? 'owner' : null);
+
   const [data, setData] = useState<HealthData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'health' | 'cli' | 'ucp' | 'team' | 'slack-queue'>('health');
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [statusNotice, setStatusNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/health')
-      .then(res => res.json())
-      .then(data => {
-        setData(data);
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
-  }, []);
+    let mounted = true;
+    async function loadHealth() {
+      try {
+        const idToken = fbUser ? await getIdToken() : null;
+        const res = await fetch('/api/health', {
+          credentials: 'same-origin',
+          headers: idToken ? { Authorization: `Bearer ${idToken}` } : {},
+        });
+        const health = await res.json();
+        if (mounted) {
+          setData(health);
+        }
+      } catch {
+        // Ignore transient health errors
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    void loadHealth();
+    return () => {
+      mounted = false;
+    };
+  }, [fbUser, getIdToken]);
 
-  // Listen for all users if admin/owner
+  // Listen for users only when verified allowlisted owner
   useEffect(() => {
-    if (role === 'admin' || role === 'owner') {
+    if (activeRole === 'owner' && isAdminEmail(activeEmail)) {
       const q = query(collection(db, 'users'));
       const unsubscribe = onSnapshot(q, (snapshot) => {
-        const userList = snapshot.docs.map(doc => doc.data() as UserProfile);
+        const userList = snapshot.docs.map(d => d.data() as UserProfile);
         setUsers(userList);
+      }, () => {
+        setUsers([]);
       });
       return () => unsubscribe();
     }
-  }, [role]);
+  }, [activeRole, activeEmail]);
 
-  const updateUserRole = async (targetUid: string, newRole: string) => {
+  const updateUserRole = async (targetUid: string, targetEmail: string, newRole: string) => {
+    if (!isAdminEmail(targetEmail) && newRole !== 'User') {
+      setStatusNotice(`Blocked: ${targetEmail} is outside the strict two-email owner allowlist.`);
+      return;
+    }
     try {
       const userRef = doc(db, 'users', targetUid);
       await updateDoc(userRef, {
@@ -97,17 +129,22 @@ export default function AdminDashboard() {
         updatedAt: serverTimestamp()
       });
 
-      // Update the efficiency admin index if promoted/demoted
       const adminRef = doc(db, 'admins', targetUid);
-      if (newRole === 'admin' || newRole === 'owner') {
-        await setDoc(adminRef, { uid: targetUid });
+      if (newRole === 'owner' && isAdminEmail(targetEmail)) {
+        await setDoc(adminRef, { uid: targetUid, email: targetEmail.trim().toLowerCase() }, { merge: true });
       } else {
         await deleteDoc(adminRef);
       }
+      setStatusNotice(`Updated ${targetEmail} to ${newRole}.`);
     } catch (err) {
-      console.error("Failed to update role:", err);
-      alert("Insufficient permissions to change roles.");
+      console.error('Failed to update role:', err);
+      setStatusNotice('Insufficient Firestore permissions to change user role.');
     }
+  };
+
+  const handleLogout = async () => {
+    if (fbUser) await fbLogout();
+    if (auth0User) auth0Logout();
   };
 
   if (loading) {
@@ -121,18 +158,26 @@ export default function AdminDashboard() {
 
   return (
     <div className="max-w-6xl mx-auto p-4 space-y-6">
+      {statusNotice && (
+        <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium flex items-center justify-between">
+          <span>{statusNotice}</span>
+          <button type="button" onClick={() => setStatusNotice(null)} className="text-amber-700 hover:underline font-bold cursor-pointer">
+            Dismiss
+          </button>
+        </div>
+      )}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 font-bold text-xl">
-            {user?.email?.[0].toUpperCase()}
+            {activeEmail?.[0]?.toUpperCase() || 'O'}
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-neutral-900">Developer Control Center</h1>
+            <h1 className="text-2xl font-bold text-neutral-900">Owner Control Center</h1>
             <div className="flex items-center gap-2">
-              <span className="text-xs px-2 py-0.5 bg-neutral-200 text-neutral-700 rounded-full font-bold uppercase tracking-tighter">
-                {role}
+              <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold uppercase tracking-tighter">
+                {activeRole || 'owner'}
               </span>
-              <p className="text-sm text-neutral-500">{user?.email}</p>
+              <p className="text-sm text-neutral-500">{activeEmail}</p>
             </div>
           </div>
         </div>
@@ -163,7 +208,7 @@ export default function AdminDashboard() {
             >
               UCP
             </button>
-            {(role === 'admin' || role === 'owner') && (
+            {activeRole === 'owner' && (
               <button
                 onClick={() => setActiveTab('team')}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'team' ? 'bg-white text-orange-700 shadow-sm' : 'text-neutral-500'}`}
@@ -173,8 +218,8 @@ export default function AdminDashboard() {
             )}
           </div>
           <button
-            onClick={logout}
-            className="p-2 text-neutral-400 hover:text-red-600 transition-colors"
+            onClick={() => void handleLogout()}
+            className="p-2 text-neutral-400 hover:text-red-600 transition-colors cursor-pointer"
             title="Sign Out"
           >
             <ExternalLink className="w-5 h-5" />
@@ -185,9 +230,9 @@ export default function AdminDashboard() {
       {activeTab === 'health' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <HealthCard title="ElevenLabs Voice Agent" status={data?.elevenLabs.status || 'unknown'} />
-            <HealthCard title="Shopify Admin Webhooks" status={data?.webhooks.status || 'unknown'} />
-            <HealthCard title="API Credentials Cache" status={data?.apiKeys.status || 'unknown'} />
+            <HealthCard title="Shopify Storefront API" status={data?.shopify?.status || data?.webhooks?.status || 'unknown'} />
+            <HealthCard title="Firestore Security Store" status={data?.firestore?.status || data?.elevenLabs?.status || 'unknown'} />
+            <HealthCard title="Auth0 & Owner Alerting" status={data?.auth0?.status || data?.apiKeys?.status || 'unknown'} />
           </div>
 
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 flex items-start gap-4">
@@ -438,17 +483,27 @@ export default function AdminDashboard() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {u.uid !== user?.uid && u.role !== 'owner' && (
+                      {u.uid !== activeUid && u.role !== 'owner' && isAdminEmail(u.email) && (
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => updateUserRole(u.uid, u.role === 'admin' ? 'technician' : 'admin')}
-                            className="px-3 py-1.5 rounded-lg border border-neutral-200 text-xs font-semibold hover:bg-neutral-100 transition-colors"
+                            type="button"
+                            onClick={() => updateUserRole(u.uid, u.email, 'owner')}
+                            className="px-3 py-1.5 rounded-lg border border-neutral-200 text-xs font-semibold hover:bg-neutral-100 transition-colors cursor-pointer"
                           >
-                            {u.role === 'admin' ? 'Demote to Technician' : 'Promote to Admin'}
+                            Grant Owner Access
                           </button>
                         </div>
                       )}
-                      {u.uid === user?.uid && (
+                      {u.uid !== activeUid && u.role !== 'User' && !isAdminEmail(u.email) && (
+                        <button
+                          type="button"
+                          onClick={() => updateUserRole(u.uid, u.email, 'User')}
+                          className="px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 text-xs font-semibold hover:bg-rose-50 transition-colors cursor-pointer"
+                        >
+                          Revoke Non-Allowlisted Role
+                        </button>
+                      )}
+                      {u.uid === activeUid && (
                         <span className="text-xs text-neutral-400 italic">Self (Active)</span>
                       )}
                     </td>
@@ -461,20 +516,21 @@ export default function AdminDashboard() {
           <div className="bg-orange-50 border border-orange-100 rounded-2xl p-6">
             <h3 className="text-orange-900 font-bold flex items-center gap-2 mb-2">
               <Shield className="w-5 h-5" />
-              Role Hierarchies
+              Strict Owner Access Policy
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-              <div className="bg-white/50 p-4 rounded-xl">
-                <p className="font-bold text-xs text-indigo-800 uppercase">Owner</p>
-                <p className="text-xs text-neutral-600 mt-1">Full access to billing, RBAC, and all administrative tools.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div className="bg-white/60 p-4 rounded-xl">
+                <p className="font-bold text-xs text-indigo-800 uppercase">Verified Owners (2-Email Allowlist)</p>
+                <p className="text-xs text-neutral-600 mt-1">
+                  Only verified sessions for <span className="font-mono">cheyoung1983@gmail.com</span> and{' '}
+                  <span className="font-mono">ryan@displaycellpros.com</span> hold Admin &amp; WGP access.
+                </p>
               </div>
-              <div className="bg-white/50 p-4 rounded-xl">
-                <p className="font-bold text-xs text-blue-800 uppercase">Admin</p>
-                <p className="text-xs text-neutral-600 mt-1">Can manage technicians, monitor health, and access CLI reference.</p>
-              </div>
-              <div className="bg-white/50 p-4 rounded-xl">
-                <p className="font-bold text-xs text-neutral-800 uppercase">Technician</p>
-                <p className="text-xs text-neutral-600 mt-1">ReadOnly access to system health and diagnostic tools.</p>
+              <div className="bg-white/60 p-4 rounded-xl">
+                <p className="font-bold text-xs text-neutral-800 uppercase">Standard Customer Accounts</p>
+                <p className="text-xs text-neutral-600 mt-1">
+                  All other verified users are scoped strictly to personal storefront orders, repairs, and tribal self-verification.
+                </p>
               </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -17,6 +17,9 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { ShieldAlert, ShieldCheck, AlertTriangle, Activity, Filter, RefreshCw, Lock, Zap, Download } from 'lucide-react';
+import { AdminGuard } from '../auth/AdminGuard';
+import { db } from '../../lib/firebase';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 
 export interface SecurityEventLog {
   id: string;
@@ -69,21 +72,49 @@ export default function SecurityDashboard() {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [events, setEvents] = useState<SecurityEventLog[]>(INITIAL_EVENTS);
 
-  const handleRefresh = () => {
+  const loadEventsFromFirestore = useCallback(async (): Promise<SecurityEventLog[] | null> => {
+    try {
+      if (!db) return null;
+      const q = query(collection(db, 'security_events'), orderBy('timestamp', 'desc'), limit(50));
+      const snap = await getDocs(q);
+      if (snap.empty) return null;
+      return snap.docs.map((d) => {
+        const data = d.data() as Record<string, any>;
+        return {
+          id: d.id,
+          type: (data.type as SecurityEventLog['type']) || 'UNAUTHORIZED_ACCESS',
+          timestamp: String(data.timestamp || ''),
+          clientIp: String(data.clientIp || 'redacted'),
+          path: String(data.path || '/api/unknown'),
+          userAgent: String(data.userAgent || 'unknown'),
+          severity: (data.severity as SecurityEventLog['severity']) || 'medium',
+        };
+      });
+    } catch {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadEventsFromFirestore().then((loaded) => {
+      if (!cancelled && loaded) {
+        setEvents(loaded);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadEventsFromFirestore]);
+
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    setTimeout(() => {
-      const newEvt: SecurityEventLog = {
-        id: `evt-${Date.now().toString().slice(-4)}`,
-        type: Math.random() > 0.5 ? 'RATE_LIMIT_EXCEEDED' : 'CORS_VIOLATION',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        clientIp: `192.168.1.${Math.floor(Math.random() * 100)}`,
-        path: '/api/agent/token',
-        userAgent: 'automated-scanner/1.0',
-        severity: 'high',
-      };
-      setEvents((prev) => [newEvt, ...prev]);
+    try {
+      const loaded = await loadEventsFromFirestore();
+      if (loaded) setEvents(loaded);
+    } finally {
       setIsRefreshing(false);
-    }, 600);
+    }
   };
 
   const filteredEvents = useMemo(() => {
@@ -130,6 +161,7 @@ export default function SecurityDashboard() {
   };
 
   return (
+    <AdminGuard featureName="API Security Dashboard">
     <div className="w-full max-w-7xl mx-auto p-6 space-y-8 bg-gray-50 dark:bg-gray-900 rounded-xl min-h-screen text-gray-900 dark:text-gray-100">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-200 dark:border-gray-800 pb-6">
@@ -372,5 +404,6 @@ export default function SecurityDashboard() {
         </div>
       </div>
     </div>
+    </AdminGuard>
   );
 }

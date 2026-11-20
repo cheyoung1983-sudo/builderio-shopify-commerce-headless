@@ -1,135 +1,371 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 1. Global Safety Net: Deny all by default
+    // 1. Global Safety Net: Deny all unmatched paths by default
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // --- Global Helpers ---
-    function isSignedIn() { return request.auth != null; }
-    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
-    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
-    function incoming() { return request.resource.data; }
-    function existing() { return resource.data; }
-    
-    // Efficiency helpers for RBAC
-    function isAdminLevel() { 
-      return isVerified() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); 
+    // --- Global Security & Identity Primitives ---
+    function isSignedIn() {
+      return request.auth != null;
     }
-    
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Strict Two-Email Owner Allowlist (verified email required)
     function isOwnerEmail() {
-      // Hardcoded personal-email owner bootstrap removed (Nov 2026). Owner/admin access is
-      // granted only through the admins/{uid} collection (isAdminLevel).
-      return false;
+      return isVerified() && (
+        request.auth.token.email == 'cheyoung1983@gmail.com' ||
+        request.auth.token.email == 'ryan@displaycellpros.com'
+      );
     }
 
-    // --- Validation Blueprints ---
-    function isValidId(id) { 
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    // Authoritative Admin Gate: locked strictly to the two verified owner emails
+    function isAdminLevel() {
+      return isOwnerEmail();
     }
 
-    function isValidUser(data) {
+    // --- Entity Validation Blueprints ---
+    function isValidUserCreate(data, uid) {
       return data.keys().hasAll(['uid', 'email', 'role', 'createdAt', 'updatedAt']) &&
-             data.keys().hasOnly(['uid', 'email', 'role', 'createdAt', 'updatedAt']) &&
-             data.uid == request.auth.uid &&
+             data.keys().hasOnly(['uid', 'auth0Sub', 'email', 'role', 'createdAt', 'updatedAt']) &&
+             data.uid == uid &&
+             data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 255 &&
              data.email == request.auth.token.email &&
-             data.role in ['owner', 'admin', 'technician'] &&
+             (!('auth0Sub' in data) || (data.auth0Sub is string && data.auth0Sub.size() <= 128)) &&
+             data.role in ['owner', 'User'] &&
              data.createdAt == request.time &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidUserUpdate(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly([
+               'uid', 'auth0Sub', 'email', 'role',
+               'tribalVerified', 'tribalNation', 'tribalMaskedId', 'tribalVerifiedAt',
+               'createdAt', 'updatedAt'
+             ]) &&
+             data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 255 &&
+             data.role in ['owner', 'User'] &&
+             (!('tribalVerified' in data) || data.tribalVerified is bool) &&
+             (!('tribalNation' in data) || (data.tribalNation is string && data.tribalNation.size() <= 128)) &&
+             (!('tribalMaskedId' in data) || (data.tribalMaskedId is string && data.tribalMaskedId.size() <= 32)) &&
+             (!('tribalVerifiedAt' in data) || (data.tribalVerifiedAt is string && data.tribalVerifiedAt.size() <= 64)) &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidAdminRef(data, uid) {
+      return data.keys().hasAll(['uid']) &&
+             data.keys().hasOnly(['uid', 'email', 'syncedAt', 'bootstrappedAt', 'createdAt']) &&
+             data.uid == uid &&
+             data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 &&
+             (!('email' in data) || (data.email is string && data.email in ['cheyoung1983@gmail.com', 'ryan@displaycellpros.com']));
+    }
+
+    function isValidTribalRegistry(data, enrollmentHash) {
+      return data.keys().hasAll(['enrollmentHash', 'tribalNation', 'status', 'updatedAt']) &&
+             data.keys().hasOnly(['enrollmentHash', 'tribalNation', 'status', 'updatedAt']) &&
+             data.enrollmentHash == enrollmentHash &&
+             data.enrollmentHash is string && data.enrollmentHash.size() <= 128 &&
+             data.tribalNation is string && data.tribalNation.size() >= 1 && data.tribalNation.size() <= 128 &&
+             data.status in ['pending', 'approved', 'denied', 'revoked'] &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidTribalEnrollment(data) {
+      return data.keys().hasAll(['claimedByEmail', 'status', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['enrollmentHash', 'claimedByEmail', 'tribalNation', 'status', 'createdAt', 'updatedAt']) &&
+             data.claimedByEmail is string && data.claimedByEmail.size() >= 3 && data.claimedByEmail.size() <= 255 &&
+             (!('enrollmentHash' in data) || (data.enrollmentHash is string && data.enrollmentHash.size() <= 128)) &&
+             (!('tribalNation' in data) || (data.tribalNation is string && data.tribalNation.size() <= 128)) &&
+             data.status in ['active', 'revoked'] &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidRepairRequest(data, rmsNumber) {
+      return data.keys().hasAll(['rmsNumber', 'status', 'shippingKit', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly([
+               'rmsNumber', 'status', 'claimedByUid', 'deviceModel', 'serialNumber',
+               'issueDescription', 'passcode', 'imageUrls', 'contact', 'shippingKit',
+               'itemDetails', 'sopChecklist', 'termsAcceptance', 'estimatedCost',
+               'createdAt', 'updatedAt'
+             ]) &&
+             data.rmsNumber == rmsNumber &&
+             data.rmsNumber is string && data.rmsNumber.size() >= 1 && data.rmsNumber.size() <= 64 &&
+             data.status is string && data.status.size() >= 1 && data.status.size() <= 32 &&
+             (!('deviceModel' in data) || (data.deviceModel is string && data.deviceModel.size() <= 256)) &&
+             (!('serialNumber' in data) || (data.serialNumber is string && data.serialNumber.size() <= 128)) &&
+             (!('issueDescription' in data) || (data.issueDescription is string && data.issueDescription.size() <= 2000)) &&
+             (!('passcode' in data) || (data.passcode is string && data.passcode.size() <= 64)) &&
+             (!('claimedByUid' in data) || (data.claimedByUid is string && data.claimedByUid.size() <= 128)) &&
+             (!('imageUrls' in data) || (data.imageUrls is list && data.imageUrls.size() <= 10 && (data.imageUrls.size() == 0 || data.imageUrls[0] is string))) &&
+             data.shippingKit is map &&
+             data.shippingKit.email is string && data.shippingKit.email.size() >= 3 && data.shippingKit.email.size() <= 255 &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidWholesaleCatalogItem(data, sku) {
+      return data.keys().hasAll(['sku', 'title', 'supplier', 'wholesaleCost', 'retailPrice', 'updatedAt']) &&
+             data.keys().hasOnly([
+               'sku', 'title', 'supplier', 'wholesaleCost', 'mapPrice', 'retailPrice',
+               'supplierQuantity', 'safetyBuffer', 'shopifyAvailableQuantity', 'weightOz',
+               'compatibility', 'marginPercentage', 'status', 'updatedAt'
+             ]) &&
+             data.sku == sku &&
+             data.sku is string && data.sku.size() >= 1 && data.sku.size() <= 64 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 256 &&
+             data.supplier in ['MobileSentrix', 'InjuredGadgets'] &&
+             data.wholesaleCost is number && data.retailPrice is number &&
+             (!('compatibility' in data) || (data.compatibility is list && data.compatibility.size() <= 25 && (data.compatibility.size() == 0 || data.compatibility[0] is string))) &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidWholesaleOrder(data, poId) {
+      return data.keys().hasAll(['poId', 'supplier', 'status', 'createdByEmail', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['poId', 'orderId', 'supplier', 'status', 'blindDropship', 'items', 'createdByEmail', 'createdAt', 'updatedAt']) &&
+             data.poId == poId &&
+             data.poId is string && data.poId.size() >= 1 && data.poId.size() <= 64 &&
+             data.supplier in ['MobileSentrix', 'InjuredGadgets'] &&
+             data.status in ['pending', 'transmitted', 'fulfilled', 'cancelled'] &&
+             data.createdByEmail is string && data.createdByEmail in ['cheyoung1983@gmail.com', 'ryan@displaycellpros.com'] &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidAdminSetting(data) {
+      return data.keys().hasAll(['updatedAt']) &&
+             data.keys().hasOnly([
+               'slackAlertOnTaskFailureLimitExceeded', 'taskFailureRetryThreshold',
+               'slackWebhookUrl', 'slackChannel', 'queueAutoRetry', 'updatedBy', 'updatedAt'
+             ]) &&
+             (!('slackWebhookUrl' in data) || (data.slackWebhookUrl is string && data.slackWebhookUrl.size() <= 512)) &&
+             (!('slackChannel' in data) || (data.slackChannel is string && data.slackChannel.size() <= 128)) &&
+             (!('updatedBy' in data) || (data.updatedBy is string && data.updatedBy.size() <= 255)) &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidAuth0User(data) {
+      return data.keys().hasAll(['userId', 'email', 'emailVerified', 'lastSyncedAt']) &&
+             data.keys().hasOnly(['userId', 'email', 'emailVerified', 'phoneNumber', 'name', 'loginsCount', 'metadata', 'personaInquiryId', 'verificationStatus', 'lastSyncedAt']) &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.email is string && data.email.size() <= 255 &&
+             data.emailVerified is bool &&
+             data.lastSyncedAt == request.time;
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll(['eventType', 'createdAt']) &&
+             data.keys().hasOnly(['eventType', 'userId', 'email', 'emailVerified', 'personaInquiryId', 'idempotencyKey', 'timestamp', 'createdAt']) &&
+             data.eventType is string && data.eventType.size() <= 128 &&
+             data.createdAt == request.time;
+    }
+
+    function isValidWebhookEvent(data) {
+      return data.keys().hasAll(['source', 'processedAt']) &&
+             data.keys().hasOnly(['source', 'userId', 'processedAt']) &&
+             data.source is string && data.source.size() <= 64 &&
+             data.processedAt == request.time;
+    }
+
+    function isValidSecurityEvent(data) {
+      return data.keys().hasAll(['type', 'timestamp', 'path', 'severity']) &&
+             data.keys().hasOnly(['type', 'timestamp', 'clientIp', 'path', 'userAgent', 'severity']) &&
+             data.type in ['RATE_LIMIT_EXCEEDED', 'CORS_VIOLATION', 'UNAUTHORIZED_ACCESS'] &&
+             data.timestamp is string && data.timestamp.size() <= 64 &&
+             data.path is string && data.path.size() <= 256 &&
+             data.severity in ['low', 'medium', 'high'];
+    }
+
+    function isValidSystemDoc(data) {
+      return data.keys().hasAll(['status', 'updatedAt']) &&
+             data.keys().hasOnly(['status', 'updatedAt']) &&
+             data.status is string && data.status.size() <= 64 &&
              data.updatedAt == request.time;
     }
 
     // --- Collection Rules ---
 
-    // 2. Users Collection
+    // 2. Users Collection (PII isolated; strict two-tier RBAC)
     match /users/{uid} {
-      allow get: if isVerified() && (isOwner(uid) || isAdminLevel());
-      allow list: if isAdminLevel(); // Only admins can list all users
-      
-      allow create: if isVerified() && isValidId(uid) && isOwner(uid) && isValidUser(incoming()) && (
-        // Initial setup for the owner
+      allow get: if isVerified() && isValidId(uid) && (isOwner(uid) || isAdminLevel());
+      allow list: if isAdminLevel();
+
+      allow create: if isVerified() && isValidId(uid) && isOwner(uid) && isValidUserCreate(incoming(), uid) && (
         (incoming().role == 'owner' && isOwnerEmail()) ||
-        // Standard registration (technician by default if not bootstrapping)
-        (incoming().role == 'technician')
+        (incoming().role == 'User')
       );
 
-      allow update: if isVerified() && isValidId(uid) && (
-        // Action: Self-Profile Update (Limited fields + Tribal verification sync)
-        (isOwner(uid) && 
-         incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'tribalVerified', 'tribalNation', 'tribalMaskedId', 'tribalVerifiedAt']) &&
-         incoming().updatedAt == request.time) ||
-        
-        // Action: Admin Role Management
+      allow update: if isVerified() && isValidId(uid) && isValidUserUpdate(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().email == existing().email &&
+        incoming().createdAt == existing().createdAt && (
+        // Tier 1: Owner Action (cannot promote non-allowlisted accounts to owner)
         (isAdminLevel() &&
          incoming().diff(existing()).affectedKeys().hasOnly(['role', 'updatedAt']) &&
-         incoming().role in ['admin', 'technician'] &&
-         incoming().updatedAt == request.time)
+         (incoming().role == 'User' || (incoming().role == 'owner' && existing().email in ['cheyoung1983@gmail.com', 'ryan@displaycellpros.com']))) ||
+        // Tier 2: Self-Profile Update (non-privileged fields only; role immutable)
+        (isOwner(uid) &&
+         incoming().role == existing().role &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'tribalVerified', 'tribalNation', 'tribalMaskedId', 'tribalVerifiedAt']))
       );
 
-      allow delete: if isAdminLevel() && existing().role != 'owner'; // Owners cannot be deleted via dashboard
+      allow delete: if isAdminLevel() && isValidId(uid) && existing().role != 'owner';
     }
 
-    // 3. Admins Collection (Security index)
-    // Only the primary owner can manually add/remove from this O(1) check collection
+    // 3. Admins Index Collection (Strictly locked to the two verified owner emails)
     match /admins/{uid} {
-      allow read: if isVerified();
-      allow write: if isVerified() && (isOwnerEmail() || isAdminLevel());
+      allow get: if isVerified() && isValidId(uid) && (isOwner(uid) || isOwnerEmail());
+      allow list: if isOwnerEmail();
+      allow create, update: if isOwnerEmail() && isValidId(uid) && isValidAdminRef(incoming(), uid);
+      allow delete: if isOwnerEmail() && isValidId(uid);
     }
 
-    // 4. Tribal Master Registry (BIA & Nation Verification Index)
+    // 4. Tribal Master Registry (Owner-only audit index)
     match /tribal_registry/{enrollmentHash} {
-      allow read: if isVerified();
-      allow write: if isVerified() && (isOwnerEmail() || isAdminLevel());
+      allow get, list: if isOwnerEmail();
+      allow create: if isOwnerEmail() && isValidId(enrollmentHash) && isValidTribalRegistry(incoming(), enrollmentHash);
+      allow update: if isOwnerEmail() && isValidId(enrollmentHash) && isValidTribalRegistry(incoming(), enrollmentHash) &&
+        incoming().enrollmentHash == existing().enrollmentHash &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['tribalNation', 'status', 'updatedAt']);
+      allow delete: if isOwnerEmail() && isValidId(enrollmentHash);
     }
 
-    // 5. Tribal Enrollments (Enrollment Uniqueness & Customer Lock)
+    // 5. Tribal Enrollments (Scoped strictly to owning customer or verified owners)
     match /tribal_enrollments/{enrollmentHash} {
-      allow read: if isVerified();
-      allow create: if isVerified() && 
+      allow get: if isVerified() && isValidId(enrollmentHash) && (isOwnerEmail() || existing().claimedByEmail == request.auth.token.email);
+      allow list: if isOwnerEmail() || (isVerified() && resource.data.claimedByEmail == request.auth.token.email);
+
+      allow create: if isVerified() && isValidId(enrollmentHash) &&
+        isValidTribalEnrollment(incoming()) &&
         incoming().claimedByEmail == request.auth.token.email &&
-        incoming().status == 'active';
-      allow update: if isVerified() && (
-        (existing().claimedByEmail == request.auth.token.email && incoming().claimedByEmail == request.auth.token.email) ||
-        isAdminLevel()
+        incoming().status == 'active' &&
+        incoming().createdAt == request.time;
+
+      allow update: if isVerified() && isValidId(enrollmentHash) && isValidTribalEnrollment(incoming()) &&
+        incoming().claimedByEmail == existing().claimedByEmail &&
+        incoming().createdAt == existing().createdAt && (
+        isOwnerEmail() ||
+        (existing().claimedByEmail == request.auth.token.email &&
+         existing().status != 'revoked' &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
       );
-      allow delete: if isAdminLevel();
+
+      allow delete: if isOwnerEmail() && isValidId(enrollmentHash);
     }
 
-    // 6. Repair Requests & Mail-In Shipping Kits
+    // 6. Repair Requests & Mail-In Shipping Kits (Scoped strictly to record owner or verified owners)
     match /repair_requests/{rmsNumber} {
-      function isValidRepairRequest(data) {
-        return data.keys().hasAll(['rmsNumber', 'status', 'deviceModel', 'createdAt', 'updatedAt']) &&
-               data.keys().hasSubset(['rmsNumber', 'status', 'deviceModel', 'serialNumber', 'issueDescription', 'passcode', 'imageUrls', 'contact', 'shippingKit', 'createdAt', 'updatedAt']) &&
-               data.rmsNumber is string && data.rmsNumber.size() <= 64 &&
-               data.status is string &&
-               data.deviceModel is string && data.deviceModel.size() <= 256 &&
-               data.createdAt == request.time &&
-               data.updatedAt == request.time;
+      function isRepairOwner(data) {
+        return isVerified() && data.shippingKit.email == request.auth.token.email;
       }
 
-      function isOwnerByEmail(data) {
-        return isSignedIn() && data.shippingKit.email == request.auth.token.email;
-      }
+      allow get: if isVerified() && isValidId(rmsNumber) && (isOwnerEmail() || isRepairOwner(existing()));
+      allow list: if isOwnerEmail() || (isVerified() && resource.data.shippingKit.email == request.auth.token.email);
 
-      allow read: if isVerified() && (isAdminLevel() || isOwnerByEmail(resource.data));
-      
-      allow create: if isVerified() && 
-        isValidId(rmsNumber) &&
-        incoming().rmsNumber == rmsNumber &&
-        isValidRepairRequest(incoming()) &&
-        isOwnerByEmail(incoming());
-        
-      allow update: if isVerified() && 
-        isValidId(rmsNumber) &&
-        (isAdminLevel() || (
-          isOwnerByEmail(existing()) &&
-          incoming().status != 'completed' && // Lock terminal state
-          incoming().rmsNumber == existing().rmsNumber && // Immutable
-          incoming().createdAt == existing().createdAt && // Immutable
+      allow create: if isVerified() && isValidId(rmsNumber) &&
+        isValidRepairRequest(incoming(), rmsNumber) &&
+        incoming().createdAt == request.time &&
+        (isOwnerEmail() || isRepairOwner(incoming()));
+
+      allow update: if isVerified() && isValidId(rmsNumber) &&
+        isValidRepairRequest(incoming(), rmsNumber) &&
+        incoming().rmsNumber == existing().rmsNumber &&
+        incoming().createdAt == existing().createdAt && (
+        isOwnerEmail() || (
+          isRepairOwner(existing()) &&
+          existing().status != 'completed' &&
+          existing().status != 'cancelled' &&
           incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt', 'issueDescription'])
-        ));
-      
-      allow delete: if isAdminLevel();
+        )
+      );
+
+      allow delete: if isOwnerEmail() && isValidId(rmsNumber);
+    }
+
+    // 7. Wholesale Gadget Parts Catalog & Purchase Orders (Strictly Owner-Only)
+    match /wholesale_catalog/{sku} {
+      allow get, list: if isOwnerEmail();
+      allow create: if isOwnerEmail() && isValidId(sku) && isValidWholesaleCatalogItem(incoming(), sku);
+      allow update: if isOwnerEmail() && isValidId(sku) && isValidWholesaleCatalogItem(incoming(), sku) &&
+        incoming().sku == existing().sku &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'title', 'wholesaleCost', 'mapPrice', 'retailPrice',
+          'supplierQuantity', 'safetyBuffer', 'shopifyAvailableQuantity',
+          'marginPercentage', 'status', 'updatedAt'
+        ]);
+      allow delete: if isOwnerEmail() && isValidId(sku);
+    }
+
+    match /wholesale_orders/{poId} {
+      allow get, list: if isOwnerEmail();
+      allow create: if isOwnerEmail() && isValidId(poId) &&
+        isValidWholesaleOrder(incoming(), poId) &&
+        incoming().createdAt == request.time;
+      allow update: if isOwnerEmail() && isValidId(poId) &&
+        isValidWholesaleOrder(incoming(), poId) &&
+        incoming().poId == existing().poId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().createdByEmail == existing().createdByEmail &&
+        existing().status != 'fulfilled' &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow delete: if isOwnerEmail() && isValidId(poId);
+    }
+
+    // 8. Owner Settings, Auth0 Profiles, Audit Logs, Security Events & System Probes (Owner-Only)
+    match /admin_settings/{settingId} {
+      allow get, list: if isOwnerEmail();
+      allow create, update: if isOwnerEmail() && isValidId(settingId) && isValidAdminSetting(incoming());
+      allow delete: if isOwnerEmail() && isValidId(settingId);
+    }
+
+    match /auth0_users/{userId} {
+      allow get, list: if isOwnerEmail();
+      allow create, update: if isOwnerEmail() && isValidId(userId) && isValidAuth0User(incoming());
+      allow delete: if isOwnerEmail() && isValidId(userId);
+    }
+
+    match /audit_logs/{logId} {
+      allow get, list: if isOwnerEmail();
+      allow create: if isOwnerEmail() && isValidId(logId) && isValidAuditLog(incoming());
+      allow update, delete: if false;
+    }
+
+    match /webhook_events/{eventId} {
+      allow get, list: if isOwnerEmail();
+      allow create: if isOwnerEmail() && isValidId(eventId) && isValidWebhookEvent(incoming());
+      allow update, delete: if false;
+    }
+
+    match /security_events/{eventId} {
+      allow get, list: if isOwnerEmail();
+      allow create: if isOwnerEmail() && isValidId(eventId) && isValidSecurityEvent(incoming());
+      allow update, delete: if false;
+    }
+
+    match /system/{docId} {
+      allow get, list: if isOwnerEmail();
+      allow create, update: if isOwnerEmail() && isValidId(docId) && isValidSystemDoc(incoming());
+      allow delete: if isOwnerEmail() && isValidId(docId);
     }
   }
 }

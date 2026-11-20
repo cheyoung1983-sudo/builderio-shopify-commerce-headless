@@ -1,7 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { slackNotificationManager } from '../../../../lib/slack-notification-manager'
+import { isAdminSession } from '../../../../lib/tribal/admin-auth'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  res.setHeader('Cache-Control', 'no-store')
+  if (!(await isAdminSession(req))) {
+    return res.status(403).json({ error: 'Forbidden: Verified owner authentication required.' })
+  }
+
   if (req.method === 'GET') {
     const metrics = slackNotificationManager.getMetrics()
     const jobs = slackNotificationManager.getJobs()

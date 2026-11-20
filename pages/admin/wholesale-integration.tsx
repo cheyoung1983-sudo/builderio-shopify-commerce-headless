@@ -10,6 +10,7 @@ export default function WholesaleIntegrationAdminPage() {
     <>
       <Head>
         <title>Automated Wholesale Parts Integration | Display &amp; Cell Pros</title>
+        <meta name="robots" key="robots" content="noindex, nofollow" />
         <meta
           name="description"
           content="Middleware integration hub for MobileSentrix and InjuredGadgets suppliers with dynamic margin rules and safety stock buffers."

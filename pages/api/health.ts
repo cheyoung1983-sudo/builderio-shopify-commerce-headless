@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { db } from '../../lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
 import { getAdminNotificationSettings } from '../../lib/admin-notification-settings'
+import { isAdminSession } from '../../lib/tribal/admin-auth'
 
 /**
  * Health check endpoint: /api/health
@@ -17,6 +18,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   // Health is live state; never let a CDN or browser cache it.
   res.setHeader('Cache-Control', 'no-store')
+
+  if (!(await isAdminSession(req))) {
+    return res.status(403).json({ error: 'Forbidden: verified owner access required.' })
+  }
 
   const statusReport = {
     timestamp: new Date().toISOString(),
