@@ -1,7 +1,18 @@
 const { spawnSync } = require('node:child_process')
+const fs = require('node:fs')
 const path = require('node:path')
 
 describe('Node runtime version guard', () => {
+  it('routes CI repo hygiene through the guarded npm script', () => {
+    const workflow = fs.readFileSync(
+      path.resolve(__dirname, '..', '.github', 'workflows', 'ci.yml'),
+      'utf8'
+    )
+
+    expect(workflow).toContain('run: npm run check:repo')
+    expect(workflow).not.toContain('run: node scripts/check-repo-hygiene.cjs')
+  })
+
   it('reports whether the running Node version matches the repository requirement', () => {
     const repoRoot = path.resolve(__dirname, '..')
     const script = path.join(repoRoot, 'scripts', 'check-node-version-consistency.cjs')
