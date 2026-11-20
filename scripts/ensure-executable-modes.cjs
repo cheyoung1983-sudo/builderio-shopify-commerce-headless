@@ -5,6 +5,9 @@ const path = require('node:path')
 function ensureExecutableModes({ root = path.resolve(__dirname, '..') } = {}) {
   const execFiles = ['scripts/precheck.mjs']
   const hooksDir = path.join(root, '.githooks')
+  const gitEnv = Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => !key.toUpperCase().startsWith('GIT_'))
+  )
 
   if (fs.existsSync(hooksDir)) {
     for (const entry of fs.readdirSync(hooksDir, { withFileTypes: true })) {
@@ -15,6 +18,7 @@ function ensureExecutableModes({ root = path.resolve(__dirname, '..') } = {}) {
   const trackedFiles = new Set(
     execFileSync('git', ['ls-files', '--', ...execFiles], {
       cwd: root,
+      env: gitEnv,
       encoding: 'utf8',
     }).split(/\r?\n/).filter(Boolean)
   )
@@ -25,7 +29,10 @@ function ensureExecutableModes({ root = path.resolve(__dirname, '..') } = {}) {
 
     fs.chmodSync(absolutePath, 0o755)
     if (trackedFiles.has(file)) {
-      execFileSync('git', ['update-index', '--chmod=+x', '--', file], { cwd: root })
+      execFileSync('git', ['update-index', '--chmod=+x', '--', file], {
+        cwd: root,
+        env: gitEnv,
+      })
     }
   }
 }
