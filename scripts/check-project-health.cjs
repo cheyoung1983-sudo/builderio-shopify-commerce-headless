@@ -12,7 +12,7 @@ function check(condition, message) {
 const packageJson = JSON.parse(read('package.json'))
 const nextConfig = read('next.config.js')
 const shopifyConfig = read('config/shopify.ts')
-const catchAllRoute = read('pages/[[...path]].tsx')
+const catchAllRoute = read('pages/[...path].tsx')
 const workflow = read('.github/workflows/ci.yml')
 const envExample = read('.env.example')
 const nodeVersion = read('.nvmrc').trim().match(/\d+/)?.[0]

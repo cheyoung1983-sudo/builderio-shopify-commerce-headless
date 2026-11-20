@@ -25,11 +25,6 @@ const nextConfig = {
   allowedDevOrigins: [
     'localhost:3000',
     '127.0.0.1:3000',
-    '*.run.app',
-    'ais-dev-jexmzfsqsgf4mbwujko5hx-367327296310.us-west2.run.app',
-    'ais-pre-jexmzfsqsgf4mbwujko5hx-367327296310.us-west2.run.app',
-    '*.google.com',
-    'aistudio.google.com',
   ],
   images: {
     qualities: [75, 85, 90],
@@ -65,8 +60,9 @@ const nextConfig = {
               // silently overrode this one in production (it blocked the
               // ElevenLabs voice agent's websocket). Keep it here.
               //
-              // frame-ancestors: allow self, Builder.io visual editor, and AI Studio / Cloud Run preview iframes.
-              "frame-ancestors 'self' https://builder.io https://*.builder.io https://*.run.app https://*.google.com https://*.googleusercontent.com https://aistudio.google.com https://ai.studio https://*.ai.studio",
+              // frame-ancestors: only this site and the Builder.io visual editor
+              // may iframe the site (X-Frame-Options can't express an origin allowlist).
+              "frame-ancestors 'self' https://builder.io https://*.builder.io",
               // Fallback for anything without its own directive below.
               "default-src 'self'",
               // script-src: no 'unsafe-inline' (the app ships no inline
@@ -97,7 +93,7 @@ const nextConfig = {
               "base-uri 'self'",
               // Vercel Toolbar iframe (previews), GTM's iframe/preview mode, and
               // the Firebase Auth helper iframe on the project's auth domain.
-              "frame-src 'self' https://vercel.live https://www.googletagmanager.com https://dcpllcrev4.firebaseapp.com https://*.run.app https://*.google.com https://aistudio.google.com https://ai.studio",
+              "frame-src 'self' https://vercel.live https://www.googletagmanager.com https://dcpllcrev4.firebaseapp.com",
               // connect-src: browser-side fetch/XHR/WebSocket targets.
               //  - Builder.io content API; Shopify Storefront API (shopify-buy).
               //  - ElevenLabs voice agent: REST + websocket on api.elevenlabs.io,
@@ -112,7 +108,7 @@ const nextConfig = {
                 'https://displaycellpros.myshopify.com',
                 'https://api.elevenlabs.io wss://api.elevenlabs.io',
                 'https://livekit.rtc.elevenlabs.io wss://livekit.rtc.elevenlabs.io',
-                'https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://region1.analytics.google.com https://stats.g.doubleclick.net https://fonts.gstatic.com',
+                'https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://region1.analytics.google.com',
                 'https://cdn.jsdelivr.net/npm/us-atlas@3/',
                 // Firebase (firebase-applet-config.json): Firestore for the
                 // mail-in repair form / repair tracker / tribal checker, and
@@ -120,7 +116,6 @@ const nextConfig = {
                 'https://firestore.googleapis.com',
                 'https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://dcpllcrev4.firebaseapp.com',
                 'https://vercel.live https://*.vercel.live wss://*.pusher.com https://vitals.vercel-insights.com',
-                'https://*.run.app https://*.google.com https://aistudio.google.com https://ai.studio',
                 process.env.NODE_ENV === 'development' ? 'ws://localhost:*' : '',
               ]
                 .filter(Boolean)
@@ -128,10 +123,10 @@ const nextConfig = {
               // img-src: mirrors next/image remotePatterns + GA4/GTM pixels, Unsplash
               // images on /services-faq, and the cleardot.gif connectivity probe
               // Firestore's WebChannel transport loads.
-              "img-src 'self' data: blob: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://images.unsplash.com https://www.google.com/images/cleardot.gif https://vercel.live https://vercel.com https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://fonts.gstatic.com",
+              "img-src 'self' data: blob: https://cdn.shopify.com https://cdn.builder.io https://res.cloudinary.com https://images.unsplash.com https://www.google.com/images/cleardot.gif https://vercel.live https://vercel.com https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com",
               // <audio> players use data: (base64 TTS) and blob: URLs.
               "media-src 'self' data: blob:",
-              "font-src 'self' data: https://vercel.live https://fonts.gstatic.com",
+              "font-src 'self' data: https://vercel.live",
             ].join('; '),
           },
           // X-Frame-Options is intentionally omitted: it can't express "allow
