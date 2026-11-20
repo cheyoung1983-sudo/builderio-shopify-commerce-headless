@@ -51,13 +51,15 @@ export async function createPersonaInquiry(params: {
   referenceId: string
   inquiryTemplateId?: string
   fields?: Record<string, any>
+  isWebView?: boolean
 }): Promise<{ id: string; hostedUrl: string }> {
   if (!PERSONA_API_KEY) {
     // Sandbox / Mock session when API keys are pending
     const mockId = `inq_sandbox_${Date.now()}`
+    const webViewParam = params.isWebView ? '&is-webview=true' : ''
     return {
       id: mockId,
-      hostedUrl: `https://withpersona.com/verify?inquiry-id=${mockId}`,
+      hostedUrl: `https://withpersona.com/verify?inquiry-id=${encodeURIComponent(mockId)}${webViewParam}`,
     }
   }
 
@@ -80,8 +82,75 @@ export async function createPersonaInquiry(params: {
 
   const json = await response.json()
   const inqId = json.data?.id
+  const webViewParam = params.isWebView ? '&is-webview=true' : ''
   return {
     id: inqId,
-    hostedUrl: `https://withpersona.com/verify?inquiry-id=${inqId}`,
+    hostedUrl: `https://withpersona.com/verify?inquiry-id=${encodeURIComponent(inqId)}${webViewParam}`,
   }
 }
+
+/**
+ * Searches for an existing incomplete inquiry ('created' or 'pending') by reference ID.
+ */
+export async function findIncompleteInquiry(referenceId: string): Promise<any | null> {
+  if (!PERSONA_API_KEY) {
+    return null
+  }
+  try {
+    const params = new URLSearchParams({
+      'filter[reference-id]': referenceId,
+      'filter[status]': 'created,pending',
+      'page[size]': '1',
+    })
+    const response = await personaRequest(`/inquiries?${params.toString()}`)
+    const json = await response.json()
+    const inquiries = json?.data || []
+    return inquiries.length > 0 ? inquiries[0] : null
+  } catch (error) {
+    console.warn('[Persona] Error finding incomplete inquiry:', error)
+    return null
+  }
+}
+
+/**
+ * Generates a session token for resuming a pending inquiry.
+ */
+export async function createSessionToken(inquiryId: string): Promise<string | null> {
+  if (!PERSONA_API_KEY) {
+    return `sess_sandbox_${Date.now()}`
+  }
+  try {
+    const response = await personaRequest(`/inquiries/${inquiryId}/resume`, {
+      method: 'POST',
+      body: JSON.stringify({ meta: {} }),
+    })
+    const json = await response.json()
+    return json?.meta?.['session-token'] || null
+  } catch (error) {
+    console.warn('[Persona] Error generating session token:', error)
+    return null
+  }
+}
+
+/**
+ * Generates a One-Time Link (OTL) for resuming a browser hosted flow securely.
+ */
+export async function generateOneTimeLink(inquiryId: string): Promise<string | null> {
+  if (!PERSONA_API_KEY) {
+    return `https://inquiry.withpersona.com/verify?code=otl_sandbox_${Date.now()}`
+  }
+  try {
+    const response = await personaRequest(`/inquiries/${inquiryId}/generate-one-time-link`, {
+      method: 'POST',
+      body: JSON.stringify({ meta: {} }),
+    })
+    const json = await response.json()
+    return json?.meta?.['one-time-link-code']
+      ? `https://inquiry.withpersona.com/verify?code=${json.meta['one-time-link-code']}`
+      : null
+  } catch (error) {
+    console.warn('[Persona] Error generating one-time link:', error)
+    return null
+  }
+}
+

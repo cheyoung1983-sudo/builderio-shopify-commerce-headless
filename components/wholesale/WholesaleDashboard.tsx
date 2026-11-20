@@ -22,7 +22,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { TransformedShopifyVariant, PurchaseOrderRecord } from '../../lib/wholesale/types'
 
 export const WholesaleDashboard: React.FC = () => {
-  const { token } = useAuth0Token()
+  const { token, loading: tokenLoading } = useAuth0Token()
   const { user: fbUser, getIdToken } = useAuth()
   const [loading, setLoading] = useState(false)
   const [variants, setVariants] = useState<TransformedShopifyVariant[]>([])

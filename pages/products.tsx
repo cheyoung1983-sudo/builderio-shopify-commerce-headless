@@ -3,6 +3,7 @@ import type { GetStaticPropsContext, InferGetStaticPropsType } from 'next'
 import { DynamicSEO } from '../components/common/DynamicSEO'
 import { useSafeRouter } from '../lib/hooks/useSafeRouter'
 import { ProductGrid } from '../components/products/ProductGrid'
+import { ProductGridSkeleton } from '../components/products/ProductGridSkeleton'
 import { Breadcrumbs } from '../components/common/Breadcrumbs'
 import { fetchAllAvailableProducts, ShopifyProductNode } from '../services/shopify'
 import { getLayoutProps } from '../lib/get-layout-props'
@@ -44,6 +45,22 @@ export default function ProductsPage({
   const router = useSafeRouter()
   const qParam = typeof router.query.q === 'string' ? router.query.q : ''
   const categoryParam = typeof router.query.category === 'string' ? router.query.category : ''
+
+  if (router.isFallback) {
+    return (
+      <main className="min-h-screen bg-neutral-50/50 py-6">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+          <Breadcrumbs
+            id="products-fallback-breadcrumbs"
+            items={[{ label: 'Home', href: '/' }, { label: 'Products', isCurrent: true }]}
+            variant="contained"
+            showHomeIcon={true}
+          />
+        </div>
+        <ProductGridSkeleton count={8} showControls={true} showSidebar={true} />
+      </main>
+    )
+  }
 
   const handleSearchChange = (query: string) => {
     const currentQ = router.query.q || ''

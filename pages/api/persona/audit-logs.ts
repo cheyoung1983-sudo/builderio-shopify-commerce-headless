@@ -10,10 +10,10 @@ import { isAdminSession } from '../../../lib/tribal/admin-auth'
 function sanitizeAttributes(attributes: any) {
   if (!attributes) return {}
   const sanitized = { ...attributes }
-  
+
   // Remove PII
   const piiFields = [
-    'name-first', 'name-last', 'name-middle', 'birthdate', 
+    'name-first', 'name-last', 'name-middle', 'birthdate',
     'ssn', 'social-security-number', 'individual-id-number', 'tax-id',
     'phone-number', 'email-address', 'address-street-1', 'address-street-2'
   ]
@@ -91,7 +91,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!inquiriesRes.ok || !eventsRes.ok) {
       const errorText = !inquiriesRes.ok ? await inquiriesRes.text() : await eventsRes.text()
       logger.warn('[Persona API Warning]:', errorText)
-      
+
       // Fallback/Mock for sandbox or missing keys
       return res.status(200).json({
         success: true,
@@ -120,7 +120,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const sanitized = sanitizeEvent(e)
       const name = sanitized.attributes?.name || 'unknown_event'
       const createdAt = sanitized.attributes?.['created-at'] || new Date().toISOString()
-      
+
       return {
         id: sanitized.id,
         name,
@@ -136,7 +136,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     )
 
     // Pagination info from Persona usually comes in links or meta
-    // Since we are merging two feeds, standard pagination is tricky. 
+    // Since we are merging two feeds, standard pagination is tricky.
     // We'll prioritize the events pagination as it's the more high-volume audit source.
     const pagination = {
       next: eventsJson.meta?.['next-cursor'] || null,
