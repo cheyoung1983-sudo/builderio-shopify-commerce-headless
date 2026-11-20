@@ -67,10 +67,10 @@
     "analyze": "BUNDLE_ANALYZE=both npm run build",
     "prettier": "prettier",
     "lint:a11y": "stylelint \"**/*.css\"",
-    "test": "jest tests/",
-    "test:a11y": "jest",
-    "check:repo": "node scripts/check-repo-hygiene.cjs",
-    "fix:repo": "node scripts/check-repo-hygiene.cjs --fix"
+    "test": "npm run check:node-version && jest tests/",
+    "test:a11y": "npm run check:node-version && jest",
+    "check:repo": "npm run check:node-version && node scripts/check-repo-hygiene.cjs",
+    "fix:repo": "npm run check:node-version && node scripts/check-repo-hygiene.cjs --fix"
   },
   "prettier": {
     "semi": false,
