@@ -5,21 +5,14 @@
 // "prepare" script. Safe to no-op if this isn't a git checkout (e.g. a
 // deploy that only copies source files).
 
-const { execFileSync } = require('node:child_process')
 const fs = require('node:fs')
 const path = require('node:path')
+const { execFileSync } = require('node:child_process')
 
-try {
-  const gitDir = path.resolve(__dirname, '..', '.git')
-  if (fs.existsSync(gitDir)) {
-    execFileSync('git', ['config', 'core.hooksPath', '.githooks'], {
-      stdio: ['ignore', 'ignore', 'ignore'],
-    })
-  }
-  // Restore exec bits that some exports drop.
-  for (const f of ['scripts/precheck.mjs', ...fs.readdirSync(path.resolve(__dirname, '..', '.githooks')).map((h) => '.githooks/' + h)]) {
-    try { fs.chmodSync(path.resolve(__dirname, '..', f), 0o755) } catch {}
-  }
-} catch {
-  // Not a git repository (or git unavailable) — nothing to configure.
+const root = path.resolve(__dirname, '..')
+const gitDir = path.join(root, '.git')
+
+if (fs.existsSync(gitDir)) {
+  execFileSync('git', ['config', 'core.hooksPath', '.githooks'], { cwd: root })
+  require('./ensure-executable-modes.cjs').ensureExecutableModes({ root })
 }

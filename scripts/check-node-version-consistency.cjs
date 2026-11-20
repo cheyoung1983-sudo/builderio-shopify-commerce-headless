@@ -62,23 +62,31 @@ function main() {
     return
   }
 
-  const majors = new Set(sources.map((s) => s.major))
+  const runtimeSource = {
+    source: 'running Node runtime',
+    raw: process.version,
+    major: majorVersion(process.version),
+  }
+  const allSources = [...sources, runtimeSource]
+  const majors = new Set(allSources.map((s) => s.major))
 
   if (majors.size <= 1) {
     console.log(
-      `check-node-version-consistency: OK (${sources.length} source(s) agree on Node ${sources[0].major})`
+      `check-node-version-consistency: OK (${allSources.length} source(s) agree on Node ${sources[0].major})`
     )
     return
   }
 
   console.error('check-node-version-consistency: Node version sources disagree:\n')
-  for (const { source, raw, major } of sources) {
+  for (const { source, raw, major } of allSources) {
     console.error(`  ${source}: "${raw}" (major ${major})`)
   }
-  console.error(
-    '\nAlign every source on the same major Node version. A drift here is how CI ended up ' +
-      'running tests on a Node version that silently lacked a flag the test suite required.'
-  )
+  const configuredMajors = new Set(sources.map((source) => source.major))
+  if (configuredMajors.size === 1) {
+    console.error(`\nThe running Node runtime must match Node ${sources[0].major}. Switch to Node ${sources[0].major} and retry.`)
+  } else {
+    console.error('\nAlign every Node version source and use the configured Node major version.')
+  }
   process.exitCode = 1
 }
 
