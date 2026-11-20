@@ -31,8 +31,10 @@ service cloud.firestore {
 
     function isValidUser(data) {
       return data.keys().hasAll(['uid', 'email', 'role', 'createdAt', 'updatedAt']) &&
-             data.keys().hasSubset(['uid', 'auth0Sub', 'email', 'role', 'createdAt', 'updatedAt']) &&
-             data.role in ['Admin', 'User', 'owner', 'admin', 'technician'] &&
+             data.keys().hasOnly(['uid', 'email', 'role', 'createdAt', 'updatedAt']) &&
+             data.uid == request.auth.uid &&
+             data.email == request.auth.token.email &&
+             data.role in ['owner', 'admin', 'technician'] &&
              data.createdAt == request.time &&
              data.updatedAt == request.time;
     }

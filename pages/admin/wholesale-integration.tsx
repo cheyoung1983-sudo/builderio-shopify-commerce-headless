@@ -2,7 +2,6 @@ import React from 'react'
 import Head from 'next/head'
 import { Breadcrumbs } from '../../components/common/Breadcrumbs'
 import { WholesaleDashboard } from '../../components/wholesale/WholesaleDashboard'
-import { AdminGuard } from '../../components/auth/AdminGuard'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
@@ -32,9 +31,7 @@ export default function WholesaleIntegrationAdminPage() {
         </div>
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-          <AdminGuard requiredRole="Admin" featureName="Wholesale Parts Integration">
-            <WholesaleDashboard />
-          </AdminGuard>
+          <WholesaleDashboard />
         </main>
       </div>
     </>

@@ -97,23 +97,10 @@ async function getIndexablePolicyHandles(): Promise<PolicyHandle[]> {
   }
 }
 
-export function getUrlPriorityAndChangeFreq(path: string): { priority: string; changefreq: string } {
-  if (path === '/') return { priority: '1.0', changefreq: 'daily' }
-  if (path.startsWith('/product/')) return { priority: '0.9', changefreq: 'daily' }
-  if (path.startsWith('/collection/') || path === '/products') return { priority: '0.8', changefreq: 'daily' }
-  if (path.startsWith('/policies/')) return { priority: '0.5', changefreq: 'monthly' }
-  return { priority: '0.7', changefreq: 'weekly' }
-}
-
 export function buildSitemapXml(paths: string[]): string {
   const unique = Array.from(new Set(paths))
-  const today = new Date().toISOString().split('T')[0]
   const urls = unique
-    .map((path) => {
-      const { priority, changefreq } = getUrlPriorityAndChangeFreq(path)
-      const loc = escapeXml(SITE_URL + (path === '/' ? '/' : path))
-      return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`
-    })
+    .map((path) => `  <url><loc>${escapeXml(SITE_URL + (path === '/' ? '/' : path))}</loc></url>`)
     .join('\n')
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`
 }
