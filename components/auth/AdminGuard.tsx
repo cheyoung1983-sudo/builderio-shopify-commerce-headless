@@ -16,11 +16,13 @@ interface AdminGuardProps {
 
 export function AdminGuard({
   children,
+  requiredRole = 'Admin',
   featureName = 'Owner Operations & Compliance',
   showBanner = true,
 }: AdminGuardProps) {
   const {
     user: fbUser,
+    role: fbRole,
     isVerifiedOwner: fbVerifiedOwner,
     loading: fbLoading,
     login: fbLogin,
@@ -28,6 +30,7 @@ export function AdminGuard({
   } = useAuth()
   const {
     user: auth0User,
+    role: auth0Role,
     isVerifiedOwner: auth0VerifiedOwner,
     isLoading: auth0Loading,
     login: auth0Login,
@@ -60,9 +63,9 @@ export function AdminGuard({
   )
 
   const authorizedSession = auth0Authorized
-    ? { email: auth0User.email as string, provider: 'Auth0 SSO', logout: auth0Logout }
+    ? { email: auth0User.email as string, provider: 'Auth0 SSO', logout: auth0Logout, role: auth0Role || 'Admin' }
     : fbAuthorized
-      ? { email: fbUser?.email as string, provider: 'Google Auth', logout: fbLogout }
+      ? { email: fbUser?.email as string, provider: 'Google Auth', logout: fbLogout, role: fbRole || 'Owner' }
       : null
 
   const signedInSession = auth0User
@@ -71,6 +74,7 @@ export function AdminGuard({
         emailVerified: auth0User.email_verified === true,
         provider: 'Auth0 SSO',
         logout: auth0Logout,
+        role: auth0Role,
       }
     : fbUser
       ? {
@@ -78,6 +82,7 @@ export function AdminGuard({
           emailVerified: fbUser.emailVerified === true,
           provider: 'Google Auth',
           logout: fbLogout,
+          role: fbRole,
         }
       : null
 
@@ -141,13 +146,13 @@ export function AdminGuard({
             Access Denied
           </span>
           <h2 className="text-xl sm:text-2xl font-bold text-neutral-900">
-            Verified Owner Clearance Required
+            {requiredRole} Clearance Required
           </h2>
           <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed max-w-md mx-auto">
             Your account (<span className="font-semibold text-neutral-900 font-mono">{signedInSession.email}</span> via{' '}
             {signedInSession.provider}
             {!signedInSession.emailVerified ? ', unverified email' : ''}) is not authorized to access{' '}
-            <strong className="text-rose-700">{featureName}</strong>.
+            <strong className="text-rose-700">{featureName}</strong>. Access requires {requiredRole} clearance.
           </p>
         </div>
 
