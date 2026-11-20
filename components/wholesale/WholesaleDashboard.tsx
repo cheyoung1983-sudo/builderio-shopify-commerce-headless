@@ -17,9 +17,13 @@ import {
   DollarSign,
   Activity,
 } from 'lucide-react'
+import { useAuth0Token } from '../../hooks/useAuth0Token'
+import { useAuth } from '../../hooks/useAuth'
 import { TransformedShopifyVariant, PurchaseOrderRecord } from '../../lib/wholesale/types'
 
 export const WholesaleDashboard: React.FC = () => {
+  const { token } = useAuth0Token()
+  const { user: fbUser, getIdToken } = useAuth()
   const [loading, setLoading] = useState(false)
   const [variants, setVariants] = useState<TransformedShopifyVariant[]>([])
   const [governance, setGovernance] = useState<any>(null)
@@ -33,12 +37,29 @@ export const WholesaleDashboard: React.FC = () => {
   const [simulationResult, setSimulationResult] = useState<any>(null)
   const [webhookLogs, setWebhookLogs] = useState<any[]>([])
 
+  const getAuthHeaders = useCallback(async (): Promise<Record<string, string>> => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (fbUser) {
+      const idToken = await getIdToken()
+      if (idToken) {
+        headers.Authorization = `Bearer ${idToken}`
+        return headers
+      }
+    }
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+    return headers
+  }, [fbUser, getIdToken, token])
+
   const fetchCatalog = useCallback(async () => {
     setLoading(true)
     try {
+      const headers = await getAuthHeaders()
       const res = await fetch('/api/wholesale/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        headers,
         body: JSON.stringify({
           targetMargin: targetMargin / 100,
           shippingFee,
@@ -55,7 +76,7 @@ export const WholesaleDashboard: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }, [targetMargin, shippingFee, safetyBuffer])
+  }, [targetMargin, shippingFee, safetyBuffer, getAuthHeaders])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -68,10 +89,12 @@ export const WholesaleDashboard: React.FC = () => {
     setSimulating(true)
     setSimulationResult(null)
     try {
+      const headers = await getAuthHeaders()
       // 1. Trigger Webhook Order Routing
       const webhookRes = await fetch('/api/wholesale/webhook', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        headers,
         body: JSON.stringify({
           orderId: `DCP-ORD-${Math.floor(100000 + Math.random() * 900000)}`,
           lineItems: [
@@ -83,7 +106,11 @@ export const WholesaleDashboard: React.FC = () => {
       const webhookData = await webhookRes.json()
 
       // 2. Trigger Tracking Ingestion
-      const trackRes = await fetch('/api/wholesale/simulate-order.ts', { method: 'POST' }).catch(() => null)
+      const trackRes = await fetch('/api/wholesale/simulate-order', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers,
+      }).catch(() => null)
       const trackData = await trackRes?.json().catch(() => ({
         success: true,
         fulfillment: { status: 'fulfilled', carrier: 'UPS Ground', trackingNumber: '1Z9999999984920194' },

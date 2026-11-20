@@ -20,8 +20,10 @@ import {
 } from 'lucide-react'
 import type { NotificationJob, SlackQueueMetrics } from '../../lib/slack-notification-manager'
 import type { AdminNotificationSettings } from '../../lib/admin-notification-settings'
+import { useAuth } from '../../hooks/useAuth'
 
 export default function SlackNotificationDashboard() {
+  const { user: fbUser, getIdToken } = useAuth()
   const [metrics, setMetrics] = useState<SlackQueueMetrics | null>(null)
   const [jobs, setJobs] = useState<NotificationJob[]>([])
   const [settings, setSettings] = useState<AdminNotificationSettings | null>(null)
@@ -37,10 +39,25 @@ export default function SlackNotificationDashboard() {
   const [retryThreshold, setRetryThreshold] = useState(5)
   const [webhookUrl, setWebhookUrl] = useState('')
 
+  const getAuthHeaders = useCallback(async (extra?: Record<string, string>) => {
+    const headers: Record<string, string> = { ...(extra || {}) }
+    if (fbUser) {
+      const idToken = await getIdToken()
+      if (idToken) {
+        headers.Authorization = `Bearer ${idToken}`
+      }
+    }
+    return headers
+  }, [fbUser, getIdToken])
+
   const fetchQueueData = useCallback(async (isManualRefresh = false) => {
     if (isManualRefresh) setRefreshing(true)
     try {
-      const res = await fetch('/api/admin/slack-notifications/queue')
+      const headers = await getAuthHeaders()
+      const res = await fetch('/api/admin/slack-notifications/queue', {
+        credentials: 'same-origin',
+        headers,
+      })
       if (res.ok) {
         const data = await res.json()
         setMetrics(data.metrics)
@@ -53,11 +70,15 @@ export default function SlackNotificationDashboard() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [])
+  }, [getAuthHeaders])
 
   const fetchSettings = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/slack-notifications/settings')
+      const headers = await getAuthHeaders()
+      const res = await fetch('/api/admin/slack-notifications/settings', {
+        credentials: 'same-origin',
+        headers,
+      })
       if (res.ok) {
         const data = await res.json()
         if (data.settings) {
@@ -70,7 +91,7 @@ export default function SlackNotificationDashboard() {
     } catch (err) {
       console.error('Failed to fetch notification settings:', err)
     }
-  }, [])
+  }, [getAuthHeaders])
 
   useEffect(() => {
     let isMounted = true
@@ -99,9 +120,11 @@ export default function SlackNotificationDashboard() {
   const handleSaveSettings = async () => {
     setSavingSettings(true)
     try {
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' })
       const res = await fetch('/api/admin/slack-notifications/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        headers,
         body: JSON.stringify({
           slackAlertOnTaskFailureLimitExceeded: slackAlertToggle,
           taskFailureRetryThreshold: Number(retryThreshold),
@@ -127,9 +150,11 @@ export default function SlackNotificationDashboard() {
     jobId?: string
   ) => {
     try {
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' })
       await fetch('/api/admin/slack-notifications/queue', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        headers,
         body: JSON.stringify({ action, jobId }),
       })
       fetchQueueData(true)
@@ -141,9 +166,11 @@ export default function SlackNotificationDashboard() {
   const handleSimulateTaskFailure = async () => {
     setSimulatingFailure(true)
     try {
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' })
       await fetch('/api/admin/slack-notifications/queue', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        headers,
         body: JSON.stringify({
           action: 'simulate_task_failure',
           taskId: `cron_${Math.floor(Math.random() * 9000 + 1000)}`,

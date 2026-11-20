@@ -451,103 +451,94 @@ describe('Exemption Certificate Zod Schema Validation', () => {
     })
   })
 
-  describe('API Route /api/tribal/certificate Zod Enforcement', () => {
+  describe('API Route /api/tribal/certificate Zod Enforcement & Owner Gate', () => {
+    const { createFirebaseJwtMock } = require('./helpers/firebase-jwt-mock')
+    const jwtMock = createFirebaseJwtMock('dcpllcrev4')
+    const OWNER_TOKEN = jwtMock.signIdToken({ email: 'cheyoung1983@gmail.com', email_verified: true })
+    const OUTSIDER_TOKEN = jwtMock.signIdToken({ email: 'outsider@example.com', email_verified: true })
+
+    function invokeCertificateRoute(payload, headers = {}) {
+      const repoRoot = path.resolve(__dirname, '..')
+      const apiRouteUrl = pathToFileURL(path.join(repoRoot, 'pages/api/tribal/certificate.ts')).href
+
+      const script = `
+        globalThis.fetch = async (u) => {
+          if (String(u).includes('securetoken@system.gserviceaccount.com')) {
+            return new Response(JSON.stringify(${JSON.stringify(jwtMock.certsPayload)}), {
+              status: 200,
+              headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=3600' },
+            })
+          }
+          throw new Error('Unexpected fetch call: ' + u)
+        }
+        const handlerModule = await import(${JSON.stringify(apiRouteUrl)})
+        const handler = handlerModule.default
+
+        let statusCode = 0
+        let responseJson = null
+
+        const req = {
+          method: 'POST',
+          body: ${JSON.stringify(payload)},
+          headers: ${JSON.stringify(headers)},
+          socket: { remoteAddress: '127.0.0.1' },
+          query: {},
+        }
+
+        const res = {
+          setHeader: () => {},
+          status: (code) => {
+            statusCode = code
+            return {
+              json: (data) => {
+                responseJson = data
+              },
+              end: () => {},
+            }
+          },
+        }
+
+        await handler(req, res)
+        console.log(JSON.stringify({ statusCode, responseJson }))
+      `
+
+      const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        env: { ...process.env, NODE_ENV: 'test' },
+      })
+
+      return JSON.parse(output.trim())
+    }
+
+    test('Rejects unauthenticated or non-owner POST requests with HTTP 403', () => {
+      const unauth = invokeCertificateRoute(validBasePayload)
+      expect(unauth.statusCode).toBe(403)
+
+      const outsider = invokeCertificateRoute(validBasePayload, {
+        authorization: `Bearer ${OUTSIDER_TOKEN}`,
+      })
+      expect(outsider.statusCode).toBe(403)
+    })
+
     test('Rejects POST request with dummy Tribal ID with HTTP 400 and validation errors', () => {
       const badPayload = {
         ...validBasePayload,
         enrollmentId: '0000',
       }
 
-      const repoRoot = path.resolve(__dirname, '..')
-      const apiRouteUrl = pathToFileURL(path.join(repoRoot, 'pages/api/tribal/certificate.ts')).href
-
-      const script = `
-        const handlerModule = await import(${JSON.stringify(apiRouteUrl)})
-        const handler = handlerModule.default
-
-        let statusCode = 0
-        let responseJson = null
-
-        const req = {
-          method: 'POST',
-          body: ${JSON.stringify(badPayload)},
-          headers: {},
-          socket: { remoteAddress: '127.0.0.1' },
-          query: {},
-        }
-
-        const res = {
-          setHeader: () => {},
-          status: (code) => {
-            statusCode = code
-            return {
-              json: (data) => {
-                responseJson = data
-              },
-              end: () => {},
-            }
-          },
-        }
-
-        await handler(req, res)
-        console.log(JSON.stringify({ statusCode, responseJson }))
-      `
-
-      const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
-        cwd: repoRoot,
-        encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+      const res = invokeCertificateRoute(badPayload, {
+        authorization: `Bearer ${OWNER_TOKEN}`,
       })
-
-      const res = JSON.parse(output.trim())
       expect(res.statusCode).toBe(400)
       expect(res.responseJson.error).toContain('Validation failed')
       expect(res.responseJson.errors?.enrollmentId).toBeDefined()
     })
 
-    test('Accepts compliant POST request with HTTP 200 and issues registered certificate', () => {
-      const repoRoot = path.resolve(__dirname, '..')
-      const apiRouteUrl = pathToFileURL(path.join(repoRoot, 'pages/api/tribal/certificate.ts')).href
-
-      const script = `
-        const handlerModule = await import(${JSON.stringify(apiRouteUrl)})
-        const handler = handlerModule.default
-
-        let statusCode = 0
-        let responseJson = null
-
-        const req = {
-          method: 'POST',
-          body: ${JSON.stringify(validBasePayload)},
-          headers: {},
-          socket: { remoteAddress: '127.0.0.1' },
-          query: {},
-        }
-
-        const res = {
-          setHeader: () => {},
-          status: (code) => {
-            statusCode = code
-            return {
-              json: (data) => {
-                responseJson = data
-              },
-              end: () => {},
-            }
-          },
-        }
-
-        await handler(req, res)
-        console.log(JSON.stringify({ statusCode, responseJson }))
-      `
-
-      const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
-        cwd: repoRoot,
-        encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+    test('Accepts compliant POST request from verified owner with HTTP 200 and issues registered certificate', () => {
+      const res = invokeCertificateRoute(validBasePayload, {
+        authorization: `Bearer ${OWNER_TOKEN}`,
       })
-
-      const res = JSON.parse(output.trim())
       expect(res.statusCode).toBe(200)
       expect(res.responseJson.success).toBe(true)
       expect(res.responseJson.certificate?.id).toBeDefined()

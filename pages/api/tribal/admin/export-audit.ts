@@ -4,10 +4,11 @@ import {
   type TribalAuditExportRecord,
 } from '../../../../lib/tribal/audit-csv-exporter.ts'
 import { rejectMethod } from '../../../../lib/api/read-raw-body.ts'
+import { isAdminSession } from '../../../../lib/tribal/admin-auth.ts'
 
 /**
  * Admin API Route: Export Tribal Verification Audit Logs & Exemption Certificates as CSV
- * Moved from app/api/tribal/admin/export-audit/route.ts (pure move). Guarded by proxy.ts.
+ * Guarded by proxy.ts AND verified two-email owner session.
  *
  * GET /api/tribal/admin/export-audit
  * Query Params:
@@ -15,11 +16,15 @@ import { rejectMethod } from '../../../../lib/api/read-raw-body.ts'
  *  - status (optional, e.g. VERIFIED)
  *  - format (csv | json, default csv)
  */
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  res.setHeader('Cache-Control', 'no-store')
   if (rejectMethod(req, res, ['GET', 'HEAD', 'OPTIONS'])) return
   if (req.method === 'OPTIONS') {
     res.setHeader('Allow', 'GET, HEAD, OPTIONS')
     return res.status(204).end()
+  }
+  if (!(await isAdminSession(req))) {
+    return res.status(403).json({ success: false, error: 'Forbidden: verified owner access required.' })
   }
   try {
     const searchParams = new URL(req.url || '/', 'http://localhost').searchParams

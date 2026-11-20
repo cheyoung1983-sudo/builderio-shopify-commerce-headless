@@ -13,10 +13,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // proxy.ts puts this route behind ADMIN_USERNAME/ADMIN_PASSWORD Basic Auth. The old
   // static `x-internal-service: display-cell-pros-backend` header bypass was removed:
   // it is a public constant in this repo, so anyone could send it.
-  if (!isAdminSession(req)) {
+  if (!(await isAdminSession(req))) {
     return res.status(403).json({
       success: false,
-      error: 'Access Denied: Unauthorized request to Persona MCP proxy.',
+      error: 'Access Denied: Verified owner session required for Persona MCP proxy.',
     })
   }
 

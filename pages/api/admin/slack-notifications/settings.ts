@@ -3,8 +3,16 @@ import {
   getAdminNotificationSettings,
   updateAdminNotificationSettings,
 } from '../../../../lib/admin-notification-settings'
+import { getAdminEmailFromRequest } from '../../../../lib/tribal/admin-auth'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  res.setHeader('Cache-Control', 'no-store')
+
+  const ownerEmail = await getAdminEmailFromRequest(req)
+  if (!ownerEmail) {
+    return res.status(403).json({ error: 'Forbidden: Verified owner authentication required.' })
+  }
+
   if (req.method === 'GET') {
     try {
       const settings = await getAdminNotificationSettings()
@@ -16,8 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'PUT' || req.method === 'POST') {
     try {
-      const updatedBy = (req.headers['x-user-email'] as string) || 'admin'
-      const updated = await updateAdminNotificationSettings(req.body || {}, updatedBy)
+      const updated = await updateAdminNotificationSettings(req.body || {}, ownerEmail)
       return res.status(200).json({ settings: updated, message: 'Settings updated successfully' })
     } catch (err: any) {
       return res.status(500).json({ error: err?.message || 'Failed to update notification settings' })

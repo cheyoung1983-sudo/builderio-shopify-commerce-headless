@@ -19,6 +19,7 @@ import {
   Building2,
   Sparkles,
 } from 'lucide-react'
+import { useAuth } from '../../hooks/useAuth'
 
 export interface VerificationRequestItem {
   id: string
@@ -39,6 +40,7 @@ interface AdminAuditDashboardProps {
 }
 
 export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminEmail }) => {
+  const { user: fbUser, getIdToken } = useAuth()
   const [requests, setRequests] = useState<VerificationRequestItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -48,12 +50,27 @@ export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminE
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
+  const getAuthHeaders = useCallback(async (extra?: Record<string, string>) => {
+    const headers: Record<string, string> = { ...(extra || {}) }
+    if (fbUser) {
+      const idToken = await getIdToken()
+      if (idToken) {
+        headers.Authorization = `Bearer ${idToken}`
+      }
+    }
+    return headers
+  }, [fbUser, getIdToken])
+
   const fetchRequests = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      // Identity comes from the server-side session only; nothing identifying is sent here.
-      const res = await fetch('/api/tribal/admin/requests', { credentials: 'same-origin' })
+      const headers = await getAuthHeaders()
+      // Identity comes from the server-side session or verified Firebase token only.
+      const res = await fetch('/api/tribal/admin/requests', {
+        credentials: 'same-origin',
+        headers,
+      })
       const data = await res.json()
       if (res.ok && data.success) {
         setRequests(data.requests || [])
@@ -65,7 +82,7 @@ export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminE
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [getAuthHeaders])
 
   useEffect(() => {
     // Wrap to avoid synchronous setState trigger
@@ -78,10 +95,11 @@ export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminE
   const handleDecision = async (requestId: string, action: 'approve' | 'deny') => {
     setActionLoadingId(requestId)
     try {
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' })
       const res = await fetch('/api/tribal/admin/decision', {
         method: 'POST',
         credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         // Only the review id and action: the server looks up the customer from the pending record.
         body: JSON.stringify({ requestId, action }),
       })
@@ -95,13 +113,38 @@ export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminE
           )
         )
       } else {
-        alert(data.error || 'Failed to record decision.')
+        setError(data.error || 'Failed to record decision.')
         void fetchRequests()
       }
     } catch (err: any) {
-      alert(err.message || 'Error processing decision.')
+      setError(err.message || 'Error processing decision.')
     } finally {
       setActionLoadingId(null)
+    }
+  }
+
+  const handleExportCsv = async () => {
+    try {
+      const headers = await getAuthHeaders()
+      const res = await fetch('/api/tribal/admin/export-audit?format=csv', {
+        credentials: 'same-origin',
+        headers,
+      })
+      if (!res.ok) {
+        setError('Unauthorized or failed CSV export.')
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `tribal-tax-audit-report-${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (err: any) {
+      setError(err?.message || 'Failed to export CSV audit.')
     }
   }
 
@@ -161,14 +204,14 @@ export const AdminAuditDashboard: React.FC<AdminAuditDashboardProps> = ({ adminE
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </button>
-          <a
-            href="/api/tribal/admin/export-audit?format=csv"
-            download
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-sm"
+          <button
+            type="button"
+            onClick={() => void handleExportCsv()}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-sm cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export CSV Audit</span>
-          </a>
+          </button>
         </div>
       </div>
 

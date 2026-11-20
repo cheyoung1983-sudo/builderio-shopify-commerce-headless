@@ -1,6 +1,7 @@
 import React from 'react'
 import Head from 'next/head'
-import { Stethoscope, ListChecks, Gauge, AlertTriangle, Receipt, Phone, Mail, ArrowUpRight } from 'lucide-react'
+import Link from 'next/link'
+import { Stethoscope, ListChecks, Gauge, AlertTriangle, Receipt, Phone, Mail, ArrowUpRight, Wrench, Package, ArrowRight } from 'lucide-react'
 import { Breadcrumbs } from '../components/common/Breadcrumbs'
 import { VoiceNarrator } from '../components/voice/VoiceNarrator'
 import { BUSINESS_INFO } from '../lib/business-info'
@@ -124,6 +125,39 @@ export default function DiagnosisPage() {
                 to Ryan, who reviews the details and gets back to you.
               </span>
             </p>
+          </section>
+
+          <section aria-labelledby="need-parts" className="rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800 text-white p-6 shadow-md border border-neutral-700/60">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-semibold">
+                  <Package className="w-3.5 h-3.5" aria-hidden="true" />
+                  <span>Wholesale &amp; DIY Parts</span>
+                </div>
+                <h2 id="need-parts" className="text-xl font-bold tracking-tight text-white">
+                  Need OEM or Premium Replacement Parts?
+                </h2>
+                <p className="text-sm text-neutral-300 max-w-xl">
+                  Technicians, independent repair shops, and DIY customers can source verified displays, batteries, and charging ports through our direct wholesale portal with live inventory and trade discounts.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto shrink-0">
+                <Link
+                  href="/products"
+                  className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 transition shadow-sm"
+                >
+                  Parts Catalog
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  href="/wholesale"
+                  className="inline-flex items-center justify-center gap-2 rounded-md bg-neutral-800 border border-neutral-700 px-4 py-2.5 text-sm font-semibold text-neutral-200 hover:bg-neutral-700 transition"
+                >
+                  <Wrench className="w-4 h-4" />
+                  Owner Wholesale Portal
+                </Link>
+              </div>
+            </div>
           </section>
 
           <section aria-labelledby="talk-to-us" className="rounded-xl bg-white border border-neutral-200 p-6">

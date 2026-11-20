@@ -14,7 +14,10 @@ export async function getStaticProps(context: GetStaticPropsContext) {
       batchSize: 50,
       onlyAvailable: false,
     })
-    initialProducts = res.products
+    initialProducts = (res.products || []).map((p) => ({
+      ...p,
+      descriptionHtml: '',
+    }))
   } catch (err) {
     console.error('[pages/products] Error pre-fetching products:', err)
   }

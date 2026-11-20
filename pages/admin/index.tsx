@@ -7,10 +7,10 @@ export default function AdminPage() {
     <>
       {/* Head sits outside the client-side gate so noindex is in the SSR HTML. */}
       <Head>
-        <title>Admin Dashboard | Spokane Storefront</title>
+        <title>Owner Control Center | Spokane Storefront</title>
         <meta name="robots" key="robots" content="noindex, nofollow" />
       </Head>
-      <AdminProtectedRoute requiredRole="technician">
+      <AdminProtectedRoute requiredRole="owner" featureName="Developer & Admin Control Center">
         <main className="bg-neutral-50 min-h-screen">
           <AdminDashboard />
         </main>

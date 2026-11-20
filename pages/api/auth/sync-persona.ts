@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { db } from '../../../lib/firebase'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { isAdminSession } from '../../../lib/tribal/admin-auth'
 
 /**
  * Auth0 Action Webhook / Middleware for Persona Sync
@@ -8,9 +9,14 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
  * into Firestore records for Persona verification workflows.
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  res.setHeader('Cache-Control', 'no-store')
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
     return res.status(405).json({ success: false, error: 'Method Not Allowed' })
+  }
+
+  if (!(await isAdminSession(req))) {
+    return res.status(403).json({ success: false, error: 'Forbidden: verified owner access required.' })
   }
 
   try {

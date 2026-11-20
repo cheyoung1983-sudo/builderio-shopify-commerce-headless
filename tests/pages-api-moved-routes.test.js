@@ -10,9 +10,26 @@ const { pathToFileURL } = require('node:url')
 const repoRoot = path.resolve(__dirname, '..')
 const url = (p) => pathToFileURL(path.join(repoRoot, p)).href
 
+const { createFirebaseJwtMock } = require('./helpers/firebase-jwt-mock')
+
+const jwtMock = createFirebaseJwtMock('dcpllcrev4')
+const OWNER_TOKEN = jwtMock.signIdToken({ email: 'ryan@displaycellpros.com', email_verified: true })
+const PERSONAL_OWNER_TOKEN = jwtMock.signIdToken({ email: 'cheyoung1983@gmail.com', email_verified: true })
+const OUTSIDER_TOKEN = jwtMock.signIdToken({ email: 'outsider@example.com', email_verified: true })
+
 function run(routePath, body, env = {}) {
   const script = `
     const { Readable } = await import('node:stream')
+    const realFetch = globalThis.fetch
+    globalThis.fetch = async (u, init) => {
+      if (String(u).includes('securetoken@system.gserviceaccount.com')) {
+        return new Response(JSON.stringify(${JSON.stringify(jwtMock.certsPayload)}), {
+          status: 200,
+          headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=3600' },
+        })
+      }
+      return realFetch(u, init)
+    }
     const mod = await import(${JSON.stringify(url(routePath))})
     function mkReq({ method = 'GET', url = '/', headers = {}, body } = {}) {
       const chunks = body === undefined ? [] : [Buffer.isBuffer(body) ? body : Buffer.from(body)]
@@ -41,42 +58,66 @@ function run(routePath, body, env = {}) {
   return JSON.parse(out.trim().split('\n').pop())
 }
 
-async function runHealthRoute(shopifyOk) {
+async function runHealthRoute(shopifyOk, authHeader) {
   const routePath = path.resolve(repoRoot, 'pages/api/health.ts')
+  const adminAuthPath = path.resolve(repoRoot, 'lib/tribal/admin-auth.ts')
   const script = `
     const fs = require('node:fs')
     const path = require('node:path')
     const Module = require('node:module')
     const ts = require('typescript')
-    const routePath = ${JSON.stringify(routePath)}
-    const source = fs.readFileSync(routePath, 'utf8')
-    const compiled = ts.transpileModule(source, {
-      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
-    }).outputText
-    const routeModule = new Module(routePath, module)
-    routeModule.filename = routePath
-    routeModule.paths = Module._nodeModulePaths(path.dirname(routePath))
-    const nativeRequire = Module.createRequire(routePath)
-    routeModule.require = (specifier) => {
-      if (specifier === '../../lib/firebase') return { db: {} }
-      if (specifier === 'firebase/firestore') {
-        return { doc: (_db, collection, id) => ({ collection, id }), getDoc: async () => ({}) }
+    const compileTs = (filePath) => {
+      const m = new Module(filePath, module)
+      m.filename = filePath
+      m.paths = Module._nodeModulePaths(path.dirname(filePath))
+      const nativeReq = Module.createRequire(filePath)
+      m.require = (specifier) => {
+        if (specifier === '../../lib/firebase') return { db: {} }
+        if (specifier === 'firebase/firestore') {
+          return { doc: (_db, collection, id) => ({ collection, id }), getDoc: async () => ({}) }
+        }
+        if (specifier === '../../lib/admin-notification-settings') {
+          return { getAdminNotificationSettings: async () => ({ slackWebhookUrl: 'configured' }) }
+        }
+        if (specifier === '../../lib/tribal/admin-auth') {
+          return compileTs(${JSON.stringify(adminAuthPath)})
+        }
+        if (specifier === './owner-allowlist.ts' || specifier === './owner-allowlist') {
+          return compileTs(path.resolve(path.dirname(filePath), 'owner-allowlist.ts'))
+        }
+        return nativeReq(specifier)
       }
-      if (specifier === '../../lib/admin-notification-settings') {
-        return { getAdminNotificationSettings: async () => ({ slackWebhookUrl: 'configured' }) }
-      }
-      return nativeRequire(specifier)
+      const source = fs.readFileSync(filePath, 'utf8')
+      const compiled = ts.transpileModule(source, {
+        compilerOptions: {
+          module: ts.ModuleKind.CommonJS,
+          target: ts.ScriptTarget.ES2020,
+          esModuleInterop: true,
+        },
+      }).outputText
+      m._compile(compiled, filePath)
+      return m.exports
     }
-    routeModule._compile(compiled, routePath)
+    const routeExports = compileTs(${JSON.stringify(routePath)})
     process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN = 'example.myshopify.com'
-    global.fetch = async () => ({ ok: ${JSON.stringify(shopifyOk)} })
+    global.fetch = async (u) => {
+      if (String(u).includes('securetoken@system.gserviceaccount.com')) {
+        return {
+          ok: true,
+          headers: { get: () => 'public, max-age=3600' },
+          json: async () => (${JSON.stringify(jwtMock.certsPayload)}),
+        }
+      }
+      return { ok: ${JSON.stringify(shopifyOk)} }
+    }
     const response = {
       statusCode: 200,
       setHeader(name, value) { return this },
       status(code) { this.statusCode = code; return this },
       json(body) { this.body = body; return this },
     }
-    routeModule.exports.default({ method: 'GET', headers: {}, query: {} }, response)
+    const headers = ${authHeader ? JSON.stringify({ authorization: authHeader }) : '{}'}
+    routeExports.default({ method: 'GET', headers, query: {} }, response)
       .then(() => console.log(JSON.stringify({ statusCode: response.statusCode, body: response.body })))
       .catch((error) => { console.error(error); process.exitCode = 1 })
   `
@@ -93,8 +134,14 @@ describe('pages/api routes moved from app/api', () => {
     expect(require('node:fs').existsSync(path.join(repoRoot, 'app'))).toBe(false)
   })
 
-  test('GET /api/health reports healthy and degraded dependencies', async () => {
-    const healthy = await runHealthRoute(true)
+  test('GET /api/health fails closed without verified owner auth and reports healthy/degraded for owners', async () => {
+    const unauth = await runHealthRoute(true)
+    expect(unauth.statusCode).toBe(403)
+
+    const outsider = await runHealthRoute(true, `Bearer ${OUTSIDER_TOKEN}`)
+    expect(outsider.statusCode).toBe(403)
+
+    const healthy = await runHealthRoute(true, `Bearer ${OWNER_TOKEN}`)
     expect(healthy.statusCode).toBe(200)
     expect(Object.keys(healthy.body)).toEqual(['timestamp', 'shopify', 'firestore', 'auth0', 'overall'])
     expect(healthy.body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
@@ -104,31 +151,42 @@ describe('pages/api routes moved from app/api', () => {
     expect(healthy.body.auth0.status).toBe('configured')
     expect(healthy.body.overall).toBe('healthy')
 
-    const degraded = await runHealthRoute(false)
+    const degraded = await runHealthRoute(false, `Bearer ${PERSONAL_OWNER_TOKEN}`)
     expect(degraded.statusCode).toBe(503)
     expect(degraded.body.shopify.status).toBe('error')
     expect(degraded.body.overall).toBe('degraded')
   })
 
-  test('GET/POST /api/config keeps merge semantics', () => {
+  test('GET/POST /api/config requires verified owner auth and keeps merge semantics', () => {
     const r = run('pages/api/config.ts', `
-      const g = await call({ method: 'GET' })
-      const p = await call({ method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ shopifyCartEnabled: false }) })
+      const unauth = await call({ method: 'GET' })
+      const outsider = await call({ method: 'GET', headers: { authorization: 'Bearer ' + ${JSON.stringify(OUTSIDER_TOKEN)} } })
+      const g = await call({ method: 'GET', headers: { authorization: 'Bearer ' + ${JSON.stringify(OWNER_TOKEN)} } })
+      const p = await call({ method: 'POST', headers: { authorization: 'Bearer ' + ${JSON.stringify(PERSONAL_OWNER_TOKEN)}, 'content-type': 'application/json' }, body: JSON.stringify({ shopifyCartEnabled: false }) })
       const d = await call({ method: 'DELETE' })
-      console.log(JSON.stringify({ g, p, d, cfg: mod.config }))
+      console.log(JSON.stringify({ unauth, outsider, g, p, d, cfg: mod.config }))
     `)
+    expect(r.unauth.statusCode).toBe(403)
+    expect(r.outsider.statusCode).toBe(403)
+    expect(r.g.statusCode).toBe(200)
     expect(r.g.body).toEqual({ shopifyCartEnabled: true, webhookEndpoint: 'https://api.example.com/webhooks' })
+    expect(r.p.statusCode).toBe(200)
     expect(r.p.body).toEqual({ success: true, config: { shopifyCartEnabled: false, webhookEndpoint: 'https://api.example.com/webhooks' } })
     expect(r.d.statusCode).toBe(405)
   })
 
-  test('GET /api/tribal/admin/export-audit: CSV with BOM + headers, JSON format, status filter', () => {
+  test('GET /api/tribal/admin/export-audit: requires owner auth; CSV with BOM + headers, JSON format, status filter', () => {
     const r = run('pages/api/tribal/admin/export-audit.ts', `
-      const csv = await call({ method: 'GET', url: '/api/tribal/admin/export-audit' })
-      const json = await call({ method: 'GET', url: '/api/tribal/admin/export-audit?format=json&status=pending' })
-      const all = await call({ method: 'GET', url: '/api/tribal/admin/export-audit?format=json' })
-      console.log(JSON.stringify({ csv, json, all }))
+      const unauth = await call({ method: 'GET', url: '/api/tribal/admin/export-audit' })
+      const outsider = await call({ method: 'GET', url: '/api/tribal/admin/export-audit', headers: { authorization: 'Bearer ' + ${JSON.stringify(OUTSIDER_TOKEN)} } })
+      const authHeaders = { authorization: 'Bearer ' + ${JSON.stringify(OWNER_TOKEN)} }
+      const csv = await call({ method: 'GET', url: '/api/tribal/admin/export-audit', headers: authHeaders })
+      const json = await call({ method: 'GET', url: '/api/tribal/admin/export-audit?format=json&status=pending', headers: authHeaders })
+      const all = await call({ method: 'GET', url: '/api/tribal/admin/export-audit?format=json', headers: authHeaders })
+      console.log(JSON.stringify({ unauth, outsider, csv, json, all }))
     `)
+    expect(r.unauth.statusCode).toBe(403)
+    expect(r.outsider.statusCode).toBe(403)
     expect(r.csv.statusCode).toBe(200)
     expect(r.csv.headers['content-type']).toBe('text/csv; charset=utf-8')
     expect(r.csv.headers['content-disposition']).toMatch(/^attachment; filename="tribal-tax-audit-report-\d{4}-\d{2}-\d{2}\.csv"$/)

@@ -1,28 +1,47 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { validateWholesaleApiKey } from '@lib/wholesale/auth';
+import type { NextApiRequest, NextApiResponse } from 'next'
+import { getAdminEmailFromRequest } from '../tribal/admin-auth'
+
+export interface VerifiedOwnerPartner {
+  partnerName: string
+  accountUid: string
+  pricingTier: 'VIP'
+  isOwner: true
+  isStaff: true
+  verifiedEmail: string
+}
 
 /**
- * Higher-order function to protect wholesale API routes.
- * Validates the X-API-Key header and attaches partner context to the request.
+ * Strict fail-closed authentication wrapper for all Wholesale Gadget Parts (WGP) routes.
+ * Only verified sessions belonging to the two owner allowlist emails
+ * (cheyoung1983@gmail.com and ryan@displaycellpros.com) are permitted.
+ *
+ * All non-production bypasses, preview headers (`x-staff-preview`), header spoofs,
+ * unvalidated Bearer strings, and third-party API keys are strictly rejected.
  */
-export function withWholesaleAuth(handler: (req: any, res: NextApiResponse) => Promise<void>) {
-  return async (req: NextApiRequest, res: NextApiResponse) => {
-    const apiKey = req.headers['x-api-key'] as string;
+export function withWholesaleAuth(
+  handler: (req: NextApiRequest & { partner?: VerifiedOwnerPartner }, res: NextApiResponse) => Promise<any> | any
+) {
+  return async (req: NextApiRequest & { partner?: VerifiedOwnerPartner }, res: NextApiResponse) => {
+    res.setHeader('Cache-Control', 'no-store')
 
-    try {
-      const keyRecord = await validateWholesaleApiKey(apiKey);
-
-      // Attach partner record to request for downstream use
-      (req as any).partner = keyRecord;
-
-      await handler(req, res);
-    } catch (error: any) {
-      console.error('[Wholesale Auth Error]:', error.message);
+    const verifiedEmail = await getAdminEmailFromRequest(req)
+    if (!verifiedEmail) {
       return res.status(401).json({
         success: false,
         error: 'Unauthorized',
-        message: error.message || 'Invalid or missing API key',
-      });
+        message: 'Verified owner authentication required for Wholesale Gadget Parts access.',
+      })
     }
-  };
+
+    req.partner = {
+      partnerName: 'DisplayCellPros Verified Owner',
+      accountUid: verifiedEmail,
+      pricingTier: 'VIP',
+      isOwner: true,
+      isStaff: true,
+      verifiedEmail,
+    }
+
+    return handler(req, res)
+  }
 }

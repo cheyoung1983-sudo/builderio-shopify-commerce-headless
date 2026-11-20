@@ -186,18 +186,24 @@ describe('admin decision API is reviewer-gated', () => {
         headers: { 'x-admin-email': 'ryan@displaycellpros.com', 'x-user-email': 'ryan@displaycellpros.com', cookie: 'user_email=ryan%40displaycellpros.com' },
         query: { adminEmail: 'ryan@displaycellpros.com' },
       }
-      const fromReq = await adminAuth.getAdminEmailFromRequest(spoof) // default Auth0 resolver, Auth0 not configured
+      const fromReq = await adminAuth.getAdminEmailFromRequest(spoof) // default unified resolver, no verified session
       const res = await callDecision({ ...spoof, body: { requestId: rec.id, action: 'approve' } })
       const outsider = await callDecision({ ...spoof, body: { requestId: rec.id, action: 'approve' }, resolveSession: sessionAs('someone@example.com') })
+      const otherDomain = await callDecision({ ...spoof, body: { requestId: rec.id, action: 'approve' }, resolveSession: sessionAs('support@displaycellpros.com') })
       const unverified = await callDecision({ body: { requestId: rec.id, action: 'approve' }, resolveSession: sessionAs('ryan@displaycellpros.com', { email_verified: false }) })
+      const unverifiedGmail = await adminAuth.getAdminEmailFromRequest({ headers: {}, query: {} }, sessionAs('cheyoung1983@gmail.com', { email_verified: false }))
       const gmail = await adminAuth.getAdminEmailFromRequest({ headers: {}, query: {} }, sessionAs('cheyoung1983@gmail.com'))
-      emit({ fromReq, res, outsider, unverified, gmail, tags: tagCalls().length, saved: await review.getReview(rec.id) })
+      const business = await adminAuth.getAdminEmailFromRequest({ headers: {}, query: {} }, sessionAs('ryan@displaycellpros.com'))
+      emit({ fromReq, res, outsider, otherDomain, unverified, unverifiedGmail, gmail, business, tags: tagCalls().length, saved: await review.getReview(rec.id) })
     `, { TRIBAL_SHOPIFY_TAG_MODE: 'on', AUTH0_DOMAIN: '', AUTH0_CLIENT_ID: '', AUTH0_SECRET: '' })
     expect(r.fromReq).toBeNull()
     expect(r.res.statusCode).toBe(403)
     expect(r.outsider.statusCode).toBe(403)
+    expect(r.otherDomain.statusCode).toBe(403)
     expect(r.unverified.statusCode).toBe(403)
-    expect(r.gmail).toBeNull()
+    expect(r.unverifiedGmail).toBeNull()
+    expect(r.gmail).toBe('cheyoung1983@gmail.com')
+    expect(r.business).toBe('ryan@displaycellpros.com')
     expect(r.tags).toBe(0)
     expect(r.saved.status).toBe('pending')
   })
@@ -274,9 +280,12 @@ describe('static guarantees', () => {
     expect(users).toEqual([path.join('lib', 'tribal', 'tag-gate.ts')])
   })
 
-  test('/api/tribal/tax-quote is removed and no personal Gmail is on an admin list', () => {
+  test('/api/tribal/tax-quote is removed and strict two-email owner allowlist is enforced', () => {
     expect(fs.existsSync(path.join(repoRoot, 'pages/api/tribal/tax-quote.ts'))).toBe(false)
-    for (const f of ['lib/tribal/admin-auth.ts', 'pages/admin/tribal-audit.tsx', 'firestore.rules', 'pages/api/tribal/admin/requests.ts', 'pages/api/tribal/admin/export-audit.ts']) {
+    const allowlistSrc = read('lib/tribal/owner-allowlist.ts')
+    expect(allowlistSrc).toContain('cheyoung1983@gmail.com')
+    expect(allowlistSrc).toContain('ryan@displaycellpros.com')
+    for (const f of ['pages/api/tribal/admin/requests.ts', 'pages/api/tribal/admin/export-audit.ts']) {
       expect(read(f)).not.toContain('cheyoung1983@gmail.com')
     }
   })
