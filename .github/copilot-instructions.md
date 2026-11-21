@@ -2,13 +2,13 @@
 
 ## Repository overview
 
-This is a headless commerce storefront built with Next.js 16 (Pages Router), Shopify Storefront API, and Builder.io. It also integrates Shopify Customer Account authentication, a voice assistant, and custom tax/geofencing functionality.
+This is a Next.js 16 Pages Router headless commerce storefront using Shopify Storefront API and Builder.io. It also has Shopify Customer Account OAuth/PKCE, ElevenLabs voice interactions, tribal tax/geofencing logic, wholesale tooling, and Persona/Auth0 identity integrations.
 
-Read `AGENTS.md` before changing Next.js code: this project uses Next.js 16, whose APIs and conventions may differ from older examples. Check the installed guides under `node_modules/next/dist/docs/`.
+Read `AGENTS.md` before Next.js changes. The installed Next.js guides in `node_modules/next/dist/docs/` take precedence over older Next.js conventions. Read `AGENT_WORKFLOW.md` and `CONTRIBUTING.md` before implementation or PR work.
 
-## Build, lint, and validation commands
+## Build, lint, and test commands
 
-Use Node.js 24.x and the npm version specified by `package.json`.
+Use Node.js 24.x and npm 11.x (`.nvmrc`, `package.json#engines`, `package.json#packageManager`, and CI must agree).
 
 ```bash
 npm install
@@ -17,52 +17,98 @@ npm run typecheck
 npm run lint
 npm run lint:a11y
 npm test
-npx jest tests/cart-storage.test.js
 npm run test:a11y
 npm run build
 ```
 
-`npm run build` runs the security/configuration checks in `precheck:build` before `next build`. For the full CI-equivalent validation before opening a PR, follow `AGENT_WORKFLOW.md`:
+Run a single Jest test:
 
 ```bash
-npm run precheck && npm run test:a11y && npm run build
+npx jest tests/cart-storage.test.js
+npx jest tests/<file>.test.js
 ```
 
-`npm run lint` checks `blocks`, `components`, `config`, `context`, `lib`, `pages`, and `services`; for a targeted check, use `npx eslint path/to/file`. `npm run test:a11y` runs Jest, including the accessibility tests; use `npx jest tests/<file>.test.js` to run a single test file.
+Run a targeted ESLint check:
 
-## Architecture and how the app is composed
+```bash
+npx eslint path/to/file.ts
+npx eslint path/to/file.tsx
+```
 
-### 1. Next.js routes and Builder content
+Precheck variants:
 
-This is a Pages Router application. The checked-in `pages/index.tsx` currently serves the standalone maintenance HTML in `content/maintenance-homepage.html` directly from `getServerSideProps`; it intentionally bypasses the shared `_app` and `_document` wrappers. Do not assume the root route is currently the Builder-backed storefront.
+- `npm run precheck` - full CI-equivalent suite: Node/CI/dependency health, typecheck, lint, secret and auth/security checks, Jest/a11y tests, and production build.
+- `npm run precheck:fast` - full precheck without the production build.
+- `npm run precheck:staged` - staged-change checks for the pre-commit hook.
+- `npm run precheck:fix` - applies safe Prettier/ESLint fixes to changed lintable files, then reruns checks; it does not edit tests or logic.
+- `npm run precheck:build` - build-gate security/configuration/type/lint checks without `next build`.
+- `npm run build` - runs `scripts/build.cjs`, including `precheck:build`, then `next build`.
 
-`pages/[...path].tsx` handles non-root catch-all paths. It resolves the Builder `page` model through `lib/resolve-builder-content.ts`, renders matching content with `BuilderComponent`, and returns 404 for missing live pages. Native routes such as product, collection, cart, account, and search pages are implemented separately under `pages/`. Decide whether a new route belongs in Builder or should be a native page by following the closest existing route.
+Before pushing or opening a PR, follow `AGENT_WORKFLOW.md` and run the suite against fresh `main`:
 
-Builder components live in `blocks/`; shared UI lives in `components/`. `lib/resolve-builder-content.ts` enriches Builder entries and resolves Shopify-backed props for custom blocks. Keep data resolution in that layer rather than adding ad hoc Shopify queries to Builder component trees.
+```bash
+npm run precheck
+npm run test:a11y
+npm run build
+```
 
-### 2. Shopify data and cart state
+Do not remove or weaken CI steps, ESLint rules, tests, or security checks to make a validation pass.
 
-`services/shopify.ts` is the primary Storefront API client used by the app for product/catalog and cart operations. Shopify environment configuration belongs in `config/shopify.ts`. `services/shopify-admin.ts` and `services/shopify-customer-account.ts` serve distinct server-side Admin API and Customer Account API use cases; do not substitute one client for another.
+## Architecture and routing
 
-The older hook-based client under `lib/shopify/storefront-data-hooks/` remains in use by Builder content resolution and `context/CartContext.tsx`. Check existing call sites before changing or replacing either data path. Storefront reads may fall back to `lib/shopify/demo-catalog.ts` when credentials are missing or restricted; check the result's `isDemo`/`notice` before treating demo data as a broken integration.
+### Next.js Pages Router and Builder.io
 
-`context/CartContext.tsx` owns app-wide cart state and reconciliation; `lib/cart-storage.ts` defines cart persistence. Preserve the existing cart model and reconciliation behavior when changing cart UI or API calls.
+- `pages/index.tsx` is a special maintenance route. It reads `content/maintenance-homepage.html` in `getServerSideProps` and ends the response directly, so `/` bypasses `_app`, `_document`, and the normal layout. Do not change that behavior unless the maintenance-page requirement changes.
+- `pages/[...path].tsx` handles other catch-all URLs. It resolves Builder's `page` model through `lib/resolve-builder-content.ts`, renders `BuilderComponent`, and supports preview; unknown non-root live paths return 404.
+- Native transactional and application routes are separate, including `pages/product/[handle].tsx`, `pages/collection/[handle].tsx`, `pages/cart.tsx`, `pages/account/`, `pages/search.tsx`, `pages/wholesale/`, `pages/admin/`, and the tribal pages.
+- Custom Builder components live in `blocks/` and are registered through `builder-registry.tsx`. Shared UI lives in `components/`.
+- `lib/resolve-builder-content.ts` is the Shopify data-resolution boundary for Builder blocks. Keep ProductGrid, CollectionBox, ProductBox, and ProductCollectionGrid Shopify props there instead of issuing ad hoc block-level Shopify queries.
 
-### 3. Authentication, configuration, and external services
+### Shopify and cart state
 
-Customer sign-in uses Shopify's Customer Account API OAuth 2.0 flow with PKCE. The API routes and `services/shopify-customer-account.ts` work together to manage the flow and validate return URLs; preserve state/redirect protections when changing authentication.
+- `services/shopify.ts` is the primary Storefront API client for product/catalog/cart operations and browser-to-API proxy behavior. It uses `@shopify/storefront-api-client` and supports demo fallback through `lib/shopify/demo-catalog.ts`.
+- `lib/shopify/storefront-data-hooks/` is a separate older GraphQL hook/data path. It remains used by Builder content resolution and `context/CartContext.tsx`; check call sites before changing or replacing it.
+- `context/CartContext.tsx` owns app-wide cart state and reconciliation. `lib/cart-storage.ts` owns cart persistence keys and schema. Preserve the existing reconciliation and storage behavior in cart changes.
+- `config/shopify.ts` centralizes Shopify environment resolution. `services/shopify-admin.ts`, `services/shopify-customer-account.ts`, and `services/shopify.ts` serve different server/client responsibilities; do not substitute one for another.
 
-`config/builder.ts` and `config/shopify.ts` centralize Builder and Shopify environment resolution. Use `.env.example` for variable names; never commit `.env` or `.env.local`. Only explicitly configured public values may be exposed to the browser. Private Shopify tokens and client secrets must remain server-side.
+### Authentication and external integrations
 
-`next.config.js` configures security headers/CSP and remote image hosts. When adding an external browser-facing service or image host, update only the necessary CSP directives and image patterns. Follow the established API security and explicit-origin CORS patterns.
+- Buyer sign-in uses the Shopify Customer Account API OAuth 2.0 authorization-code flow with PKCE. The implementation spans `pages/api/account/` and `services/shopify-customer-account.ts`; preserve state validation, cookie flags, and redirect sanitization.
+- `pages/api/` contains Serverless/API routes for tribal verification, wholesale, Slack, Persona, ElevenLabs speech/voice, webhooks, Stripe identity, newsletter, and other integrations. Match the security and response conventions of the nearest existing route.
+- ElevenLabs voice work is concentrated in `components/ElevenLabsAgent.jsx`, `pages/api/agent/`, and `pages/api/elevenlabs/`.
+- Tribal eligibility combines `lib/tax-calculator.ts` and `lib/geofencing.ts`; preserve both enrollment and geofence requirements unless the business rule explicitly changes.
+- The Tribal Discount Shopify Function is under `extensions/tribal-discount/`.
 
-Other substantial integrations include the ElevenLabs voice flow (`components/ElevenLabsAgent.jsx` and `pages/api/agent/`), tribal exemption/tax handling (`lib/tax-calculator.ts` and `lib/geofencing.ts`), and the Tribal Discount Shopify Function under `extensions/tribal-discount/`.
+## Environment, configuration, and security conventions
 
-### 4. Builder + app shell + security
+- Copy `.env.example` to `.env.local` for local development. Never commit `.env`, `.env.local`, credentials, or private tokens.
+- Environment lookup belongs in `config/` and `services/`; unrelated components and API routes should not read private Shopify or integration variables directly.
+- Public variables must not contain private Shopify Storefront tokens (`shpat_` or `shpua_`). The server stores private/admin secrets only.
+- `next.config.js` owns CSP headers and remote image hosts. When a browser-facing origin is genuinely required, update only the relevant CSP directive and `images.remotePatterns`.
+- API routes must validate untrusted input, keep upstream errors/private configuration out of public responses, preserve OAuth redirect protections, and follow explicit-origin CORS patterns rather than wildcard CORS.
+- `scripts/check-ci-integrity.cjs` and the CI/config/secret/a11y checks enforce repository guardrails. Fix the underlying failure instead of bypassing or weakening it.
 
-- Use configured aliases from `tsconfig.json` for cross-root imports: `@lib/*`, `@assets/*`, `@blocks/*`, `@config/*`, `@components/*`, `@services/*`, and `@utils/*`.
-- Keep environment-variable lookup in the existing config/service layer; do not read Shopify credentials directly in unrelated components or API routes.
-- For Next.js-specific changes, follow the installed Next.js 16 docs and the existing Pages Router patterns. Avoid introducing App Router conventions.
-- Preserve API response shapes and existing behavior unless a change explicitly requires otherwise. Validate untrusted input, keep upstream errors/secrets out of responses, and maintain OAuth redirect and webhook-signature checks.
-- Do not remove or weaken CI steps, security checks, lint rules, or tests to make a change pass. `scripts/check-ci-integrity.cjs` protects important CI and ESLint configuration.
-- Check `AGENT_WORKFLOW.md` and `CONTRIBUTING.md` for branch/worktree, pull request, and full-validation requirements. The README links to `docs/ARCHITECTURE.md` for deeper subsystem details.
+## Code conventions
+
+- Use the aliases in `tsconfig.json`: `@lib/*`, `@assets/*`, `@blocks/*`, `@config/*`, `@components/*`, `@services/*`, and `@utils/*`, especially for cross-top-level imports.
+- Follow the existing Pages Router patterns and the installed Next.js 16 APIs. Do not introduce App Router conventions.
+- Match the nearest existing route/component/service pattern, including data resolution, error handling, and public response shapes.
+- Keep Builder data resolution in `lib/resolve-builder-content.ts` and preserve the two established Shopify client patterns rather than rewriting the app onto only one client in an unrelated change.
+- Preserve API response shapes and existing cart, OAuth, webhook, and fallback behavior unless the task explicitly requires a change.
+
+## Browser validation
+
+- For frontend, routing, cart, authentication, responsive layout, and visual changes, use Playwright MCP against `npm run dev` at `http://localhost:3000`.
+- Capture a text/accessibility snapshot before interaction when an element's role or name is the important targeting signal; use the snapshot for browser actions and reserve screenshots for visual verification.
+- Verify the maintenance homepage at `/` separately from Builder-driven non-root routes. The root route bypasses `_app` and `_document`, while catch-all and native routes use the normal application shell.
+- Exercise relevant state transitions and API failures, not only the happy path. Cart changes should verify persistence/reconciliation, OAuth changes should verify redirect and callback behavior, and external integrations should avoid exposing secrets or upstream error details.
+- Run Playwright through a fresh isolated browser context when cookies or account state could affect results. Never reuse live credentials or production customer data.
+- Record only the branch, route, viewport, test flow, and pass/fail result in the handoff. Keep screenshots or downloaded artifacts out of source-control changes unless the task explicitly requires them.
+
+## Multi-agent workflow
+
+- Work in an isolated worktree and dedicated branch; do not modify another agent's worktree or push directly to `main`.
+- Before editing, check recent/open branches for overlapping files with `git log --all --oneline -- <path>` and `gh pr list`. Coordinating is required for shared areas such as `pages/[...path].tsx` and Shopify configuration.
+- Make focused changes, preserve unrelated work, and do not push again after a PR has merged.
+- `.githooks/` is configured by `npm install`: pre-commit runs staged secret/CI/ESLint/type checks, and pre-push runs the full suite. Use repository scripts instead of bypassing hooks.
+- Check `AGENT_WORKFLOW.md` and `CONTRIBUTING.md` for branch, validation, conflict, PR, and handoff requirements.
