@@ -4,5 +4,7 @@
 # Enabled automatically via `npm install` (the "prepare" script runs
 # scripts/setup-git-hooks.cjs, which sets core.hooksPath to .githooks).
 # Bypass in an emergency with: git commit --no-verify
-node scripts/ensure-executable-modes.cjs || exit $?
-exec node scripts/precheck.mjs --staged
+node_bin="${NODE_BINARY:-node}"
+"$node_bin" scripts/guard-protected-branch.cjs commit || exit $?
+"$node_bin" scripts/ensure-executable-modes.cjs || exit $?
+exec "$node_bin" scripts/precheck.mjs --staged
