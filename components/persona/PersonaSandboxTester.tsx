@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Play, CheckCircle2, AlertCircle, RefreshCw, Terminal, Cpu } from 'lucide-react'
+import { Play, AlertCircle, RefreshCw, Cpu } from 'lucide-react'
 import { VerificationStatusBadge, VerificationStatusType } from './VerificationStatusBadge'
 import { useAuth } from '../../hooks/useAuth'
 

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { ShieldCheck, Lock, UserCheck, Trash2, FileText, CheckCircle2, RefreshCw, Cpu, Award } from 'lucide-react'
+import { ShieldCheck, Lock, UserCheck, Trash2, FileText, CheckCircle2, RefreshCw } from 'lucide-react'
 import { VerificationStatusBadge } from '../persona/VerificationStatusBadge'
 import { useAuth } from '../../hooks/useAuth'
 import { useUserRole } from '../../hooks/useUserRole'

@@ -10,7 +10,6 @@ import { isAdminSession } from '../../../lib/tribal/admin-auth'
 function sanitizeAttributes(attributes: any) {
   if (!attributes) return {}
   const sanitized = { ...attributes }
-
   // Remove PII
   const piiFields = [
     'name-first', 'name-last', 'name-middle', 'birthdate',
