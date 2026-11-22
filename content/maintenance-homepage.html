@@ -21,7 +21,7 @@
   <header class="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
     <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/80 backdrop-blur-md border border-slate-200/80 rounded-2xl px-5 py-4 shadow-sm">
       <!-- Brand Identity -->
-      <a href="#" class="flex items-center gap-3 group focus:outline-none">
+      <a href="/" class="flex items-center gap-3 group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-600">
         <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-md group-hover:bg-brand-600 transition-colors">
           <!-- Precision Display & Circuit Emblem -->
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -81,11 +81,11 @@
         </p>
 
         <!-- Live Countdown Timer -->
-        <div class="mt-8 sm:mt-10" aria-label="Countdown to February 1, 2027">
-          <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
+        <section class="mt-8 sm:mt-10" aria-labelledby="countdown-label">
+          <p id="countdown-label" class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
             Estimated Relaunch Countdown (PT)
           </p>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-lg mx-auto">
+          <div id="maintenance-countdown" role="timer" aria-labelledby="countdown-label" aria-live="off" class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-lg mx-auto">
             <div class="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4">
               <span id="cd-days" class="block font-mono text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums">--</span>
               <span class="block text-xs font-medium text-slate-500 mt-1">Days</span>
@@ -103,7 +103,8 @@
               <span class="block text-xs font-medium text-slate-500 mt-1">Seconds</span>
             </div>
           </div>
-        </div>
+          <p id="countdown-status" role="status" aria-live="polite" class="sr-only"></p>
+        </section>
 
         <!-- Services Available During Limited Hours -->
         <div class="mt-9 sm:mt-10 pt-8 border-t border-slate-100 text-left max-w-xl mx-auto">
@@ -168,19 +169,20 @@
                 type="button"
                 id="copy-email-btn"
                 title="Copy Ryan's email address"
-                class="p-2 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-white border border-transparent hover:border-slate-200 transition shrink-0 cursor-pointer"
+                class="p-2 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-white border border-transparent hover:border-slate-200 transition shrink-0 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
               >
-                <span class="sr-only">Copy email</span>
-                <svg id="copy-icon" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <span class="sr-only">Copy Ryan&apos;s email address</span>
+                <svg id="copy-icon" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                 </svg>
-                <svg id="check-icon" class="w-4 h-4 text-emerald-600 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <svg id="check-icon" class="w-4 h-4 text-emerald-600 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </button>
             </div>
           </div>
+          <p id="copy-status" role="status" aria-live="polite" class="sr-only"></p>
 
           <p class="mt-4 text-xs text-slate-500">
             Support Hours: Wednesday – Friday, 10:00 AM – 6:00 PM PT &bull; All questions welcome
