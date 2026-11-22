@@ -35,7 +35,9 @@ Agents must:
 
 All non-trivial changes flow through a pull request. Reviewers should verify the exact head commit, inspect all review feedback, confirm checks are green, and avoid merging their own agent-authored pull requests.
 
-See [AGENT_WORKFLOW.md](AGENT_WORKFLOW.md) for the full workflow, including dependency-bump protocol, merge-conflict handling, and stale-branch cleanup.
+See [AGENT_WORKFLOW.md](AGENT_WORKFLOW.md) for the full workflow, including dependency-bump protocol, merge-conflict handling, PR overlap coordination, and stale-branch cleanup.
+
+The repository's `main` branch accepts reviewed pull requests only. Keep one canonical PR per feature, update it against current `main`, and squash merge it after required checks pass. Overlapping PRs receive a non-blocking report; coordinate with the other owner or consolidate dependent work before resolving the same files twice.
 
 ## Local pre-check (catch CI failures before you push)
 
