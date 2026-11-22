@@ -1,73 +1,93 @@
-    (function () {
-      // Set current year dynamically
-      const yearEl = document.getElementById('copyright-year');
-      if (yearEl) {
-        yearEl.textContent = new Date().getFullYear();
+(function () {
+  const yearEl = document.getElementById('copyright-year')
+  if (yearEl) yearEl.textContent = new Date().getFullYear()
+
+  const targetTimestamp = new Date('2027-02-01T00:00:00-08:00').getTime()
+  const daysEl = document.getElementById('cd-days')
+  const hoursEl = document.getElementById('cd-hours')
+  const minutesEl = document.getElementById('cd-minutes')
+  const secondsEl = document.getElementById('cd-seconds')
+  const countdownStatus = document.getElementById('countdown-status')
+  const countdownElements = [daysEl, hoursEl, minutesEl, secondsEl]
+  let countdownInterval
+
+  function padZero(value) {
+    return String(value).padStart(2, '0')
+  }
+
+  function updateCountdown() {
+    const difference = targetTimestamp - Date.now()
+    if (difference <= 0) {
+      countdownElements.forEach((element) => {
+        if (element) element.textContent = '00'
+      })
+      if (countdownStatus) {
+        countdownStatus.textContent = 'The estimated relaunch date has passed. Please contact us for current service availability.'
       }
+      if (countdownInterval) window.clearInterval(countdownInterval)
+      return
+    }
 
-      // Target Relaunch Date: February 1, 2027 at 00:00:00 Pacific Time (PST = UTC-8)
-      const targetTimestamp = new Date('2027-02-01T00:00:00-08:00').getTime();
+    const days = Math.floor(difference / (1000 * 60 * 60 * 24))
+    const hours = Math.floor((difference / (1000 * 60 * 60)) % 24)
+    const minutes = Math.floor((difference / (1000 * 60)) % 60)
+    const seconds = Math.floor((difference / 1000) % 60)
 
-      const daysEl = document.getElementById('cd-days');
-      const hoursEl = document.getElementById('cd-hours');
-      const minutesEl = document.getElementById('cd-minutes');
-      const secondsEl = document.getElementById('cd-seconds');
+    if (daysEl) daysEl.textContent = String(days)
+    if (hoursEl) hoursEl.textContent = padZero(hours)
+    if (minutesEl) minutesEl.textContent = padZero(minutes)
+    if (secondsEl) secondsEl.textContent = padZero(seconds)
+  }
 
-      function padZero(num) {
-        return String(num).padStart(2, '0');
-      }
+  if (countdownElements.some(Boolean)) {
+    updateCountdown()
+    if (targetTimestamp > Date.now()) {
+      countdownInterval = window.setInterval(updateCountdown, 1000)
+    }
+  }
 
-      function updateCountdown() {
-        const now = Date.now();
-        const diff = targetTimestamp - now;
+  const copyBtn = document.getElementById('copy-email-btn')
+  const copyIcon = document.getElementById('copy-icon')
+  const checkIcon = document.getElementById('check-icon')
+  const copyStatus = document.getElementById('copy-status')
 
-        if (diff <= 0) {
-          daysEl.textContent = '00';
-          hoursEl.textContent = '00';
-          minutesEl.textContent = '00';
-          secondsEl.textContent = '00';
-          return;
+  function announceCopyResult(success) {
+    if (copyIcon) copyIcon.classList.toggle('hidden', success)
+    if (checkIcon) checkIcon.classList.toggle('hidden', !success)
+    if (copyStatus) copyStatus.textContent = success ? 'Email address copied.' : 'Could not copy the email address. Please select and copy it.'
+  }
+
+  function fallbackCopy(email) {
+    const temporaryField = document.createElement('textarea')
+    temporaryField.value = email
+    temporaryField.setAttribute('readonly', '')
+    temporaryField.style.position = 'fixed'
+    temporaryField.style.opacity = '0'
+    document.body.appendChild(temporaryField)
+    temporaryField.select()
+    let copied = false
+    try {
+      copied = document.execCommand('copy')
+    } catch {
+      copied = false
+    }
+    temporaryField.remove()
+    return copied
+  }
+
+  if (copyBtn) {
+    copyBtn.addEventListener('click', async function () {
+      const email = 'ryan@displaycellpros.com'
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(email)
+          announceCopyResult(true)
+        } else {
+          announceCopyResult(fallbackCopy(email))
         }
-
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-        const minutes = Math.floor((diff / (1000 * 60)) % 60);
-        const seconds = Math.floor((diff / 1000) % 60);
-
-        daysEl.textContent = days;
-        hoursEl.textContent = padZero(hours);
-        minutesEl.textContent = padZero(minutes);
-        secondsEl.textContent = padZero(seconds);
+      } catch {
+        announceCopyResult(false)
       }
-
-      updateCountdown();
-      setInterval(updateCountdown, 1000);
-
-      // Copy Support Email Button using execCommand fallback for iframe compatibility
-      const copyBtn = document.getElementById('copy-email-btn');
-      const copyIcon = document.getElementById('copy-icon');
-      const checkIcon = document.getElementById('check-icon');
-
-      if (copyBtn) {
-        copyBtn.addEventListener('click', function () {
-          const emailText = 'ryan@displaycellpros.com';
-          const tempInput = document.createElement('input');
-          tempInput.value = emailText;
-          document.body.appendChild(tempInput);
-          tempInput.select();
-          try {
-            document.execCommand('copy');
-            copyIcon.classList.add('hidden');
-            checkIcon.classList.remove('hidden');
-            setTimeout(function () {
-              copyIcon.classList.remove('hidden');
-              checkIcon.classList.add('hidden');
-            }, 2000);
-          } catch (err) {
-            // Silently ignore if blocked
-          }
-          document.body.removeChild(tempInput);
-        });
-      }
-    })();
-  
+    })
+  }
+})()
