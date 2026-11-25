@@ -66,4 +66,20 @@ describe('Services & Discounts FAQ Education Hub', () => {
     expect(footerContent).toContain('20% Tribal Discount')
     expect(footerContent).toContain('Mail-In Device Repair')
   })
+
+  test('Footer, services, and services-faq include a Get a diagnosis link to /diagnosis', () => {
+    const footerContent = fs.readFileSync(path.resolve(__dirname, '../components/common/Footer.tsx'), 'utf8')
+    const servicesContent = fs.readFileSync(path.resolve(__dirname, '../pages/services.tsx'), 'utf8')
+    const faqContent = fs.readFileSync(pagePath, 'utf8')
+
+    expect(footerContent).toContain('id="footer-diagnosis-link"')
+    expect(footerContent).toContain('href="/diagnosis"')
+    expect(footerContent).toContain('Get a diagnosis')
+    expect(servicesContent).toContain('id="services-diagnosis-cta"')
+    expect(servicesContent).toContain('href="/diagnosis"')
+    expect(servicesContent).toContain('Get a diagnosis')
+    expect(faqContent).toContain('id="services-faq-diagnosis-cta"')
+    expect(faqContent).toContain('href="/diagnosis"')
+    expect(faqContent).toContain('Get a diagnosis')
+  })
 })
