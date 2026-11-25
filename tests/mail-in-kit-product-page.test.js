@@ -31,6 +31,9 @@ describe('Mail-In Diagnostic Kit product page', () => {
     expect(MAIL_IN_KIT_TURNAROUND_NOTICE).not.toMatch(/45–60 minutes/)
     expect(MAIL_IN_KIT_FALLBACK_IMAGE).toBe('/assets/logo-new.png')
     expect(fs.existsSync(path.resolve(__dirname, '../public/assets/logo-new.png'))).toBe(true)
+    const helper = fs.readFileSync(helperPath, 'utf8')
+    expect(helper).toContain("import { MAIL_IN_TERMS } from '../pricing/mail-in-policy'")
+    expect(helper).not.toContain('The $40 diagnostic fee is credited')
   })
 
   test('ProductDetail uses the helper and does not hard-code installation labor for the kit', () => {

@@ -5,6 +5,8 @@
  * must not be used for it.
  */
 
+import { MAIL_IN_TERMS } from '../pricing/mail-in-policy'
+
 export const MAIL_IN_DIAGNOSTIC_KIT_HANDLE = 'mail-in-diagnostic-kit'
 export const MAIL_IN_DIAGNOSTIC_KIT_SKU = 'SVC-MAILIN-DIAG'
 
@@ -14,8 +16,11 @@ export const MAIL_IN_DIAGNOSTIC_KIT_SKU = 'SVC-MAILIN-DIAG'
  */
 export const MAIL_IN_KIT_FALLBACK_IMAGE = '/assets/logo-new.png'
 
-export const MAIL_IN_KIT_TURNAROUND_NOTICE =
-  'Typical bench turnaround is 24–48 hours after we receive your device. The $40 diagnostic fee is credited toward an approved repair. If you cancel before your kit ships, you get a full refund. Once your kit ships, we keep the full $40. We pay return shipping.'
+export const MAIL_IN_KIT_TURNAROUND_LEAD =
+  'Typical bench turnaround is 24–48 hours after we receive your device.'
+
+/** Lead-in plus the shared mail-in fee terms (imported, not copied). */
+export const MAIL_IN_KIT_TURNAROUND_NOTICE = `${MAIL_IN_KIT_TURNAROUND_LEAD} ${MAIL_IN_TERMS}`
 
 type VariantEdge = {
   node?: { sku?: string | null } | null
