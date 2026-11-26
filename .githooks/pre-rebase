@@ -1,0 +1,5 @@
+#!/bin/sh
+# Git calls this with <upstream> [<branch>]. Check the branch being rebased
+# when supplied, otherwise check the currently checked-out branch.
+node_bin="${NODE_BINARY:-node}"
+exec "$node_bin" "$(dirname "$0")/../scripts/guard-protected-branch.cjs" rebase "${2:-}"

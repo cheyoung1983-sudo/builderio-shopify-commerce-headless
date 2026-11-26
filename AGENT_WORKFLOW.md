@@ -11,8 +11,10 @@ This repository uses isolated, pull-request-based collaboration for multi-agent 
 5. Inspect the current branch, working tree, and target pull request before editing.
 6. Preserve unrelated changes, files, and agent worktrees.
 7. Check for other recent or open branches touching the same files before starting (`git log --all --oneline -- <path>`, `gh pr list`). Multiple branches independently modifying the same file in overlapping, contradictory ways has already happened in this repo (`pages/[[...path]].tsx`, Shopify config). If another branch is already working in the same area, coordinate with it or wait rather than starting parallel work that will conflict.
+8. Keep one canonical PR per feature targeting `main`. For intentionally stacked PRs, target the dependent PR's branch and declare the dependency; do not open multiple copies of the same change directly against `main`. The PR overlap check reports shared files so owners can coordinate before resolving conflicts.
 
 Do not switch or rewrite another agent's branch. Do not copy changes between worktrees without explicit ownership and review.
+Never commit to or rebase the local `main`/`master` branch. The installed Git hooks reject both operations; make changes on a dedicated feature branch and integrate through a reviewed PR.
 
 ## Implementing a task
 
@@ -43,6 +45,8 @@ Use the repository package manager and scripts when they differ from these examp
 
 ## Pull requests
 
+The GitHub ruleset for `main` must require pull requests, require the `build` check from `.github/workflows/ci.yml`, and require branches to be up to date before merging. Block force pushes and branch deletion. Allow squash merging only and automatically delete head branches after merge. Do not set a minimum approval count that would prevent the sole maintainer from integrating reviewed work. The PR overlap report is advisory and is not a required status check.
+
 1. Commit work only to the agent's branch.
 2. Open or update a pull request targeting `main`.
 3. Include a concise summary, validation results, and known limitations.
@@ -61,6 +65,7 @@ Reviewers should evaluate feedback against the current code and original task. I
 - For lockfiles, prefer the target branch version when available, then reinstall with the repository package manager.
 - If a conflict is modify/delete and the target side is unavailable, stop and report the ambiguity rather than silently deleting work.
 - Run the full validation suite (see Validation) after conflict resolution — not just typecheck and lint.
+- Prefer squash merging after the PR is current with `main`. This keeps feature commits from being replayed through multiple overlapping branches.
 
 ## Stale branches
 
