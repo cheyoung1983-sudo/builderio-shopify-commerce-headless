@@ -1,0 +1,59 @@
+# Tribal discount guard
+#
+# Protects the live "Tribal Member Discount (20% repair)" automatic app
+# discount (Shopify Function extensions/tribal-discount from PR #72, app
+# version displaycellpros-5) and the code it depends on.
+#
+# Runs on EVERY pull request to main (no paths filter) so it can be a
+# required status check. It fails when a PR changes any protected path,
+# unless the PR carries the label `ryan-approved-tribal-change`.
+#
+# ONLY RYAN applies the `ryan-approved-tribal-change` label. No agent,
+# bot, or other contributor may add it on their own.
+name: Tribal discount guard
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  tribal-discount-guard:
+    name: tribal-discount-guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check changed files against protected tribal discount paths
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HAS_APPROVAL_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'ryan-approved-tribal-change') }}
+        run: |
+          set -euo pipefail
+          # Changed files vs the base branch, including the old name of renamed files.
+          gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files" \
+            --jq '.[] | .filename, (.previous_filename // empty)' | sort -u > changed.txt
+          echo "Changed files: $(wc -l < changed.txt)"
+
+          # Protected paths (extended regex, anchored).
+          PROTECTED='^(services/shopify-admin\.ts|lib/tribal/.*|pages/api/orders/track(\.[a-z]+|/.*)|pages/api/tribal/verify(\.[a-z]+|/.*)|pages/api/webhooks/shopify(\.[a-z]+|/.*)|extensions/tribal-discount/.*|shopify\.app\.toml|\.github/workflows/tribal-discount-guard\.yml)$'
+
+          if ! grep -E "$PROTECTED" changed.txt > matches.txt; then
+            echo "OK: no protected tribal discount files changed."
+            exit 0
+          fi
+
+          echo "This PR changes protected tribal discount files:"
+          sed 's/^/  - /' matches.txt
+
+          if [ "$HAS_APPROVAL_LABEL" = "true" ]; then
+            echo "Label 'ryan-approved-tribal-change' is present (applied by Ryan). Passing."
+            exit 0
+          fi
+
+          echo "::error title=Protected tribal discount files changed::Changing these files requires Ryan's explicit approval. Only Ryan applies the 'ryan-approved-tribal-change' label. See the 'Protected: Tribal Member 20% Discount' section of README.md."
+          exit 1

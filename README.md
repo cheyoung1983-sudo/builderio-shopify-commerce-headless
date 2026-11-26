@@ -180,6 +180,31 @@ Applied in `components/products/ProductCard.tsx`, `lib/image.ts`, `ProductGrid`,
 
 ---
 
+## Protected: Tribal Member 20% Discount
+
+The live 20% tribal discount is the **`extensions/tribal-discount` Shopify Function** added in **PR #72**, deployed as Shopify app version **`displaycellpros-5`**. In the store it is the **"Tribal Member Discount (20% repair)"** automatic app discount.
+
+- **Removing `extensions/tribal-discount/` or `shopify.app.toml` and then running `shopify app deploy` would publish an app version without the Function and kill the live discount.**
+- This discount and the code it depends on **must not be removed or modified without Ryan's explicit approval.**
+
+### Protected paths
+
+- `extensions/tribal-discount/**`
+- `shopify.app.toml`
+- `services/shopify-admin.ts`
+- `lib/tribal/**`
+- `pages/api/orders/track.ts`
+- `pages/api/tribal/verify.ts`
+- `pages/api/webhooks/shopify.ts`
+- `.github/workflows/tribal-discount-guard.yml` (the guard itself)
+
+### How it is enforced
+
+- The **`tribal-discount-guard`** GitHub Actions check (`.github/workflows/tribal-discount-guard.yml`) runs on every pull request to `main`. It fails if the PR changes any protected path and lists the matching files. It is a required status check on `main`.
+- The check passes on such a PR only when it carries the label **`ryan-approved-tribal-change`**. **Only Ryan applies this label.** No agent, bot, or other contributor may add it.
+
+Pinned issue: [#123 PROTECTED: Tribal 20% discount (PR #72): do not modify without Ryan's approval](https://github.com/cheyoung1983-sudo/builderio-shopify-commerce-headless/issues/123)
+
 ## 🔒 Security & Best Practices
 
 > [!IMPORTANT]
