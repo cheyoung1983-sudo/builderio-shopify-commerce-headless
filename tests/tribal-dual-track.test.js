@@ -23,7 +23,7 @@ function runTribalScript(testFnBody) {
   const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
     cwd: repoRoot,
     encoding: 'utf8',
-    env: { ...process.env, NODE_ENV: 'test' },
+    env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
   })
 
   return JSON.parse(output.trim())
@@ -132,7 +132,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const { windowRock, isWindowRockOnRes, sacaton, nyc, isNycOnRes } = JSON.parse(output.trim())
@@ -309,7 +309,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const { result, hash } = JSON.parse(output.trim())
@@ -375,7 +375,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const { qualifiedNavajo, offReservation } = JSON.parse(output.trim())
@@ -428,7 +428,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const { html, text, dispatch } = JSON.parse(output.trim())
@@ -482,7 +482,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const { errorResult, timeoutResult } = JSON.parse(output.trim())
@@ -532,7 +532,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const { csv, sampleCount } = JSON.parse(output.trim())
@@ -563,7 +563,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const { parsed } = JSON.parse(output.trim())
@@ -591,7 +591,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const { parsed } = JSON.parse(output.trim())
@@ -643,7 +643,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const result = JSON.parse(output.trim())
@@ -693,7 +693,7 @@ describe('Tribal Tax Exemption & Identity Discount System - Dual-Track Suite', (
       const output = execFileSync(process.execPath, ['--experimental-strip-types', '-e', script], {
         cwd: repoRoot,
         encoding: 'utf8',
-        env: { ...process.env, NODE_ENV: 'test' },
+        env: { ...process.env, NODE_ENV: 'test', TRIBAL_TAX_EXEMPT_ENABLED: 'true' },
       })
 
       const result = JSON.parse(output.trim())

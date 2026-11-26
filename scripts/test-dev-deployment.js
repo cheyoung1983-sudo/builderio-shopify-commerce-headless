@@ -125,11 +125,6 @@ async function runFunctionalTests(baseUrl, { allowDemo = false } = {}) {
       path: '/en-US/this-route-should-not-exist-4f8a',
       name: '404 handling',
       expectStatus: 404,
-      // pages/[[...path]].tsx is a catch-all with fallback:true and no
-      // notFound logic, so it currently renders a placeholder for any path
-      // instead of 404ing. That's a known app-level gap, not a deploy
-      // regression — don't fail the whole pipeline over it.
-      onMismatch: 'warn',
     })
   )
 

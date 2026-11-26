@@ -95,7 +95,16 @@ export default function ServicesPage() {
                 <li>We complete repairs, test, and ship it back via Priority Air.</li>
               </ol>
 
-              <div className="pt-2 border-t border-emerald-200/60 flex items-center justify-between text-xs">
+              <div className="pt-2 border-t border-emerald-200/60 flex flex-col gap-2 text-xs">
+                <Link
+                  href="/diagnosis"
+                  id="services-diagnosis-cta"
+                  className="text-emerald-800 font-semibold hover:underline inline-flex items-center gap-1"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Get a diagnosis</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
                 <Link
                   href="/services-faq"
                   className="text-emerald-800 font-semibold hover:underline inline-flex items-center gap-1"
