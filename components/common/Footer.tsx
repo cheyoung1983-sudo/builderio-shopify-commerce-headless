@@ -225,6 +225,16 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
               </li>
               <li>
                 <Link
+                  href="/diagnosis"
+                  id="footer-diagnosis-link"
+                  className="text-neutral-600 hover:text-neutral-950 transition-colors inline-flex items-center gap-1 font-medium"
+                >
+                  <ChevronRight className="w-3 h-3 text-neutral-400" />
+                  <span>Get a diagnosis</span>
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/tribal-discount"
                   className="text-amber-800 hover:text-amber-950 transition-colors inline-flex items-center gap-1 font-medium"
                 >

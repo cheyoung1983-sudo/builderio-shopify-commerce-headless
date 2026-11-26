@@ -5,7 +5,7 @@ const REPO_ROOT = path.resolve(__dirname, '..')
 const demoCatalogPath = path.join(REPO_ROOT, 'lib', 'shopify', 'demo-catalog.ts')
 const shopifyServicePath = path.join(REPO_ROOT, 'services', 'shopify.ts')
 const productsPagePath = path.join(REPO_ROOT, 'pages', 'products.tsx')
-const homepagePath = path.join(REPO_ROOT, 'pages', '[[...path]].tsx')
+const homepagePath = path.join(REPO_ROOT, 'pages', 'index.tsx')
 const liveUrlIndex = process.argv.indexOf('--url')
 const liveUrl = liveUrlIndex >= 0 ? process.argv[liveUrlIndex + 1] : null
 const allowDemo = process.argv.includes('--allow-demo')
@@ -19,7 +19,7 @@ function check(condition, message) {
 check(fs.existsSync(demoCatalogPath), 'demo catalog file is missing')
 check(fs.existsSync(shopifyServicePath), 'Shopify service is missing')
 check(fs.existsSync(productsPagePath), 'products page is missing')
-check(fs.existsSync(homepagePath), 'catch-all homepage route is missing')
+check(fs.existsSync(homepagePath), 'homepage route is missing')
 
 if (fs.existsSync(shopifyServicePath)) {
   const service = fs.readFileSync(shopifyServicePath, 'utf8')
