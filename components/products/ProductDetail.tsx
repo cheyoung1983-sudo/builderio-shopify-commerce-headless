@@ -39,6 +39,11 @@ import { ProductImageZoom } from './ProductImageZoom'
 import { Breadcrumbs } from '../common/Breadcrumbs'
 import { PRODUCT_IMAGE_BLUR_DATA_URL, RESPONSIVE_IMAGE_SIZES } from '../../lib/image'
 import { sanitizeRichText } from '../../lib/sanitize-html'
+import {
+  isMailInDiagnosticKit,
+  MAIL_IN_KIT_FALLBACK_IMAGE,
+  MAIL_IN_KIT_TURNAROUND_NOTICE,
+} from '../../lib/products/mail-in-kit'
 import { ProductRecommendationsCarousel } from './ProductRecommendationsCarousel'
 
 export interface ProductDetailProps {
@@ -166,6 +171,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     }
   }, [handle, initialProduct, loadProduct])
 
+  const isMailInKit = isMailInDiagnosticKit(product)
+
   // Extract all images for the gallery
   const images = useMemo(() => {
     if (!product) return []
@@ -181,6 +188,14 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         list.push(edge.node)
       }
     })
+    // The mail-in kit has no Shopify photo today; use a branded local fallback
+    // so the page does not show "No Image Available".
+    if (list.length === 0 && isMailInDiagnosticKit(product)) {
+      list.push({
+        url: MAIL_IN_KIT_FALLBACK_IMAGE,
+        altText: product.title || 'Mail-In Diagnostic Kit',
+      })
+    }
     return list
   }, [product])
 
@@ -579,9 +594,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               <div className="flex flex-col items-center gap-1">
                 <Wrench className="w-5 h-5 text-amber-600" />
                 <span className="text-[11px] font-semibold text-neutral-800">
-                  Labor Included
+                  {isMailInKit ? 'We Pay Return Shipping' : 'Labor Included'}
                 </span>
-                <span className="text-[10px] text-neutral-500">Pro Installation</span>
+                <span className="text-[10px] text-neutral-500">
+                  {isMailInKit ? '24–48h Bench Turnaround' : 'Pro Installation'}
+                </span>
               </div>
             </div>
           </div>
@@ -681,8 +698,14 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             <div className="flex items-center gap-2 text-xs text-neutral-600 bg-amber-50/70 border border-amber-200/60 p-2.5 rounded-lg mb-5">
               <Clock className="w-4 h-4 text-amber-600 flex-shrink-0" />
               <span>
-                Includes professional installation labor. Typical turnaround:{' '}
-                <strong className="text-neutral-800">45–60 minutes</strong>.
+                {isMailInKit ? (
+                  MAIL_IN_KIT_TURNAROUND_NOTICE
+                ) : (
+                  <>
+                    Includes professional installation labor. Typical turnaround:{' '}
+                    <strong className="text-neutral-800">45–60 minutes</strong>.
+                  </>
+                )}
               </span>
             </div>
 
