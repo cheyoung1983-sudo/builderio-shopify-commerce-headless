@@ -52,3 +52,4 @@ mutation {
 5. Tag products: `tribal-eligible` on screen/repair products; `trip-fee` on the trip fee; `battery-addon` on battery add-ons; `bundle` + `dcp.tribal_eligible_amount` on bundles; `mail-in` on mail-in products; `battery-repair` on battery-only repair products.
 
 Tests: `tests/tribal-discount-extension.test.js`.
+<!-- guard test: this PR must fail tribal-discount-guard; do not merge -->
