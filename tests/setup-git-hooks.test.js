@@ -88,6 +88,8 @@ describe('setup-git-hooks install script', () => {
     runSetup(root)
 
     expect(hooksPath(root)).toBe('.githooks')
-    expect(fs.statSync(path.join(root, '.githooks', 'pre-commit')).mode & 0o111).not.toBe(0)
+    if (process.platform !== 'win32') {
+      expect(fs.statSync(path.join(root, '.githooks', 'pre-commit')).mode & 0o111).not.toBe(0)
+    }
   })
 })

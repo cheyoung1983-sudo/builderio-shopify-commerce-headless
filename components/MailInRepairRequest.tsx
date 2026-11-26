@@ -427,9 +427,9 @@ export const MailInRepairRequest: React.FC<MailInRepairRequestProps> = ({
                 <Package className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-neutral-900">Free Prepaid Shipping Kit</h4>
+                <h4 className="text-sm font-bold text-neutral-900">Request a Shipping Kit</h4>
                 <p className="text-xs text-neutral-600 mt-0.5">
-                  We will mail you a secure corrugated box with ESD-safe bubble pouches and a Prepaid Shipping Label. {MAIL_IN_SHIPPING_POLICY}
+                  We will mail you a secure corrugated box with ESD-safe bubble pouches. {MAIL_IN_SHIPPING_POLICY}
                 </p>
               </div>
             </div>
