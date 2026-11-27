@@ -2,11 +2,13 @@
 
 This repository uses isolated, pull-request-based collaboration for multi-agent development.
 
+How Grok Bot teammates and external AI tools (Google AI Studio, Copilot, Claude, Qwen, and others) are supposed to work on this repo and the live site — including lanes, approvals, protected paths, secrets, and incident response — is in [docs/AI_AGENT_POLICY.md](docs/AI_AGENT_POLICY.md). This file covers the git and pull-request process. If the two conflict, the stricter rule wins.
+
 ## Before changing code
 
 1. Confirm the task scope and identify the files involved.
 2. Work in an isolated worktree with a dedicated branch.
-3. Use a distinct Git identity for the agent or session.
+3. Set author and committer only through the `GIT_AUTHOR_*` and `GIT_COMMITTER_*` environment vars, using the identity in [docs/AI_AGENT_POLICY.md](docs/AI_AGENT_POLICY.md). Do not run `git config`.
 4. Load the repository instructions in `AGENTS.md`, `CLAUDE.md`, and this guide.
 5. Inspect the current branch, working tree, and target pull request before editing.
 6. Preserve unrelated changes, files, and agent worktrees.

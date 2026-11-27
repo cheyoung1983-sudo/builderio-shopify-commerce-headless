@@ -8,6 +8,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+# Team AI agent policy
+
+How Grok Bot teammates and external AI tools work on this repo is in [docs/AI_AGENT_POLICY.md](docs/AI_AGENT_POLICY.md). Follow it together with [AGENT_WORKFLOW.md](AGENT_WORKFLOW.md). If anything conflicts, the stricter rule wins.
+
 # Superpowers Active Processing Skills
 
 <EXTREMELY_IMPORTANT>
