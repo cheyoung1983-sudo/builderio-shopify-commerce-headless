@@ -80,8 +80,10 @@ Ryan's typed OK is required for:
 - Taking checkout out of Shopify Payments test mode (see below)
 - Sending outgoing email, Slack, or other messages (draft them; do not send
   unless Ryan asked for that specific message)
-- Turning off maintenance mode, changing DNS, rotating or writing secrets in
-  Vercel or Shopify, or cutting over related sites
+- Turning off maintenance mode, changing DNS, writing secrets in Vercel
+  or Shopify, routine (non-leak) key rotation, or cutting over related
+  sites. After a confirmed Shopify or Vercel key leak, Flow may rotate
+  that key right away and tell Ryan afterward (see section 9.8).
 
 **Shopify Payments test mode (pending Ryan's confirmation):** Chief
 Operations proposes that checkout stay in Shopify Payments test mode until
@@ -191,7 +193,9 @@ Do not change `lib/maintenance.js` or the maintenance behavior in
 - This repo is public. Secret scanning and push protection are enabled on
   GitHub; do not try to bypass them.
 - Shopify, Vercel, and DNS credentials are Flow's lane. Do not write or
-  rotate them without Ryan's typed OK in Flow's chat.
+  rotate them without Ryan's typed OK in Flow's chat, except that Flow
+  may rotate a confirmed-leaked Shopify or Vercel key right away and
+  tell Ryan afterward (see section 9.8).
 - Pull requests that need a new environment variable must list it by name in
   the handoff. Flow adds it.
 - Never request or add the `write_orders` scope. Draft-order quotes use
@@ -265,10 +269,9 @@ log, or a pull request:
    Do not rebase or sync an old workspace onto the new history.
 8. Revoke or rotate the credential. Shopify and Vercel keys are Flow's lane.
    Google AI Studio tokens are session cookies: Ryan signs out of all Google
-   sessions on the affected account. **Key rotation after a confirmed leak is
-   an open decision for Ryan:** either Flow rotates immediately and tells him
-   afterward, or Flow waits for his typed OK. The current default is that
-   Flow waits.
+   sessions on the affected account. Per Ryan's decision on Nov 27, 2026 at
+   8:59 AM PT, Flow may rotate a confirmed-leaked Shopify or Vercel key
+   right away and tell Ryan afterward.
 
 ## 10. Maintenance mode
 
