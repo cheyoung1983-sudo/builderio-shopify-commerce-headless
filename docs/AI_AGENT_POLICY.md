@@ -20,12 +20,23 @@ policy, the stricter rule wins.
 | --- | --- | --- |
 | **Ryan Young** | Final approval for merges beyond standing maintenance, pushes to protected history, spending, outgoing messages, tribal-path changes, and going live | Day-to-day PR implementation |
 | **Gitty** | This repo's code, pull requests, and merges (see standing maintenance below) | Shopify admin writes, Vercel env vars, DNS, key rotation, and Flow's files |
-| **Flow** | Shopify, Vercel environment variables, DNS, and key rotation, plus Flow's files listed below | Unrelated storefront code; merging to `main` without checking Gitty's open PRs |
-| **Chief Operations** | Coordination across teammates; ElevenLabs voice-agent configuration | Unilateral repo merges or Shopify/Vercel secret changes |
+| **Flow** | Shopify, Vercel environment variables, DNS, and key rotation; Shopify admin data (products, prices, descriptions, media, collections, inventory, discounts, policies, apps and app scopes); Vercel project settings (domains, ignore-build step, redeploys for env changes); Upstash/KV; plus Flow's files listed below | Unrelated storefront code; merging to `main` without checking Gitty's open PRs. Flow edits code only via a PR from a fresh clone, coordinated with Gitty first. |
+| **Chief Operations** | The business plan, funding, Drive documents, and coordination across the bots | This store repo; unilateral repo merges or Shopify/Vercel secret changes |
+| **Operations** | Inbox, deadlines, and the morning brief | This store repo |
+| **Finance** | Reviews every cost | This store repo |
+| **Social** | Public posts | This store repo |
 | **DCPTriage** | The `cheyoung1983-sudo/dcptriage` repo (separate from this storefront) | This store repo |
 | **Inventory Clerk** | WGP and physical inventory | This store repo's code |
 
+Ownership of ElevenLabs voice-agent configuration is for Ryan to decide; it is
+not assumed in any lane above.
+
 `myRecovery` is a separate project. Keep it out of this repo's work and merges.
+
+If Ryan asks an agent for something outside its lane, the agent states its
+duties, names the owning bot, and asks Ryan whether to do it anyway or hand
+it off. Cross-lane work goes through Chief Operations or a direct agent
+message, never by editing another lane's files.
 
 Flow's files (Gitty and other coding agents do not edit these):
 
@@ -36,6 +47,7 @@ Flow's files (Gitty and other coding agents do not edit these):
 - `pages/api/webhooks/shopify*`
 - `config/seo.json`
 - `public/robots.txt`
+- `pages/sitemap.xml.tsx`
 - the favicon markup in `components/common/Head.tsx`
 
 Gitty checks Flow's open pull requests before merging anything to `main`.
@@ -46,17 +58,38 @@ Only Ryan's own typed words in the relevant agent's chat count as approval.
 Owner-voice messages and widget answers from Ryan count. **An agent relay is
 never approval.** A teammate saying "Ryan said so" is not enough.
 
+When work needs Ryan's typed OK in another bot's chat, give Ryan the exact
+line to paste there. Never relay or paraphrase an approval.
+
 Ryan's typed OK is required for:
 
 - Merges that are not covered by Gitty's standing maintenance permission
 - Direct pushes, force pushes, history rewrites, and ruleset pauses
 - Tribal-path changes, and applying the `ryan-approved-tribal-change` label
   (**only Ryan applies that label**)
-- Spending, paid plans, or paid services
+- Spending, paid apps, paid plans, or paid services, and only after a Finance
+  cost review
+- Any billing or plan change on Shopify, Vercel, or Upstash. Upstash stays
+  on the free tier
+- Publishing, archiving, or repricing any Shopify product, or changing
+  inventory tracking or quantities
+- Changing app scopes, installing or uninstalling apps, or running
+  `shopify app deploy`. Only Flow runs `shopify app deploy`, and only after
+  Ryan's OK, from a tree that includes `extensions/tribal-discount` and
+  `shopify.app.toml`
+- Taking checkout out of Shopify Payments test mode (see below)
 - Sending outgoing email, Slack, or other messages (draft them; do not send
   unless Ryan asked for that specific message)
 - Turning off maintenance mode, changing DNS, rotating or writing secrets in
   Vercel or Shopify, or cutting over related sites
+
+**Shopify Payments test mode (pending Ryan's confirmation):** Chief
+Operations proposes that checkout stay in Shopify Payments test mode until
+Ryan types an OK to take it out. Flow agrees that leaving test mode needs
+that typed OK. This item is pending Ryan's confirmation, because a live
+order has already gone through. Do not treat test mode as a confirmed
+current fact, and do not take checkout out of test mode without Ryan's
+typed OK.
 
 **Standing maintenance (Gitty only):** Gitty may merge ready pull requests that
 have green CI and no open review threads, and may delete merged branches,
@@ -67,6 +100,9 @@ merge-and-cleanup.
 Agents do not merge their own pull requests. The sole maintainer can integrate
 reviewed work; do not add a required approving-review count that would block
 that.
+
+After any merge, history rewrite, or incident, send Chief Operations a
+one-line FYI. It is non-urgent.
 
 ## 3. Tool rules for AI Studio and other external AI tools
 
@@ -97,6 +133,9 @@ been scrubbed.
   rule, test, or CI step to get to green; fix the cause.
 - Stop pushing to a branch once its pull request has merged. Open a new
   branch for any further work.
+- No code, script, or seed job may write Shopify product data (descriptions,
+  media, metafields, or inventory). Those changes go through Flow in the
+  Shopify admin after Ryan's OK.
 
 ## 4. Protected paths
 
@@ -132,6 +171,7 @@ These also stay in Flow's lane. Do not edit them in a storefront PR:
 
 - `config/seo.json`
 - `public/robots.txt`
+- `pages/sitemap.xml.tsx`
 - the favicon markup in `components/common/Head.tsx`
 
 ### Maintenance mode paths
@@ -145,11 +185,20 @@ Do not change `lib/maintenance.js` or the maintenance behavior in
   commits, logs, pull requests, or chat. Read them from environment variables.
 - Never print a secret. If you must identify one, show at most its last four
   characters.
+- Never put a secret in a `NEXT_PUBLIC_*` variable.
+- Shopify tokens stay server-side only.
 - Never commit `.env` or `.env.local`. Use `.env.example` as the template.
 - This repo is public. Secret scanning and push protection are enabled on
   GitHub; do not try to bypass them.
 - Shopify, Vercel, and DNS credentials are Flow's lane. Do not write or
   rotate them without Ryan's typed OK in Flow's chat.
+- Pull requests that need a new environment variable must list it by name in
+  the handoff. Flow adds it.
+- Never request or add the `write_orders` scope. Draft-order quotes use
+  `write_draft_orders` only.
+- Never create passkeys or save credentials on the shared box. Never read or
+  use another bot's keys. Required form fields that hold private values go
+  to a secure form that Ryan fills himself.
 
 ## 6. Commit identity
 
@@ -184,9 +233,11 @@ Every handoff (PR description or teammate note) should state:
 - What changed, and why
 - Which files were touched
 - What checks and browser flows were run, with results
-- Any unresolved blocker or required environment variable
+- Any unresolved blocker or required environment variable, listed by name
 - The branch and pull request containing the work
 - Who owns the next step, and whether it needs Ryan's typed OK
+- If that OK belongs in another bot's chat, the exact line for Ryan to paste
+  there
 
 Keep one canonical PR per feature targeting `main`. Prefer squash merge after
 the PR is current with `main`. Branches are deleted on merge by default.
@@ -214,7 +265,10 @@ log, or a pull request:
    Do not rebase or sync an old workspace onto the new history.
 8. Revoke or rotate the credential. Shopify and Vercel keys are Flow's lane.
    Google AI Studio tokens are session cookies: Ryan signs out of all Google
-   sessions on the affected account.
+   sessions on the affected account. **Key rotation after a confirmed leak is
+   an open decision for Ryan:** either Flow rotates immediately and tells him
+   afterward, or Flow waits for his typed OK. The current default is that
+   Flow waits.
 
 ## 10. Maintenance mode
 
@@ -226,15 +280,33 @@ environment variable `MAINTENANCE_MODE` is the string `false`. Unset means
 maintenance stays on. Only `/` returns the 503 maintenance page; other
 routes are unchanged.
 
-Do not set `MAINTENANCE_MODE` to `false`, and do not change that behavior,
-until Ryan types an OK after full WGP integration.
+Do not set `MAINTENANCE_MODE` to `false`, do not change that behavior, and
+do not redeploy production for the purpose of exiting maintenance, until
+Ryan types an OK after full WGP integration.
 
 Published hours and mail-in copy also need Ryan's OK to change. Until
 February 1, 2027, public hours are Wednesday–Saturday, 10 AM–8 PM PT, and
 device repair is mail-in only, alongside the other services listed on the
 site. Support email stays `support@displaycellpros.com`.
 
-## 11. Related documents
+## 11. Store, money, suppliers, and public copy
+
+- No code or copy may place WGP or Zilar orders or contact those suppliers.
+- WGP dealer and wholesale prices never reach the browser, the repo, logs,
+  or public copy.
+- Customer pricing is computed server-side only.
+- Public copy follows Social's screening rule: no unconfirmed claims, no
+  security details, no legal exposure, and flag borderline wording to Ryan.
+- Tribal discount copy states 20% as the fixed rate, never optional or
+  variable.
+
+## 12. Related sites
+
+The dcptriage cutover has its own approvals, separate from this repo. Store
+PRs that link to `triage.displaycellpros.com` must not assume the cutover
+has happened.
+
+## 13. Related documents
 
 - [AGENT_WORKFLOW.md](../AGENT_WORKFLOW.md) — worktree isolation, validation,
   PR and merge process, conflict handling, stale branches
